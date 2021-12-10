@@ -28,83 +28,16 @@
 
 #include <chrono>
 
-#define STB_IMAGE_IMPLEMENTATION
+#include "Graphics/Vulkan/Geometry.h"
+#include "Graphics/Vulkan/ResourceLoader.h"
+#include "Math/Matrix.h"
+
 #include <stb_image.h>
-
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
-
-
-struct Vertex {
-	glm::vec3 pos;
-	glm::vec3 color;
-	glm::vec2 texCoord;
-
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-		return bindingDescription;
-	}
-
-	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions{};
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, texCoord);
-		return attributeDescriptions;
-	}
-
-	bool operator==(const Vertex& other) const {
-		return pos == other.pos && color == other.color && texCoord == other.texCoord;
-	}
-};
-
-// Hash trait For Vertex
-namespace std {
-	template<> struct hash<Vertex> {
-		size_t operator()(Vertex const& vertex) const {
-			return ((hash<glm::vec3>()(vertex.pos) ^
-				(hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-				(hash<glm::vec2>()(vertex.texCoord) << 1);
-		}
-	};
-}
 
 struct UniformBufferObject {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
-};
-
-
-const std::vector<Vertex> testVertices = {
-	 {{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
-
-	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}}
-};
-
-const std::vector<uint16_t> testIndices = {
-	0, 1, 2, 2, 3, 0,
-	4, 5, 6, 6, 7, 4
 };
 
 
@@ -157,23 +90,6 @@ public:
 		return VK_FALSE;
 	}
 
-	static std::vector<char> readFile(const std::string& filename) {
-		std::ifstream file(filename, std::ios::ate | std::ios::binary);
-		
-		if (!file.is_open()) {
-			throw std::runtime_error("failed to open file!");
-		}
-
-		size_t fileSize = (size_t)file.tellg();
-		std::vector<char> buffer(fileSize);
-
-		file.seekg(0);
-		file.read(buffer.data(), fileSize);
-		file.close();
-
-		return buffer;
-	}
-
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
 		app->mFrameBufferResized_ = true;
@@ -206,7 +122,7 @@ private:
 		pickPhysicalDevice();
 		createLogicalDevice();
 		createSwapChain();
-		createImageViews();
+		createSwapChainImageViews();
 		createRenderPass();
 		createDescriptorSetLayout();
 		createGraphicsPipeline();
@@ -241,7 +157,7 @@ private:
 		cleanupSwapChain();
 
 		createSwapChain();
-		createImageViews();
+		createSwapChainImageViews();
 		createRenderPass();
 		createGraphicsPipeline();
 		createColorResources();
@@ -774,7 +690,7 @@ private:
 	}
 
 	// Image Views
-	void createImageViews() {
+	void createSwapChainImageViews() {
 		mSwapChainImageViews_.resize(mSwapChainImages_.size());
 
 		for (size_t i = 0; i < mSwapChainImages_.size(); i++) {
@@ -885,8 +801,8 @@ private:
 	}
 
 	void createGraphicsPipeline() {
-		auto vertShaderCode = readFile("Resource/shaders/vert.spv");
-		auto fragShaderCode = readFile("Resource/shaders/frag.spv");
+		auto vertShaderCode = ResourceLoader::readFile("Resource/shaders/vert.spv");
+		auto fragShaderCode = ResourceLoader::readFile("Resource/shaders/frag.spv");
 
 		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 		VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -966,8 +882,6 @@ private:
 		multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
 		multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-		// Depth and stencil testing
-
 		// Color blending
 		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -992,8 +906,8 @@ private:
 
 		// Dynamic state
 		VkDynamicState dynamicStates[] = {
-		VK_DYNAMIC_STATE_VIEWPORT,
-		VK_DYNAMIC_STATE_LINE_WIDTH
+			VK_DYNAMIC_STATE_VIEWPORT,
+			VK_DYNAMIC_STATE_LINE_WIDTH
 		};
 
 		VkPipelineDynamicStateCreateInfo dynamicState{};
@@ -1025,7 +939,6 @@ private:
 		depthStencil.stencilTestEnable = VK_FALSE;
 		depthStencil.front = {}; // Optional
 		depthStencil.back = {}; // Optional
-
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{};
 		pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -1147,7 +1060,6 @@ private:
 			VkBuffer vertexBuffers[] = { mVertexBuffer_ };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(mCommandBuffers_[i], 0, 1, vertexBuffers, offsets);
-			
 			vkCmdBindIndexBuffer(mCommandBuffers_[i], mIndexBuffer_, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdBindDescriptorSets(mCommandBuffers_[i], VK_PIPELINE_BIND_POINT_GRAPHICS, mPipelineLayout_, 0, 1, &mDescriptorSets_[i], 0, nullptr);
 			vkCmdDrawIndexed(mCommandBuffers_[i], static_cast<uint32_t>(mIndices_.size()), 1, 0, 0, 0);
@@ -1573,9 +1485,15 @@ private:
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo{};
-		ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		ubo.proj = glm::perspective(glm::radians(45.0f), mSwapChainExtent_.width / (float)mSwapChainExtent_.height, 0.1f, 10.0f);
+		
+		Matrix4x4 modelMat, viewMat, projMat;
+		modelMat = Matrix4x4::GenerateRotate(Matrix4x4(), time * glm::radians(90.0f), Vector3(0.0f, 0.0f, 1.0f));
+		viewMat = Matrix4x4::GenerateLookAt(Vector3(2.0f, 2.0f, 2.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f));
+		projMat = Matrix4x4::GeneratePerspective(glm::radians(45.0f), mSwapChainExtent_.width / (float)mSwapChainExtent_.height, 0.1f, 10.0f);
+
+		ubo.model = modelMat;
+		ubo.view = viewMat;
+		ubo.proj = projMat;
 		ubo.proj[1][1] *= -1;
 
 		void* data;
@@ -1710,42 +1628,8 @@ private:
 		endSingleTimeCommands(commandBuffer);
 	}
 
-	void loadModel() {
-		tinyobj::attrib_t attrib;
-		std::vector<tinyobj::shape_t> shapes;
-		std::vector<tinyobj::material_t> materials;
-		std::string err;
-
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &err, MODEL_PATH.c_str())) {
-			throw std::runtime_error(err);
-		}
-
-		std::unordered_map<Vertex, uint32_t> uniqueVertices{};
-
-		for (const auto& shape : shapes) {
-			for (const auto& index : shape.mesh.indices) {
-				Vertex vertex{};
-				vertex.pos = {
-				attrib.vertices[3 * index.vertex_index + 0],
-				attrib.vertices[3 * index.vertex_index + 1],
-				attrib.vertices[3 * index.vertex_index + 2]
-				};
-
-				vertex.texCoord = {
-					attrib.texcoords[2 * index.texcoord_index + 0],
-					1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-				};
-
-				vertex.color = { 1.0f, 1.0f, 1.0f };
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(mVertices_.size());
-					mVertices_.push_back(vertex);
-				}
-
-				mIndices_.push_back(uniqueVertices[vertex]);
-			}
-		}
+	inline void loadModel() {
+		ResourceLoader::loadModel(MODEL_PATH, mVertices_, mIndices_);
 	}
 
 	void generateMipmaps(VkImage image, VkFormat imageFormat, int32_t texWidth, int32_t texHeight, uint32_t mipLevels) {
@@ -1888,10 +1772,10 @@ private:
 	GLFWwindow* mWindow_{ nullptr };
 	VkInstance mInstance_;
 	VkDebugUtilsMessengerEXT mDebugMessenger_;
+	VkSurfaceKHR	mSurface_;
 	VkPhysicalDevice mPhysicalDevice_{ VK_NULL_HANDLE };
 	VkDevice	mDevice_;
 	VkQueue		mGraphicsQueue_;
-	VkSurfaceKHR	mSurface_;
 	VkQueue		mPresentQueue_;
 	VkSwapchainKHR	mSwapChain_;
 	std::vector<VkImage> mSwapChainImages_;
@@ -1940,6 +1824,13 @@ private:
 
 	VkSampleCountFlagBits mMsaaSamples_ = VK_SAMPLE_COUNT_1_BIT;
 };
+
+
+
+	int* ss() {
+		int a = 3;
+		return &a;
+	}
 
 
 int main() {
