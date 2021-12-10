@@ -1826,13 +1826,6 @@ private:
 };
 
 
-
-	int* ss() {
-		int a = 3;
-		return &a;
-	}
-
-
 int main() {
 	HelloTriangleApplication app;
 
