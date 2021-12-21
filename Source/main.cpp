@@ -28,9 +28,9 @@
 
 #include <chrono>
 
-#include "Graphics/Vulkan/Geometry.h"
-#include "Graphics/Vulkan/ResourceLoader.h"
-#include "Math/Matrix.h"
+#include "Graphics/Common/Include/Geometry.h"
+#include "Graphics/Common/Include/ResourceLoader.h"
+#include "Math/Include/Matrix.h"
 
 #include <stb_image.h>
 

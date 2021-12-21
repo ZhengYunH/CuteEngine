@@ -5,6 +5,7 @@
 namespace Setting
 {
 	static std::string AppTitle = "Vulkan";
+	static std::string EngineName = "VulkanEngineName";
 	static uint32_t AppWidth = 800;
 	static uint32_t AppHeight = 600;
 	static bool IsFullscreen = false;
