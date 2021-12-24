@@ -3,173 +3,145 @@
 #include <windows.h>
 #endif
 
-#include <iostream>
-#include <vector>
-#include <unordered_map>
-#include <map>
-#include <optional>
+#include "VulkanHeader.h"
+#include "VulkanTools.h"
+#include "Common/Setting.h"
+#include "Common/KeyCodes.h"
+#include "Camera/Camera.h"
 
-#include <vulkan/vulkan.h>
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
-#include "Common/Include/Setting.h"
-#include "Common/Include/KeyCodes.h"
-
-#include "Camera/Include/Camera.h"
-
-#include "VulkanDevice.h"
-
-
-
-namespace VKHelper {
-	VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-		const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-		auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-		if (func != nullptr) {
-			return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-		}
-		else {
-			return VK_ERROR_EXTENSION_NOT_PRESENT;
-		}
-	}
-
-	void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-		auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-		if (func != nullptr) {
-			func(instance, debugMessenger, pAllocator);
-		}
-	}
-}
-
-
-struct QueueFamilyIndices {
-	std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> presentFamily;
-	std::optional<uint32_t> computeFamily;
-	std::optional<uint32_t> trasnferFamily;
-
-	bool isComplete() {
-		return graphicsFamily.has_value() && presentFamily.has_value();
-	}
-};
-
-
-struct SwapChainSupportDetails {
-	VkSurfaceCapabilitiesKHR capabilities;
-	std::vector<VkSurfaceFormatKHR> formats;
-	std::vector<VkPresentModeKHR> presentModes;
-};
-
-
-class VulkanBase
+namespace zyh
 {
-	static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-	static VulkanBase* GVulkanInstance;
-	static void RegisterInstance(VulkanBase* instance)
+	class VulkanInstance;
+	class VulkanSurface;
+	class VulkanPhysicalDevice;
+	class VulkanLogicalDevice;
+	class VulkanSwapchain;
+	class VulkanCommandPool;
+	class VulkanImage;
+	class VulkanRenderPassBase;
+	class VulkanGraphicsPipeline;
+
+	struct SwapChainSupportDetails {
+		VkSurfaceCapabilitiesKHR capabilities;
+		std::vector<VkSurfaceFormatKHR> formats;
+		std::vector<VkPresentModeKHR> presentModes;
+	};
+
+
+	class VulkanBase
 	{
-		GVulkanInstance = instance;
-	}
+		static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		static VulkanBase* GVulkanInstance;
+		static void registerInstance(VulkanBase* instance)
+		{
+			GVulkanInstance = instance;
+		}
 
-	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-		VkDebugUtilsMessageTypeFlagsEXT messageType,
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-		void* pUserData
-	) {
-		if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
-			std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+		
 
-		return VK_FALSE;
-	}
+	public:
+		VulkanBase() {};
+		virtual ~VulkanBase();
 
-public:
-	virtual void run(HINSTANCE hinstance)
-	{
-		RegisterInstance(this);
-		initVulkan();
-		initWindow(hinstance);
-		prepare();
-		mainLoop();
-		cleanup();
-	}
+		virtual void run(HINSTANCE hinstance)
+		{
+			registerInstance(this);
+			initVulkan();
+			initWindow(hinstance);
+			setupVulkan();
 
-protected:
-	virtual void initVulkan()
-	{
-		createInstance();
-		setupDebugMessenger();
-		pickPhysicalDevice();
-	}
+			prepare();
+			mainLoop();
+			cleanup();
+		}
 
-	virtual void initWindow(HINSTANCE hinstance)
-	{
-		setupWindow(hinstance, WndProc);
-	}
+	protected:
+		virtual void initVulkan();
+		virtual void initWindow(HINSTANCE hinstance)
+		{
+			setupWindow(hinstance, WndProc);
+		}
+		virtual void setupVulkan();
+		virtual void prepare();
+		virtual void mainLoop();
+		virtual void cleanup();
+		virtual void windowResize();
 
+	protected: // Device Relate
+		VkInstance mInstance_;
+		VkDebugUtilsMessengerEXT mDebugMessenger_;
 
-	virtual void prepare()
-	{
-	}
+		/** @brief Encapsulated instance */
+		VulkanInstance* mInstance_;
 
-	virtual void mainLoop() 
-	{
-	}
+		VulkanSurface* mSurface_;
 
-	virtual void cleanup()
-	{
-	}
+		/** @brief Encapsulated physical device */
+		VulkanPhysicalDevice* mPhysicalDevice_; 
 
-	virtual void windowResize()
-	{
-	}
+		/** @brief Encapsulated logical device */
+		VulkanLogicalDevice* mLogicalDevice_;
 
-protected: // Device Relate
-	VkInstance mInstance_;
-	VkDebugUtilsMessengerEXT mDebugMessenger_;
-	VkPhysicalDevice mPhysicalDevice_{ VK_NULL_HANDLE };
+		/** @brief Encapsulated swapchain*/
+		VulkanSwapchain* mSwapchain_;
 
-protected: // Window Relate
+		/** @brief Encapsulated command pool*/
+		VulkanCommandPool* mGraphicsCommandPool_;
+
+		VulkanImage* mDepthStencil_;
+
+		VulkanRenderPassBase* mRenderPass_;
+
+		VulkanGraphicsPipeline* mGraphicsPipeline_;
+
+		/** @brief Synchronization Objects*/
+		const int MAX_FRAMES_IN_FLIGHT = 2;
+		std::vector<VkSemaphore> mImageAvailableSemaphores_;
+		std::vector<VkSemaphore> mRenderFinishedSemaphores_;
+		std::vector<VkFence> mInFlightFences_;
+		std::vector<VkFence> mImagesInFights_;
+
+	protected: // Window Relate
 #if defined(_WIN32)
-	HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
-	virtual void handleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
+		virtual void handleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-	HWND mWindow_;
-	HINSTANCE mWindowInstance_;
+		HWND mWindow_;
+		HINSTANCE mWindowInstance_;
 #endif
+		virtual VkSampleCountFlagBits getMsaaSamples();
+		virtual VkFormat getDepthFormat();
 
-protected:
-	bool mIsPaused_{ false };
-	bool mIsResizing_{ false };
-	bool mEnableValidationLayers_{ Setting::IsDebugMode };
-	Camera mCamera_;
+	protected:
+		bool mIsPaused_{ false };
+		bool mIsResizing_{ false };
+		bool mEnableValidationLayers_{ Setting::IsDebugMode };
+		Camera mCamera_;
 
+		TCache<VkSampleCountFlagBits> mMsaaSamples_;
+		TCache<VkFormat> mDepthFromat_;
 
-private:
-	const std::vector<const char*> mValidationLayers_ = {
-		"VK_LAYER_KHRONOS_validation",
+	private:
+		const std::vector<const char*> mValidationLayers_ = {
+			"VK_LAYER_KHRONOS_validation",
+		};
+		const std::vector<const char*> mDeviceExtensions_ = {
+			VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+		};
+
+	private:
+		void setupDepthStencil();
+		// TODO: Encapsulated or insert to any class
+		void createSyncObjects();
+
+	// impl
+	private:
+		VulkanImage mColorResources_;
+		void createColorResources();
+
+		VulkanImage mDepthResources_;
+		void createDepthResources();
 	};
-	const std::vector<const char*> mDeviceExtensions_ = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	};
 
-private:
-	void createInstance();
-	void setupDebugMessenger();
-	void pickPhysicalDevice();
-
-private:
-	// Helper Function
-	bool checkValidationLayerSupport();
-	std::vector<const char*> getRequiredExtensions();
-	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-
-	bool checkExtensionsSupport(const char** extensionNames, const uint32_t extensionCount);
-	bool checkExtensionSupport(const char* extensionName);
-
-	int rateDeviceSuitability(VkPhysicalDevice device);
-	bool isDeviceSuitable(VkPhysicalDevice device);
-	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device);
-};
-
-VulkanBase*  VulkanBase::GVulkanInstance = nullptr;
+	VulkanBase* VulkanBase::GVulkanInstance = nullptr;
+}

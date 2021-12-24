@@ -1,147 +1,135 @@
-#include "VulkanSwapChain.h"
+#include "VulkanSwapchain.h"
+#include "VulkanInstance.h"
+#include "VulkanPhysicalDevice.h"
+#include "VulkanLogicalDevice.h"
+#include "VulkanRenderPass.h"
+
 
 namespace zyh
 {
-
-	void VulkanSwapChain::initSurface(void* platformHandle, void* platformWindow)
+	void VulkanSwapchain::connect(
+		VulkanInstance* instance, VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice)
 	{
-		VkResult err = VK_SUCCESS;
+		mVulkanInstance_ = instance;
+		mVulkanPhysicalDevice_ = physicalDevice;
+		mVulkanLogicalDevice_ = logicalDevice;
+
+		auto vkInstance = mVulkanInstance_->Get();
+		auto vkDevice = mVulkanLogicalDevice_->Get();
+
+		fpGetPhysicalDeviceSurfaceSupportKHR = reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceSupportKHR>(vkGetInstanceProcAddr(vkInstance, "vkGetPhysicalDeviceSurfaceSupportKHR"));
+		fpGetPhysicalDeviceSurfaceCapabilitiesKHR = reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR>(vkGetInstanceProcAddr(vkInstance, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR"));
+		fpGetPhysicalDeviceSurfaceFormatsKHR = reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceFormatsKHR>(vkGetInstanceProcAddr(vkInstance, "vkGetPhysicalDeviceSurfaceFormatsKHR"));
+		fpGetPhysicalDeviceSurfacePresentModesKHR = reinterpret_cast<PFN_vkGetPhysicalDeviceSurfacePresentModesKHR>(vkGetInstanceProcAddr(vkInstance, "vkGetPhysicalDeviceSurfacePresentModesKHR"));
+
+		fpCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(vkGetDeviceProcAddr(vkDevice, "vkCreateSwapchainKHR"));
+		fpDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(vkGetDeviceProcAddr(vkDevice, "vkDestroySwapchainKHR"));
+		fpGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(vkGetDeviceProcAddr(vkDevice, "vkGetSwapchainImagesKHR"));
+		fpAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(vkGetDeviceProcAddr(vkDevice, "vkAcquireNextImageKHR"));
+		fpQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(vkGetDeviceProcAddr(vkDevice, "vkQueuePresentKHR"));
+	}
+
+
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
-		VkWin32SurfaceCreateInfoKHR surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-		surfaceCreateInfo.hinstance = (HINSTANCE)platformHandle;
-		surfaceCreateInfo.hwnd = (HWND)platformWindow;
-		err = vkCreateWin32SurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-		VkAndroidSurfaceCreateInfoKHR surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
-		surfaceCreateInfo.window = window;
-		err = vkCreateAndroidSurfaceKHR(instance, &surfaceCreateInfo, NULL, &surface);
-#elif defined(VK_USE_PLATFORM_IOS_MVK)
-		VkIOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_IOS_SURFACE_CREATE_INFO_MVK;
-		surfaceCreateInfo.pNext = NULL;
-		surfaceCreateInfo.flags = 0;
-		surfaceCreateInfo.pView = view;
-		err = vkCreateIOSSurfaceMVK(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_MACOS_MVK)
-		VkMacOSSurfaceCreateInfoMVK surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
-		surfaceCreateInfo.pNext = NULL;
-		surfaceCreateInfo.flags = 0;
-		surfaceCreateInfo.pView = view;
-		err = vkCreateMacOSSurfaceMVK(instance, &surfaceCreateInfo, NULL, &surface);
-#elif defined(_DIRECT2DISPLAY)
-		createDirect2DisplaySurface(width, height);
-#elif defined(VK_USE_PLATFORM_DIRECTFB_EXT)
-		VkDirectFBSurfaceCreateInfoEXT surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_DIRECTFB_SURFACE_CREATE_INFO_EXT;
-		surfaceCreateInfo.dfb = dfb;
-		surfaceCreateInfo.surface = window;
-		err = vkCreateDirectFBSurfaceEXT(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_WAYLAND_KHR)
-		VkWaylandSurfaceCreateInfoKHR surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-		surfaceCreateInfo.display = display;
-		surfaceCreateInfo.surface = window;
-		err = vkCreateWaylandSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
-		VkXcbSurfaceCreateInfoKHR surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
-		surfaceCreateInfo.connection = connection;
-		surfaceCreateInfo.window = window;
-		err = vkCreateXcbSurfaceKHR(instance, &surfaceCreateInfo, nullptr, &surface);
-#elif defined(VK_USE_PLATFORM_HEADLESS_EXT)
-		VkHeadlessSurfaceCreateInfoEXT surfaceCreateInfo = {};
-		surfaceCreateInfo.sType = VK_STRUCTURE_TYPE_HEADLESS_SURFACE_CREATE_INFO_EXT;
-		PFN_vkCreateHeadlessSurfaceEXT fpCreateHeadlessSurfaceEXT = (PFN_vkCreateHeadlessSurfaceEXT)vkGetInstanceProcAddr(instance, "vkCreateHeadlessSurfaceEXT");
-		if (!fpCreateHeadlessSurfaceEXT) {
-			vks::tools::exitFatal("Could not fetch function pointer for the headless extension!", -1);
-		}
-		err = fpCreateHeadlessSurfaceEXT(instance, &surfaceCreateInfo, nullptr, &surface);
-#endif
-		if (err != VK_SUCCESS) {
-			zyh::tools::exitFatal("Could not create surface!", err);
-		}
-	}
-
-	void VulkanSwapChain::connect(VkInstance instance, VkPhysicalDevice physicsDevice, VkDevice device)
+	void VulkanSwapchain::setup(uint32_t* width, uint32_t* height, bool vsync = false)
 	{
-		mInstance_ = instance;
-		mPhysicalDevice_ = physicsDevice;
-		mDevice_ = device;
+		VkSwapchainKHR oldSwapchain = mVkImpl_;
+		VK_CHECK_RESULT(_createSwapchain(width, height, vsync));
+		_destroyOldSwapchain(oldSwapchain, mBuffers_);
+		VK_CHECK_RESULT(_createSwapchainImages());
 
-		fpGetPhysicalDeviceSurfaceSupportKHR = reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceSupportKHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceSurfaceSupportKHR"));
-		fpGetPhysicalDeviceSurfaceCapabilitiesKHR = reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR"));
-		fpGetPhysicalDeviceSurfaceFormatsKHR = reinterpret_cast<PFN_vkGetPhysicalDeviceSurfaceFormatsKHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceSurfaceFormatsKHR"));
-		fpGetPhysicalDeviceSurfacePresentModesKHR = reinterpret_cast<PFN_vkGetPhysicalDeviceSurfacePresentModesKHR>(vkGetInstanceProcAddr(instance, "vkGetPhysicalDeviceSurfacePresentModesKHR"));
-
-		fpCreateSwapchainKHR = reinterpret_cast<PFN_vkCreateSwapchainKHR>(vkGetDeviceProcAddr(device, "vkCreateSwapchainKHR"));
-		fpDestroySwapchainKHR = reinterpret_cast<PFN_vkDestroySwapchainKHR>(vkGetDeviceProcAddr(device, "vkDestroySwapchainKHR"));
-		fpGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(vkGetDeviceProcAddr(device, "vkGetSwapchainImagesKHR"));
-		fpAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(vkGetDeviceProcAddr(device, "vkAcquireNextImageKHR"));
-		fpQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(vkGetDeviceProcAddr(device, "vkQueuePresentKHR"));
-	}
-
-	void VulkanSwapChain::create(uint32_t* width, uint32_t* height, bool vsync /*= false*/)
-	{
-		HYBRID_CHECK(mInstance_);
-		
-		VK_CHECK_RESULT(_createSwapChain(width, height, vsync));
-		_destroySwapChain(swapChain, buffers);
-		VK_CHECK_RESULT(_createSwapChainImages(width, height, vsync));
-	}
-
-	void VulkanSwapChain::cleanup()
-	{
-
-	}
-
-	const SwapChainSupportDetails& VulkanSwapChain::querySwapChainSupport()
-	{
-		if (!mSwapChainSupportDetails_.isValid)
+		// set attribute
+		QueueFamilyIndices indice = mVulkanPhysicalDevice_->findQueueFamilies();
+		if (!indice->graphicsFamily || !indice->presentFamily)
 		{
-			HYBRID_CHECK(mPhysicalDevice_);
-			HYBRID_CHECK(mSurface_);
+			tools::exitFatal("Could not find a graphics and/or presenting queue!");
+		}
 
-			SwapChainSupportDetails& details = mSwapChainSupportDetails_;
+		const VkSurfaceFormatKHR& surfaceFormat = getSwapSurfaceFormat();
+		mColorFormat_ = surfaceFormat.format;
+		mColorSpace_ = surfaceFormat.colorSpace;
+	}
+#endif 
 
-			// simply query capabilities
-			fpGetPhysicalDeviceSurfaceCapabilitiesKHR(mPhysicalDevice_, mSurface_, &details.capabilities);
+	void VulkanSwapchain::cleanup()
+	{
 
-			// query the supported surface formats
-			uint32_t formatCount;
-			fpGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice_, mSurface_, &formatCount, nullptr);
-			if (formatCount > 0) {
-				details.formats.resize(formatCount);
-				fpGetPhysicalDeviceSurfaceFormatsKHR(mPhysicalDevice_, mSurface_, &formatCount, details.formats.data());
-			}
+	}
 
-			// query the supported presentation modes
-			uint32_t presentModeCount;
-			fpGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice_, mSurface_, &presentModeCount, nullptr);
-			if (presentModeCount > 0) {
-				details.presentModes.resize(presentModeCount);
-				fpGetPhysicalDeviceSurfacePresentModesKHR(mPhysicalDevice_, mSurface_, &presentModeCount, details.presentModes.data());
-			}
+	void VulkanSwapchain::setupFrameBuffer(VulkanRenderPassBase& renderPass, std::vector<VkImageView>& attachments)
+	{
 
-			mSwapChainSupportDetails_.isValid = true;
+		for (auto& buffer : mBuffers_)
+		{
+			std::vector<VkImageView> fullAttachments(attachments.begin(), attachments.end());
+			fullAttachments.push_back(buffer.view);
+
+			VkFramebufferCreateInfo framebufferInfo{};
+			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+			framebufferInfo.renderPass = renderPass.Get();
+			framebufferInfo.attachmentCount = static_cast<uint32_t>(fullAttachments.size());;
+			framebufferInfo.pAttachments = fullAttachments.data();
+			framebufferInfo.width = mExtend2D_.width;
+			framebufferInfo.height = mExtend2D_.height;
+			framebufferInfo.layers = 1;
+
+			VK_CHECK_RESULT(vkCreateFramebuffer(mVulkanLogicalDevice_->Get(), &framebufferInfo, nullptr, &buffer.buffer), "failed to create framebuffer!");
+		}
+	}
+
+	SwapChainSupportDetails VulkanSwapchain::querySwapChainSupport(VkPhysicalDevice device)
+	{
+		SwapChainSupportDetails details;
+
+		HYBRID_CHECK(device);
+		HYBRID_CHECK(mSurface_);
+
+		SwapChainSupportDetails& details = mSwapChainSupportDetails_;
+
+		// simply query capabilities
+		fpGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mSurface_, &details->capabilities);
+
+		// query the supported surface formats
+		uint32_t formatCount;
+		fpGetPhysicalDeviceSurfaceFormatsKHR(device, mSurface_, &formatCount, nullptr);
+		if (formatCount > 0) {
+			details->formats.resize(formatCount);
+			fpGetPhysicalDeviceSurfaceFormatsKHR(device, mSurface_, &formatCount, details->formats.data());
+		}
+
+		// query the supported presentation modes
+		uint32_t presentModeCount;
+		fpGetPhysicalDeviceSurfacePresentModesKHR(device, mSurface_, &presentModeCount, nullptr);
+		if (presentModeCount > 0) {
+			details->presentModes.resize(presentModeCount);
+			fpGetPhysicalDeviceSurfacePresentModesKHR(device, mSurface_, &presentModeCount, details->presentModes.data());
+		}
+		details.IsValid(true);
+
+		return details;
+	}
+
+	const SwapChainSupportDetails& VulkanSwapchain::querySwapChainSupport()
+	{
+		if (!mSwapChainSupportDetails_.IsValid())
+		{
+			mSwapChainSupportDetails_ = querySwapChainSupport(mVulkanPhysicalDevice_->Get());
 		}
 		return mSwapChainSupportDetails_;
 	}
 
-	VkResult VulkanSwapChain::acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t* imageIndex)
+	VkResult VulkanSwapchain::acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t* imageIndex)
 	{
-		return fpAcquireNextImageKHR(mDevice_, swapChain, UINT64_MAX, presentCompleteSemaphore, VK_NULL_HANDLE, imageIndex);
+		return fpAcquireNextImageKHR(mVulkanLogicalDevice_->Get(), mVkImpl_, UINT64_MAX, presentCompleteSemaphore, VK_NULL_HANDLE, imageIndex);
 	}
 
-	VkResult VulkanSwapChain::queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore /*= VK_NULL_HANDLE*/)
+	VkResult VulkanSwapchain::queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore /*= VK_NULL_HANDLE*/)
 	{
 		VkPresentInfoKHR presentInfo = {};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 		presentInfo.pNext = NULL;
 		presentInfo.swapchainCount = 1;
-		presentInfo.pSwapchains = &swapChain;
+		presentInfo.pSwapchains = &mVkImpl_;
 		presentInfo.pImageIndices = &imageIndex;
 		// Check if a wait semaphore has been specified to wait for before presenting the image
 		if (waitSemaphore != VK_NULL_HANDLE)
@@ -152,17 +140,53 @@ namespace zyh
 		return fpQueuePresentKHR(queue, &presentInfo);
 	}
 
-	VkSurfaceFormatKHR VulkanSwapChain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+	uint32_t VulkanSwapchain::getImageCount()
 	{
-		for (const auto& availableFormat : availableFormats) {
+		if (!mImageCount_.IsValid())
+		{
+			HYBRID_CHECK(mVulkanLogicalDevice_);
+			VK_CHECK_RESULT(fpGetSwapchainImagesKHR(mVulkanLogicalDevice_->Get(), mVkImpl_, &(*mImageCount_), NULL));
+		}
+		return *mImageCount_;
+	}
+
+	VkSurfaceFormatKHR VulkanSwapchain::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+	{
+		HYBRID_CHECK(availableFormats.size() > 0);
+
+		// If the surface format list only includes one entry with VK_FORMAT_UNDEFINED,
+		// there is no preferred format, so we assume VK_FORMAT_B8G8R8A8_UNORM
+		if (availableFormats.size() == 1 && availableFormats[0].format == VK_FORMAT_UNDEFINED)
+		{
+			return VkSurfaceFormatKHR{
+				VK_FORMAT_B8G8R8A8_UNORM,
+				availableFormats[0].colorSpace
+			};
+		}
+
+		// iterate over the list of available surface format and
+		// check for the presence of VK_FORMAT_B8G8R8A8_UNORM // VK_FORMAT_B8G8R8_SRGB
+		for (const auto& availableFormat : availableFormats)
+		{
 			if (availableFormat.format == VK_FORMAT_B8G8R8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 				return availableFormat;
 		}
-
+		
 		return availableFormats[0];
 	}
 
-	VkPresentModeKHR VulkanSwapChain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, bool vsync /*= false*/)
+	const VkSurfaceFormatKHR& VulkanSwapchain::getSwapSurfaceFormat()
+	{
+		if (!mSurfaceFormat_.IsValid())
+		{
+			const SwapChainSupportDetails& swapChainSupport = querySwapChainSupport();
+			*mSurfaceFormat_ = chooseSwapSurfaceFormat(swapChainSupport->formats);
+			mSurfaceFormat_.IsValid(true);
+		}
+		return *mSurfaceFormat_;
+	}
+
+	VkPresentModeKHR VulkanSwapchain::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, bool vsync /*= false*/)
 	{
 		VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -185,11 +209,12 @@ namespace zyh
 		return presentMode;
 	}
 
-	VkExtent2D VulkanSwapChain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t* width, uint32_t* height)
+	VkExtent2D VulkanSwapchain::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t* width, uint32_t* height)
 	{
 		if (capabilities.currentExtent.width != UINT32_MAX) {
 			*width = capabilities.currentExtent.width;
 			*height = capabilities.currentExtent.height;
+			return capabilities.currentExtent;
 		}
 		else {
 			VkExtent2D actualExtent = { *width, *height };
@@ -201,7 +226,7 @@ namespace zyh
 		}
 	}
 
-	VkSurfaceTransformFlagBitsKHR VulkanSwapChain::choosePreTransform(const VkSurfaceCapabilitiesKHR& capabilities)
+	VkSurfaceTransformFlagBitsKHR VulkanSwapchain::choosePreTransform(const VkSurfaceCapabilitiesKHR& capabilities)
 	{
 		if (capabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
 		{
@@ -214,7 +239,7 @@ namespace zyh
 		}
 	}
 
-	VkCompositeAlphaFlagBitsKHR VulkanSwapChain::chooseCompositeAlpha(const VkSurfaceCapabilitiesKHR& capabilities)
+	VkCompositeAlphaFlagBitsKHR VulkanSwapchain::chooseCompositeAlpha(const VkSurfaceCapabilitiesKHR& capabilities)
 	{
 		// Find a supported composite alpha format (not all devices support alpha opaque)
 		VkCompositeAlphaFlagBitsKHR compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
@@ -235,23 +260,23 @@ namespace zyh
 		return compositeAlpha;
 	}
 
-	uint32_t VulkanSwapChain::getMinImageCount(const VkSurfaceCapabilitiesKHR& capabilities)
+	uint32_t VulkanSwapchain::getMinImageCount(const VkSurfaceCapabilitiesKHR& capabilities)
 	{
 		uint32_t desiredNumberOfSwapchainImages = capabilities.minImageCount + 1;
-		if (capabilities.maxImageCount > 0 && imageCount > capabilities.maxImageCount) {
+		if (capabilities.maxImageCount > 0 && desiredNumberOfSwapchainImages > capabilities.maxImageCount) {
 			desiredNumberOfSwapchainImages = capabilities.maxImageCount;
 		}
 		return desiredNumberOfSwapchainImages;
 	}
 
-	VkResult VulkanSwapChain::_createSwapChain(uint32_t* width, uint32_t* height, bool vsync /*= false*/)
+	VkResult VulkanSwapchain::_createSwapchain(uint32_t* width, uint32_t* height, bool vsync /*= false*/)
 	{
-		VkSwapchainKHR oldSwapchain = swapChain;
+		VkSwapchainKHR oldSwapchain = mVkImpl_;
 
 		const SwapChainSupportDetails& swapChainSupport = querySwapChainSupport();
-		const VkSurfaceCapabilitiesKHR& surfCaps = swapChainSupport.capabilities;
-
-		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+		const VkSurfaceCapabilitiesKHR& surfCaps = swapChainSupport->capabilities;
+		const VkSurfaceFormatKHR& surfaceFormat = getSwapSurfaceFormat();
+		mExtend2D_ = chooseSwapExtent(surfCaps, width, height);
 
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -259,12 +284,12 @@ namespace zyh
 		createInfo.minImageCount = getMinImageCount(surfCaps);
 		createInfo.imageFormat = surfaceFormat.format;
 		createInfo.imageColorSpace = surfaceFormat.colorSpace;
-		createInfo.imageExtent = chooseSwapExtent(surfCaps, width, height);
+		createInfo.imageExtent = mExtend2D_;
 		createInfo.imageArrayLayers = 1;
 		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 		createInfo.preTransform = (VkSurfaceTransformFlagBitsKHR)choosePreTransform(surfCaps);
-		// Setting oldSwapChain to the saved handle of the previous swapchain aids in resource reuse and makes sure that we can still present already acquired images
+		// Setting oldSwapChain to the saved handle of the previous mVkInstance_ aids in resource reuse and makes sure that we can still present already acquired images
 		createInfo.oldSwapchain = oldSwapchain;
 		// Setting clipped to VK_TRUE allows the implementation to discard rendering outside of the surface area
 		createInfo.clipped = VK_TRUE;
@@ -280,38 +305,37 @@ namespace zyh
 			createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
 
-		return fpCreateSwapchainKHR(mDevice_, &createInfo, nullptr, &swapChain);
+		return fpCreateSwapchainKHR(mVulkanLogicalDevice_->Get(), &createInfo, nullptr, &mVkImpl_);
 	}
 	
-	VkResult VulkanSwapChain::_createSwapChainImages()
+	VkResult VulkanSwapchain::_createSwapchainImages()
 	{
-		VK_CHECK_RESULT(fpGetSwapchainImagesKHR(mDevice_, swapChain, &imageCount, NULL));
-		images.resize(imageCount);
-		VK_CHECK_RESULT(fpGetSwapchainImagesKHR(mDevice_, swapChain, &imageCount, images.data()));
+		uint32_t imageCount = getImageCount();
+		mImages_.resize(imageCount);
+		VK_CHECK_RESULT(fpGetSwapchainImagesKHR(mVulkanLogicalDevice_->Get(), mVkImpl_, &imageCount, mImages_.data()));
 
-		const SwapChainSupportDetails& swapChainSupport = querySwapChainSupport();
-		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+		const VkSurfaceFormatKHR& surfaceFormat = getSwapSurfaceFormat();
 
-		buffers.resize(imageCount);
+		mBuffers_.resize(imageCount);
 		for (size_t i = 0; i < imageCount; i++) {
-			buffers[i].image = images[i];
-			buffers[i].view = _createImageView(buffers[i].image, surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+			mBuffers_[i].image = mImages_[i];
+			mBuffers_[i].view = _createImageView(mBuffers_[i].image, surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 		}
 	}
 
-	void VulkanSwapChain::_destroySwapChain(VkSwapchainKHR& swapChain, std::vector<SwapChainBuffer>& buffers)
+	void VulkanSwapchain::_destroyOldSwapchain(VkSwapchainKHR& swapchain, std::vector<SwapChainBuffer>& buffers)
 	{
-		if (swapChain != VK_NULL_HANDLE) 
+		if (swapchain != VK_NULL_HANDLE)
 		{
-			for (uint32_t i = 0; i < buffers.size(); ++i)
+			for (uint32_t i = 0; i < mBuffers_.size(); ++i)
 			{
-				vkDestroyImageView(mDevice_, buffers[i].view, nullptr);
+				vkDestroyImageView(mVulkanLogicalDevice_->Get(), mBuffers_[i].view, nullptr);
 			}
-			fpDestroySwapchainKHR(mDevice_, swapChain, nullptr);
+			fpDestroySwapchainKHR(mVulkanLogicalDevice_->Get(), swapchain, nullptr);
 		}
 	}
 
-	VkImageView VulkanSwapChain::_createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
+	VkImageView VulkanSwapchain::_createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
 	{
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -335,7 +359,7 @@ namespace zyh
 		viewInfo.flags = 0;
 
 		VkImageView imageView;
-		VK_CHECK_RESULT(vkCreateImageView(mDevice_, &viewInfo, nullptr, &imageView));
+		VK_CHECK_RESULT(vkCreateImageView(mVulkanLogicalDevice_->Get(), &viewInfo, nullptr, &imageView));
 		return imageView;
 	}
 

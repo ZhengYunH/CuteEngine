@@ -28,9 +28,9 @@
 
 #include <chrono>
 
-#include "Graphics/Common/Include/Geometry.h"
-#include "Graphics/Common/Include/ResourceLoader.h"
-#include "Math/Include/Matrix.h"
+#include "Graphics/Common/Geometry.h"
+#include "Graphics/Common/ResourceLoader.h"
+#include "Math/Matrix.h"
 
 #include <stb_image.h>
 
@@ -951,7 +951,7 @@ private:
 		pipelineInfo.pMultisampleState = &multisampling;
 		pipelineInfo.pDepthStencilState = nullptr; // Optional
 		pipelineInfo.pColorBlendState = &colorBlending;
-		pipelineInfo.pDynamicState = nullptr; // Optional
+		pipelineInfo.pDynamicState = &dynamicState; // Optional
 		pipelineInfo.layout = mPipelineLayout_;
 		pipelineInfo.renderPass = mRenderPass_;
 		pipelineInfo.subpass = 0;

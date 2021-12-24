@@ -1,52 +1,56 @@
 #pragma once
 
-#include <stdlib.h>
-#include <string>
-#include <assert.h>
-#include <stdio.h>
-#include <vector>
-#include <algorithm>
-
-#include <vulkan/vulkan.h>
-#include "VulkanTools.h"
+#include "VulkanObject.h"
 
 namespace zyh
 {
+	class VulkanInstance;
+	class VulkanPhysicalDevice;
+	class VulkanLogicalDevice;
+	class VulkanRenderPassBase;
+
 	typedef struct _SwapChainBuffers {
 		VkImage image;
 		VkImageView view;
+		VkFramebuffer buffer;
 	} SwapChainBuffer;
 
-	typedef struct _SwapChainSupportDetails {
+	struct _SwapChainSupportDetails {
 		VkSurfaceCapabilitiesKHR capabilities;
 		std::vector<VkSurfaceFormatKHR> formats;
 		std::vector<VkPresentModeKHR> presentModes;
-		bool isValid{ false }; // dirty flag
-	} SwapChainSupportDetails;
+	};
+	typedef TCache<_SwapChainSupportDetails> SwapChainSupportDetails;
 
-	class VulkanSwapChain
+	class VulkanSwapchain : TVulkanObject<VkSwapchainKHR>
 	{
 	public:
-		void initSurface(void* platformHandle, void* platformWindow);
-
-		void connect(VkInstance instance, VkPhysicalDevice physicsDevice, VkDevice device);
-		void create(uint32_t* width, uint32_t* heihgt, bool vsync = false);
+		
+		void connect(VulkanInstance* instance, VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice);
+		void setup(uint32_t* width, uint32_t* height, bool vsync = false);
 		void cleanup();
+		void setupFrameBuffer(VulkanRenderPassBase& renderPass, std::vector<VkImageView>& attachments);
 
+	private:
+		VulkanInstance* mVulkanInstance_{ nullptr };
+		VulkanPhysicalDevice* mVulkanPhysicalDevice_{ nullptr };
+		VulkanLogicalDevice* mVulkanLogicalDevice_{ nullptr };
+
+	public:
+		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
 		const SwapChainSupportDetails& querySwapChainSupport();
 		VkResult acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t* imageIndex);
 		VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
+		uint32_t getImageCount();
+		VkFormat getColorFormat() { return mColorFormat_; }
+		VkColorSpaceKHR getColorSpace() { return mColorSpace_; }
+		VkExtent2D getExtend() { return mExtend2D_; };
 
 	public:
-		VkFormat colorFormat;
-		VkColorSpaceKHR colorSpace;
-		VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-		uint32_t imageCount;
-		std::vector<VkImage> images;
-		std::vector<SwapChainBuffer> buffers;
 		uint32_t queueNodeIndex = UINT32_MAX;
 
 	protected:
+		const VkSurfaceFormatKHR& getSwapSurfaceFormat();
 		VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes, bool vsync = false);
 		VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, uint32_t* width, uint32_t* height);
@@ -55,19 +59,23 @@ namespace zyh
 		uint32_t getMinImageCount(const VkSurfaceCapabilitiesKHR& capabilities);
 
 	private:
-		VkResult _createSwapChain(uint32_t* width, uint32_t* height, bool vsync = false);
-		VkResult _createSwapChainImages();
-		void _destroySwapChain(VkSwapchainKHR& swapChain, std::vector<SwapChainBuffer>& buffer);
+		VkResult _createSwapchain(uint32_t* width, uint32_t* height, bool vsync = false);
+		VkResult _createSwapchainImages();
+		void _destroyOldSwapchain(VkSwapchainKHR& swapChain, std::vector<SwapChainBuffer>& buffer);
 
 		// TODO: should be helper
 		VkImageView _createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 
-	private: // members
-		VkInstance	mInstance_;
-		VkDevice	mDevice_;
-		VkPhysicalDevice	mPhysicalDevice_;
+	private: // Members
 		VkSurfaceKHR	mSurface_;
 		SwapChainSupportDetails mSwapChainSupportDetails_;
+		VkFormat mColorFormat_;
+		VkColorSpaceKHR mColorSpace_;
+		VkExtent2D mExtend2D_;
+		TCache<VkSurfaceFormatKHR> mSurfaceFormat_;
+		TCache<uint32_t> mImageCount_;
+		std::vector<VkImage> mImages_;
+		std::vector<SwapChainBuffer> mBuffers_;
 
 	private: // Function pointers
 		PFN_vkGetPhysicalDeviceSurfaceSupportKHR fpGetPhysicalDeviceSurfaceSupportKHR;

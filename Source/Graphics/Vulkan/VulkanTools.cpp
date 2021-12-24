@@ -12,6 +12,11 @@ namespace zyh
 	{
 		bool errorModeSilent = false;
 
+		void exitFatal()
+		{
+			exitFatal("Unknown Error", -1);
+		}
+
 		void exitFatal(const std::string& message, int32_t exitCode)
 		{
 #if defined(_WIN32)
