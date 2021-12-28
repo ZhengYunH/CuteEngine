@@ -1,18 +1,20 @@
 #pragma once
 #include "VulkanObject.h"
+#include "VulkanPhysicalDevice.h"
 
 namespace zyh
 {
 	class VulkanInstance;
 	class VulkanPhysicalDevice;
 
-	extern enum E_QUEUE_FAMILY : uint8_t;
+	enum E_QUEUE_FAMILY : uint8_t;
 
 	class VulkanLogicalDevice : public TVulkanObject<VkDevice>
 	{
 	public:
 		void connect(VulkanInstance* instance, VulkanPhysicalDevice* physicalDevice);
 		void setup() override;
+		void cleanup() override;
 
 	private:
 		VulkanInstance* mVulkanInstance_{ nullptr };

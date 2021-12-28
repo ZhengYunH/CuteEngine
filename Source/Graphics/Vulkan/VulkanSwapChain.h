@@ -7,6 +7,7 @@ namespace zyh
 	class VulkanInstance;
 	class VulkanPhysicalDevice;
 	class VulkanLogicalDevice;
+	class VulkanSurface;
 	class VulkanRenderPassBase;
 
 	typedef struct _SwapChainBuffers {
@@ -22,12 +23,13 @@ namespace zyh
 	};
 	typedef TCache<_SwapChainSupportDetails> SwapChainSupportDetails;
 
-	class VulkanSwapchain : TVulkanObject<VkSwapchainKHR>
+	class VulkanSwapchain : public TVulkanObject<VkSwapchainKHR>
 	{
 	public:
-		
-		void connect(VulkanInstance* instance, VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice);
+		void connect(VulkanInstance* instance, VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, VulkanSurface* surface);
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
 		void setup(uint32_t* width, uint32_t* height, bool vsync = false);
+#endif
 		void cleanup();
 		void setupFrameBuffer(VulkanRenderPassBase& renderPass, std::vector<VkImageView>& attachments);
 
@@ -35,6 +37,7 @@ namespace zyh
 		VulkanInstance* mVulkanInstance_{ nullptr };
 		VulkanPhysicalDevice* mVulkanPhysicalDevice_{ nullptr };
 		VulkanLogicalDevice* mVulkanLogicalDevice_{ nullptr };
+		VulkanSurface* mVulkanSurface_{ nullptr };
 
 	public:
 		SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice device);
@@ -45,6 +48,7 @@ namespace zyh
 		VkFormat getColorFormat() { return mColorFormat_; }
 		VkColorSpaceKHR getColorSpace() { return mColorSpace_; }
 		VkExtent2D getExtend() { return mExtend2D_; };
+		VkFramebuffer getFrameBuffer(uint32_t i) { HYBRID_CHECK(i < getImageCount()); return mBuffers_[i].buffer; }
 
 	public:
 		uint32_t queueNodeIndex = UINT32_MAX;
@@ -63,11 +67,10 @@ namespace zyh
 		VkResult _createSwapchainImages();
 		void _destroyOldSwapchain(VkSwapchainKHR& swapChain, std::vector<SwapChainBuffer>& buffer);
 
-		// TODO: should be helper
+		// TODO: combine with VulkanImage
 		VkImageView _createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
 
 	private: // Members
-		VkSurfaceKHR	mSurface_;
 		SwapChainSupportDetails mSwapChainSupportDetails_;
 		VkFormat mColorFormat_;
 		VkColorSpaceKHR mColorSpace_;

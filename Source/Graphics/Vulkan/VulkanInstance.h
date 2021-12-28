@@ -11,27 +11,14 @@ namespace zyh
 {
 	namespace VKHelper {
 		VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-			const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-			if (func != nullptr) {
-				return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-			}
-			else {
-				return VK_ERROR_EXTENSION_NOT_PRESENT;
-			}
-		}
+			const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
 
-		void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator) {
-			auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-			if (func != nullptr) {
-				func(instance, debugMessenger, pAllocator);
-			}
-		}
+		void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
 	}
 
 	class VulkanInstance : public TVulkanObject<VkInstance>
 	{
-	private:
+	public:
 		static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
 			VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
 			VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -49,6 +36,7 @@ namespace zyh
 		void enableValidationLayers(bool enable) { mEnableValidationLayers_ = enable; }
 		virtual std::vector<const char*> getValidationLayers() { return mEnableValidationLayers_ ? mValidationLayers_ : std::vector<const char*>(); }
 		void setup() override;
+		void cleanup() override;
 
 	protected:
 		const std::vector<const char*> _getRequiredExtensions();
@@ -70,7 +58,6 @@ namespace zyh
 		const std::vector<const char*> mValidationLayers_ = {
 			"VK_LAYER_KHRONOS_validation",
 		};
-
 		VkDebugUtilsMessengerEXT mDebugMessenger_;
 	};
 }

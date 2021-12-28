@@ -3,6 +3,28 @@
 
 namespace zyh
 {
+	namespace VKHelper
+	{
+		VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger)
+		{
+			auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+			if (func != nullptr) {
+				return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+			}
+			else {
+				return VK_ERROR_EXTENSION_NOT_PRESENT;
+			}
+		}
+
+		void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator)
+		{
+			auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+			if (func != nullptr) {
+				func(instance, debugMessenger, pAllocator);
+			}
+		}
+	}
+
 	void VulkanInstance::setup()
 	{
 		if (mEnableValidationLayers_ && !_checkValidationLayerSupport()) {
@@ -14,9 +36,21 @@ namespace zyh
 			_setupDebugMessenger();
 	}
 
+	void VulkanInstance::cleanup()
+	{
+		if (mEnableValidationLayers_) {
+			VKHelper::DestroyDebugUtilsMessengerEXT(mVkImpl_, mDebugMessenger_, nullptr);
+		}
+		vkDestroyInstance(mVkImpl_, nullptr);
+	}
+
 	const std::vector<const char*> VulkanInstance::_getRequiredExtensions()
 	{
-		std::vector<const char*> extensions;
+		std::vector<const char*> extensions = { VK_KHR_SURFACE_EXTENSION_NAME };
+#if defined(_WIN32)
+		extensions.push_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+#endif
+
 		if (mEnableValidationLayers_) {
 			extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 		}
@@ -119,9 +153,8 @@ namespace zyh
 
 		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
 		if (mEnableValidationLayers_) {
-			auto validationLayers = _getValidationLayers();
-			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-			createInfo.ppEnabledLayerNames = validationLayers.data();
+			createInfo.enabledLayerCount = static_cast<uint32_t>(_getValidationLayers().size());
+			createInfo.ppEnabledLayerNames = _getValidationLayers().data();
 
 			_populateDebugMessengerCreateInfo(debugCreateInfo);
 			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugCreateInfo;
@@ -131,22 +164,15 @@ namespace zyh
 			createInfo.pNext = nullptr;
 		}
 
-		// the 3rd parameter(@instance) stores the handle to the new object
-		if (vkCreateInstance(&createInfo, nullptr, &mVkInstance_) != VK_SUCCESS) {
-			tools::exitFatal("failed to create instance!");
-		}
+		VK_CHECK_RESULT(vkCreateInstance(&createInfo, nullptr, &mVkImpl_), "failed to create instance!");
 	}
 
 	void VulkanInstance::_setupDebugMessenger()
 	{
 		VkDebugUtilsMessengerCreateInfoEXT createInfo{};
 		_populateDebugMessengerCreateInfo(createInfo);
-
-		if (VKHelper::CreateDebugUtilsMessengerEXT(mVkInstance_, &createInfo, nullptr, &mDebugMessenger_) != VK_SUCCESS) {
-			tools::exitFatal("failed to set up debug messenger!");
-		}
+		VK_CHECK_RESULT(VKHelper::CreateDebugUtilsMessengerEXT(mVkImpl_, &createInfo, nullptr, &mDebugMessenger_), "failed to set up debug messenger!");
 	}
-
 }
 
 

@@ -68,4 +68,9 @@ namespace zyh
 		VK_CHECK_RESULT(err, "Could not create surface!");
 	}
 
+	void VulkanSurface::cleanup()
+	{
+		vkDestroySurfaceKHR(mVulkanInstance_->Get(), mVkImpl_, nullptr);
+	}
+
 }

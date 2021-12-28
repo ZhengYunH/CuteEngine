@@ -1,5 +1,4 @@
 #pragma once
-#include "VulkanHeader.h"
 #include "Geometry.h"
 
 

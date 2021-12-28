@@ -1,5 +1,5 @@
 #pragma once
-#ifdef _WIN32
+#if defined(_WIN32)
 #include <windows.h>
 #endif
 
@@ -8,6 +8,8 @@
 #include "Common/Setting.h"
 #include "Common/KeyCodes.h"
 #include "Camera/Camera.h"
+#include "Graphics/Common/Geometry.h"
+
 
 namespace zyh
 {
@@ -17,15 +19,12 @@ namespace zyh
 	class VulkanLogicalDevice;
 	class VulkanSwapchain;
 	class VulkanCommandPool;
+	class VulkanCommand;
 	class VulkanImage;
+	class VulkanTextureImage;
 	class VulkanRenderPassBase;
 	class VulkanGraphicsPipeline;
-
-	struct SwapChainSupportDetails {
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
+	class VulkanBuffer;
 
 
 	class VulkanBase
@@ -65,14 +64,13 @@ namespace zyh
 		virtual void prepare();
 		virtual void mainLoop();
 		virtual void cleanup();
-		virtual void windowResize();
+		virtual void windowResize(uint32_t width, uint32_t height);
+
 
 	protected: // Device Relate
-		VkInstance mInstance_;
-		VkDebugUtilsMessengerEXT mDebugMessenger_;
-
 		/** @brief Encapsulated instance */
 		VulkanInstance* mInstance_;
+		VkDebugUtilsMessengerEXT mDebugMessenger_;
 
 		VulkanSurface* mSurface_;
 
@@ -115,6 +113,8 @@ namespace zyh
 	protected:
 		bool mIsPaused_{ false };
 		bool mIsResizing_{ false };
+		uint32_t mWidth_{ 0 };
+		uint32_t mHeight_{ 0 };
 		bool mEnableValidationLayers_{ Setting::IsDebugMode };
 		Camera mCamera_;
 
@@ -136,12 +136,40 @@ namespace zyh
 
 	// impl
 	private:
-		VulkanImage mColorResources_;
+		VulkanImage* mColorResources_;
 		void createColorResources();
 
-		VulkanImage mDepthResources_;
+		VulkanImage* mDepthResources_;
 		void createDepthResources();
-	};
 
-	VulkanBase* VulkanBase::GVulkanInstance = nullptr;
+		VulkanTextureImage* mTextureImage_;
+		void createTextureImage();
+
+		std::vector<Vertex> mVertices_;
+		std::vector<uint32_t> mIndices_;
+		VulkanBuffer* mVertexBuffer_;
+		VulkanBuffer* mIndexBuffer_;
+		struct UniformBufferObject {
+			alignas(16) glm::mat4 model;
+			alignas(16) glm::mat4 view;
+			alignas(16) glm::mat4 proj;
+		};
+		std::vector<VulkanBuffer*> mUniformBuffers_;
+		void loadData();
+		void createUniformBuffer();
+		void updateUniformBuffer(uint32_t currentImage);
+
+		VkDescriptorPool mDescriptorPool_;
+		std::vector<VkDescriptorSet> mDescriptorSets_;
+		void createDescriptorSets();
+
+		std::vector<VulkanCommand*> mCommandBuffers_;
+		void createCommandBuffers();
+
+		size_t mCurrentFrame_ = 0;
+		bool mFrameBufferResized_ = false;
+		virtual void drawFrame();
+		virtual void recreateSwapchain();
+		virtual void _cleanupSwapchain();
+	};
 }

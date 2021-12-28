@@ -13,6 +13,7 @@ namespace zyh
 		const _VkType& Get() const { return mVkImpl_; }
 		virtual void connect() {};
 		virtual void setup() {};
+		virtual void cleanup() {};
 
 	protected:
 		_VkType mVkImpl_;

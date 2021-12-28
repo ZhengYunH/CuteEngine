@@ -22,16 +22,19 @@ namespace zyh
 		HYBRID_CHECK(mVkImpl_, "failed to find a suitable GPU!");
 	}
 
-	const QueueFamilyIndices& VulkanPhysicalDevice::findQueueFamilies(const VkSurfaceKHR surface /*= nullptr*/)
+	const QueueFamilyIndices VulkanPhysicalDevice::findQueueFamilies(const VkSurfaceKHR surface /*= nullptr*/)
 	{
-		if (!surface && !mQueueFamilyCache_.IsValid())
+		if (!surface)
 		{
-			mQueueFamilyCache_ = _findQueueFamilies(mVkImpl_, mVulkanSurface_->Get());
+			if (!mQueueFamilyCache_.IsValid())
+			{
+				mQueueFamilyCache_ = _findQueueFamilies(mVkImpl_, mVulkanSurface_->Get());
+			}
 			return mQueueFamilyCache_;
 		}
 		else
 		{
-			_findQueueFamilies(mVkImpl_, surface);
+			return _findQueueFamilies(mVkImpl_, surface);
 		}
 	}
 
@@ -45,7 +48,7 @@ namespace zyh
 		return *mDeviceFeatures_;
 	}
 
-	const VkFormat& VulkanPhysicalDevice::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+	const VkFormat VulkanPhysicalDevice::findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
 	{
 		HYBRID_CHECK(mVkImpl_);
 
@@ -60,6 +63,7 @@ namespace zyh
 			}
 		}
 		tools::exitFatal("failed to find supported format!");
+		return candidates[0];
 	}
 
 	uint32_t VulkanPhysicalDevice::findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties)
@@ -74,6 +78,7 @@ namespace zyh
 			}
 		}
 		tools::exitFatal("failed to find suitable memory type!");
+		return 0;
 	}
 
 	VkSampleCountFlagBits VulkanPhysicalDevice::getMaxUsableSampleCount()
@@ -102,6 +107,8 @@ namespace zyh
 				return device;
 			}
 		}
+		tools::exitFatal("failed to find suitable physics device!");
+		return devices[0];
 	}
 
 	VkPhysicalDevice VulkanPhysicalDevice::_chooseSuitablePhysicsDeviceExt(const std::vector<VkPhysicalDevice>& devices)
@@ -193,6 +200,7 @@ namespace zyh
 		}
 
 		indices.IsValid(true);
+		return indices;
 	}
 
 	bool VulkanPhysicalDevice::_checkDeviceExtensionSupport(VkPhysicalDevice device)

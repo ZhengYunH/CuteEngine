@@ -2,18 +2,23 @@
 #include "VulkanInstance.h"
 #include "VulkanPhysicalDevice.h"
 #include "VulkanLogicalDevice.h"
+#include "VulkanSurface.h"
 #include "VulkanRenderPass.h"
 
 
 namespace zyh
 {
-	void VulkanSwapchain::connect(
-		VulkanInstance* instance, VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice)
+	void VulkanSwapchain::connect(VulkanInstance* instance, VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, VulkanSurface* surface)
 	{
 		mVulkanInstance_ = instance;
 		mVulkanPhysicalDevice_ = physicalDevice;
 		mVulkanLogicalDevice_ = logicalDevice;
+		mVulkanSurface_ = surface;
+	}
 
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+	void VulkanSwapchain::setup(uint32_t* width, uint32_t* height, bool vsync)
+	{
 		auto vkInstance = mVulkanInstance_->Get();
 		auto vkDevice = mVulkanLogicalDevice_->Get();
 
@@ -27,12 +32,7 @@ namespace zyh
 		fpGetSwapchainImagesKHR = reinterpret_cast<PFN_vkGetSwapchainImagesKHR>(vkGetDeviceProcAddr(vkDevice, "vkGetSwapchainImagesKHR"));
 		fpAcquireNextImageKHR = reinterpret_cast<PFN_vkAcquireNextImageKHR>(vkGetDeviceProcAddr(vkDevice, "vkAcquireNextImageKHR"));
 		fpQueuePresentKHR = reinterpret_cast<PFN_vkQueuePresentKHR>(vkGetDeviceProcAddr(vkDevice, "vkQueuePresentKHR"));
-	}
 
-
-#if defined(VK_USE_PLATFORM_WIN32_KHR)
-	void VulkanSwapchain::setup(uint32_t* width, uint32_t* height, bool vsync = false)
-	{
 		VkSwapchainKHR oldSwapchain = mVkImpl_;
 		VK_CHECK_RESULT(_createSwapchain(width, height, vsync));
 		_destroyOldSwapchain(oldSwapchain, mBuffers_);
@@ -53,12 +53,13 @@ namespace zyh
 
 	void VulkanSwapchain::cleanup()
 	{
-
+		_destroyOldSwapchain(mVkImpl_, mBuffers_);
+		mSwapChainSupportDetails_.IsValid(false);
+		mVkImpl_ = VK_NULL_HANDLE;
 	}
 
 	void VulkanSwapchain::setupFrameBuffer(VulkanRenderPassBase& renderPass, std::vector<VkImageView>& attachments)
 	{
-
 		for (auto& buffer : mBuffers_)
 		{
 			std::vector<VkImageView> fullAttachments(attachments.begin(), attachments.end());
@@ -79,30 +80,28 @@ namespace zyh
 
 	SwapChainSupportDetails VulkanSwapchain::querySwapChainSupport(VkPhysicalDevice device)
 	{
-		SwapChainSupportDetails details;
-
 		HYBRID_CHECK(device);
-		HYBRID_CHECK(mSurface_);
+		HYBRID_CHECK(mVulkanSurface_);
 
 		SwapChainSupportDetails& details = mSwapChainSupportDetails_;
 
 		// simply query capabilities
-		fpGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mSurface_, &details->capabilities);
+		fpGetPhysicalDeviceSurfaceCapabilitiesKHR(device, mVulkanSurface_->Get(), &details->capabilities);
 
 		// query the supported surface formats
 		uint32_t formatCount;
-		fpGetPhysicalDeviceSurfaceFormatsKHR(device, mSurface_, &formatCount, nullptr);
+		fpGetPhysicalDeviceSurfaceFormatsKHR(device, mVulkanSurface_->Get(), &formatCount, nullptr);
 		if (formatCount > 0) {
 			details->formats.resize(formatCount);
-			fpGetPhysicalDeviceSurfaceFormatsKHR(device, mSurface_, &formatCount, details->formats.data());
+			fpGetPhysicalDeviceSurfaceFormatsKHR(device, mVulkanSurface_->Get(), &formatCount, details->formats.data());
 		}
 
 		// query the supported presentation modes
 		uint32_t presentModeCount;
-		fpGetPhysicalDeviceSurfacePresentModesKHR(device, mSurface_, &presentModeCount, nullptr);
+		fpGetPhysicalDeviceSurfacePresentModesKHR(device, mVulkanSurface_->Get(), &presentModeCount, nullptr);
 		if (presentModeCount > 0) {
 			details->presentModes.resize(presentModeCount);
-			fpGetPhysicalDeviceSurfacePresentModesKHR(device, mSurface_, &presentModeCount, details->presentModes.data());
+			fpGetPhysicalDeviceSurfacePresentModesKHR(device, mVulkanSurface_->Get(), &presentModeCount, details->presentModes.data());
 		}
 		details.IsValid(true);
 
@@ -146,6 +145,7 @@ namespace zyh
 		{
 			HYBRID_CHECK(mVulkanLogicalDevice_);
 			VK_CHECK_RESULT(fpGetSwapchainImagesKHR(mVulkanLogicalDevice_->Get(), mVkImpl_, &(*mImageCount_), NULL));
+			mImageCount_.IsValid(true);
 		}
 		return *mImageCount_;
 	}
@@ -168,7 +168,7 @@ namespace zyh
 		// check for the presence of VK_FORMAT_B8G8R8A8_UNORM // VK_FORMAT_B8G8R8_SRGB
 		for (const auto& availableFormat : availableFormats)
 		{
-			if (availableFormat.format == VK_FORMAT_B8G8R8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 				return availableFormat;
 		}
 		
@@ -280,7 +280,7 @@ namespace zyh
 
 		VkSwapchainCreateInfoKHR createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-		createInfo.surface = mSurface_;
+		createInfo.surface = mVulkanSurface_->Get();
 		createInfo.minImageCount = getMinImageCount(surfCaps);
 		createInfo.imageFormat = surfaceFormat.format;
 		createInfo.imageColorSpace = surfaceFormat.colorSpace;
@@ -308,6 +308,7 @@ namespace zyh
 		return fpCreateSwapchainKHR(mVulkanLogicalDevice_->Get(), &createInfo, nullptr, &mVkImpl_);
 	}
 	
+
 	VkResult VulkanSwapchain::_createSwapchainImages()
 	{
 		uint32_t imageCount = getImageCount();
@@ -321,6 +322,7 @@ namespace zyh
 			mBuffers_[i].image = mImages_[i];
 			mBuffers_[i].view = _createImageView(mBuffers_[i].image, surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 		}
+		return VK_SUCCESS;
 	}
 
 	void VulkanSwapchain::_destroyOldSwapchain(VkSwapchainKHR& swapchain, std::vector<SwapChainBuffer>& buffers)
@@ -335,17 +337,9 @@ namespace zyh
 		}
 	}
 
-	VkImageView VulkanSwapchain::_createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
-	{
+	VkImageView VulkanSwapchain::_createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
 		VkImageViewCreateInfo viewInfo{};
 		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.pNext = NULL;
-		viewInfo.components = {
-			VK_COMPONENT_SWIZZLE_R,
-			VK_COMPONENT_SWIZZLE_G,
-			VK_COMPONENT_SWIZZLE_B,
-			VK_COMPONENT_SWIZZLE_A
-		};
 		viewInfo.image = image;
 		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		viewInfo.format = format;
@@ -355,13 +349,10 @@ namespace zyh
 		viewInfo.subresourceRange.levelCount = mipLevels;
 		viewInfo.subresourceRange.baseArrayLayer = 0;
 		viewInfo.subresourceRange.layerCount = 1;
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.flags = 0;
-
 		VkImageView imageView;
-		VK_CHECK_RESULT(vkCreateImageView(mVulkanLogicalDevice_->Get(), &viewInfo, nullptr, &imageView));
+		VK_CHECK_RESULT (vkCreateImageView(mVulkanLogicalDevice_->Get(), &viewInfo, nullptr, &imageView), "failed to create texture image view!");
+
 		return imageView;
 	}
-
 }
 

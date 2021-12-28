@@ -1,5 +1,4 @@
 #include "VulkanInstance.h"
-#include "VulkanPhysicalDevice.h"
 #include "VulkanLogicalDevice.h"
 
 #include "Graphics/Common/ResourceLoader.h"
@@ -17,7 +16,7 @@ namespace zyh
 		HYBRID_CHECK(mVulkanInstance_);
 		HYBRID_CHECK(mVulkanPhysicalDevice_);
 
-		QueueFamilyIndices mFamilyIndices_ = mVulkanPhysicalDevice_->findQueueFamilies();
+		mFamilyIndices_ = mVulkanPhysicalDevice_->findQueueFamilies();
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<uint32_t> uniqueQueueFamilies = { mFamilyIndices_->graphicsFamily.value(), mFamilyIndices_->presentFamily.value() };
 
@@ -44,13 +43,20 @@ namespace zyh
 		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayer.size());
 		createInfo.ppEnabledLayerNames = validationLayer.data();
 
-		VK_CHECK_RESULT(vkCreateDevice(*mVulkanPhysicalDevice_, &createInfo, nullptr, &mVkImpl_), "failed to create logical device!");
+		VK_CHECK_RESULT(vkCreateDevice(mVulkanPhysicalDevice_->Get(), &createInfo, nullptr, &mVkImpl_), "failed to create logical device!");
+	}
+
+	void VulkanLogicalDevice::cleanup()
+	{
+		vkDestroyDevice(mVkImpl_, nullptr);
 	}
 
 	VkQueue VulkanLogicalDevice::getQueue(E_QUEUE_FAMILY family)
 	{
+		VkQueue queue;
 		HYBRID_CHECK(mFamilyIndices_->isQueueFamilyValid(family));
-		vkGetDeviceQueue(mVkImpl_, mFamilyIndices_->getIndexByQueueFamily(family), 0, &mVkGraphicsQueue_);
+		vkGetDeviceQueue(mVkImpl_, mFamilyIndices_->getIndexByQueueFamily(family), 0, &queue);
+		return queue;
 	}
 
 	VkQueue VulkanLogicalDevice::graphicsQueue()

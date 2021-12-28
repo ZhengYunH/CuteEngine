@@ -1,3 +1,4 @@
+#ifdef TEST
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
@@ -1745,7 +1746,7 @@ private:
 	const uint32_t WIDTH = 800;
 	const uint32_t HEIGHT = 600;
 
-	const std::string TEST_TEX_PATH = "Resource/textures/test_texture.png";
+	const std::string TEST_TEX_PATH = "Resource/textures/test_texture.jpg";
 	const std::string MODEL_PATH = "Resource/models/viking_room.obj";
 	const std::string TEXTURE_PATH = "Resource/textures/viking_room.png";
 
@@ -1825,7 +1826,6 @@ private:
 	VkSampleCountFlagBits mMsaaSamples_ = VK_SAMPLE_COUNT_1_BIT;
 };
 
-
 int main() {
 	HelloTriangleApplication app;
 
@@ -1839,3 +1839,23 @@ int main() {
 
 	return EXIT_SUCCESS;
 }
+#else
+
+#include "Graphics/Vulkan/VulkanBase.h"
+#pragma comment(linker, "/subsystem:console")
+
+int main()
+{
+	HINSTANCE hi = GetModuleHandle(0);
+	zyh::VulkanBase vulkan;
+	try {
+		vulkan.run(hi);
+	}
+	catch (const std::exception& e) {
+		std::cerr << e.what() << std::endl;
+		return EXIT_FAILURE;
+	}
+	return EXIT_SUCCESS;
+
+}
+#endif

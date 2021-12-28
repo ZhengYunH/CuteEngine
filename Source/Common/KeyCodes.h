@@ -28,7 +28,7 @@
 #define KEY_O 0x4F
 #define KEY_T 0x54
 
-enum EMOUSE_BUTTON : UINT
+enum EMOUSE_BUTTON : char
 {
 	LEFT,
 	MID,

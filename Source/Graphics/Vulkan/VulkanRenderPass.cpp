@@ -84,5 +84,10 @@ namespace zyh
 		VK_CHECK_RESULT(vkCreateRenderPass(mVulkanLogicalDevice_->Get(), &renderPassInfo, nullptr, &mVkImpl_));
 	}
 
+	void VulkanRenderPassBase::cleanup()
+	{
+		vkDestroyRenderPass(mVulkanLogicalDevice_->Get(), mVkImpl_, nullptr);
+	}
+
 }
 

@@ -28,32 +28,42 @@
 #include "Common/Config.h"
 
 #ifdef ZYH_DEBUG
-#define VK_CHECK_RESULT(R, ...) if((R) != VK_SUCCESS) { zyh::tools::exitFatal(__VA_ARGS__); }
+#define VK_CHECK_RESULT(R, ...) if(VkResult res = (R); res != VK_SUCCESS) { zyh::tools::exitFatal(res, ##__VA_ARGS__); }
 #else
 #define VK_CHECK_RESULT(R, ...)
 #endif
 
 namespace zyh
 {
-	//template<typename _Type>
-	//inline _Type& max(const _Type& v1, const _Type& v2) 
-	//{
-	//	return v1 > v2 ? v1 : v2;
-	//}
-
 	template<typename _Type>
 	class TCache
 	{
 	public:
 		TCache() : mInstance_{ new _Type() }
 		{
-
+		}
+		TCache(const TCache<_Type>& rhs)
+		{
+			mInstance_ = new _Type();
+			*mInstance_ = *(rhs.mInstance_);
+			mIsValid_ = rhs.mIsValid_;
+		}
+		TCache<_Type>& operator=(const TCache<_Type>& rhs)
+		{
+			if (this == &rhs)
+			{
+				return *this;
+			}
+			delete mInstance_;
+			mInstance_ = new _Type();
+			*mInstance_ = *(rhs.mInstance_);
+			mIsValid_ = rhs.mIsValid_;
+			return *this;
 		}
 		virtual ~TCache()
 		{
 			SafeDestroy(mInstance_);
 		}
-
 		_Type* operator ->()
 		{
 			return mInstance_;
@@ -76,24 +86,16 @@ namespace zyh
 		void IsValid(bool isValid) { mIsValid_ = isValid; }
 	private:
 		_Type* mInstance_{ nullptr };
-		bool mIsValid_{ true };
+		bool mIsValid_{ false };
 	};
 
 	namespace tools
 	{
 #if defined(_WIN32)
-		LPCWSTR stringToLPCWSTR(const std::string& orig)
-		{
-			size_t origsize = orig.length() + 1;
-			const size_t newsize = 100;
-			size_t convertedChars = 0;
-			wchar_t* wcstring = (wchar_t*)malloc(sizeof(wchar_t) * (orig.length() - 1));
-			mbstowcs_s(&convertedChars, wcstring, origsize, orig.c_str(), _TRUNCATE);
-
-			return wcstring;
-		}
+		LPCWSTR stringToLPCWSTR(const std::string& orig);
 #endif
-		void exitFatal();
+		void exitFatal(int32_t exitCode=-1);
+		void exitFatal(int32_t exitCode, const std::string& message);
 		void exitFatal(const std::string& message, int32_t exitCode=-1);
 	}
 }

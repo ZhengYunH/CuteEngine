@@ -39,6 +39,7 @@ namespace zyh
 			default:
 				assert(0);
 			}
+			return 0;
 		}
 
 		bool isQueueFamilyValid(E_QUEUE_FAMILY family)
@@ -56,10 +57,9 @@ namespace zyh
 			default:
 				assert(0);
 			}
+			return false;
 		}
 	};
-	
-
 	typedef TCache<_QueueFamilyIndices> QueueFamilyIndices;
 
 	class VulkanPhysicalDevice : public TVulkanObject< VkPhysicalDevice>
@@ -73,9 +73,9 @@ namespace zyh
 		VulkanSurface* mVulkanSurface_{ nullptr };
 
 	public:
-		const QueueFamilyIndices& findQueueFamilies(const VkSurfaceKHR surface = nullptr);
+		const QueueFamilyIndices findQueueFamilies(const VkSurfaceKHR surface = nullptr);
 		const VkPhysicalDeviceFeatures& getDeviceFeatures();
-		const VkFormat& findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
+		const VkFormat findSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
 		virtual const std::vector<const char*>& getDeviceExtensions() { return mDeviceExtensions_; }
 		uint32_t findMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties);
 		VkSampleCountFlagBits getMaxUsableSampleCount();

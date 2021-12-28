@@ -7,9 +7,9 @@
 
 
 #ifdef ZYH_DEBUG
-#define HYBRID_CHECK(X) assert(X)
+#define HYBRID_CHECK(X, ...) assert(X)
 #else
-#define HYBRID_CHECK(X)
+#define HYBRID_CHECK(X, ...)
 #endif
 
 

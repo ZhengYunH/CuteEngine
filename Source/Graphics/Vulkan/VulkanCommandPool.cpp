@@ -5,14 +5,27 @@
 
 namespace zyh
 {
+	VulkanCommand::VulkanCommand(const VulkanCommand& rhs) noexcept
+	{
+		mVkImpl_ = rhs.mVkImpl_;
+		mVulkanCommandPool_ = rhs.mVulkanCommandPool_;
+		mVulkanLogicalDevice_ = rhs.mVulkanLogicalDevice_;
+	}
+
+	VulkanCommand::VulkanCommand(VulkanCommand&& rhs) noexcept
+	{
+		mVkImpl_ = rhs.mVkImpl_;
+		mVulkanCommandPool_ = rhs.mVulkanCommandPool_;
+		mVulkanLogicalDevice_ = rhs.mVulkanLogicalDevice_;
+
+		rhs.mVkImpl_ = VK_NULL_HANDLE;
+	}
 
 	VulkanCommand::~VulkanCommand()
 	{
 		if (mVkImpl_)
 		{
-			if (mEndFunc_)
-				mEndFunc_();
-			vkFreeCommandBuffers(mVulkanLogicalDevice_->Get(), mVulkanCommandPool_->Get(), 1, &mVkImpl_);
+			cleanup();
 			mVkImpl_ = VK_NULL_HANDLE;
 		}
 	}
@@ -24,13 +37,25 @@ namespace zyh
 	}
 
 
-	void VulkanCommand::setup(VkCommandBufferAllocateInfo allocInfo, std::function<void()> beginFunc /*= nullptr*/, std::function<void()> endFunc /*= nullptr*/)
+	void VulkanCommand::setup(VkCommandBufferAllocateInfo allocInfo)
 	{
 		vkAllocateCommandBuffers(mVulkanLogicalDevice_->Get(), &allocInfo, &mVkImpl_);
-		if (beginFunc)
-			beginFunc();
-		if (endFunc)
-			mEndFunc_ = endFunc;
+	}
+
+	void VulkanCommand::cleanup()
+	{
+		vkFreeCommandBuffers(mVulkanLogicalDevice_->Get(), mVulkanCommandPool_->Get(), 1, &mVkImpl_);
+		mVkImpl_ = VK_NULL_HANDLE;
+	}
+
+	void VulkanCommand::begin(VkCommandBufferBeginInfo* beginInfo)
+	{
+		VK_CHECK_RESULT(vkBeginCommandBuffer(mVkImpl_, beginInfo), "failed to begin recording command buffer!");
+	}
+
+	void VulkanCommand::end()
+	{
+		VK_CHECK_RESULT(vkEndCommandBuffer(mVkImpl_), "failed to record command buffer!");
 	}
 
 	void VulkanCommandPool::connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, VulkanSwapchain* swapchain)
@@ -46,10 +71,9 @@ namespace zyh
 		_setupCommandBuffers();
 	}
 
-
-	void VulkanCommandPool::bindCommandBuffer()
+	void VulkanCommandPool::cleanup()
 	{
-
+		vkDestroyCommandPool(mVulkanLogicalDevice_->Get(), mVkImpl_, nullptr);
 	}
 
 	void VulkanCommandPool::_setupCommandPool()
@@ -74,7 +98,7 @@ namespace zyh
 		VK_CHECK_RESULT(vkAllocateCommandBuffers(mVulkanLogicalDevice_->Get(), &allocInfo, mCommandBuffers_.data()), "failed to allocate command buffers!");
 	}
 
-	VulkanCommand&& VulkanCommandPool::GenerateSingleTimeCommand()
+	void VulkanCommandPool::generateSingleTimeCommand(SingleTimeExecFunc execFunc)
 	{
 		VkQueue queue = mVulkanLogicalDevice_->graphicsQueue();
 
@@ -86,26 +110,23 @@ namespace zyh
 
 		VulkanCommand commandBuffer;
 		commandBuffer.connect(mVulkanLogicalDevice_, this);
+		commandBuffer.setup(allocInfo);
 
-		std::function<void()> beginFunc = [&]() {
-			VkCommandBufferBeginInfo beginInfo{};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		VkCommandBufferBeginInfo beginInfo{};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+		
+		commandBuffer.begin(&beginInfo);
+		execFunc(commandBuffer);
+		commandBuffer.end();
 
-			vkBeginCommandBuffer(commandBuffer.Get(), &beginInfo);
-		};
+		VkSubmitInfo submitInfo{};
+		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pCommandBuffers = &commandBuffer.Get();
 
-		std::function<void()> endFunc = [&]() {
-			VkSubmitInfo submitInfo{};
-			submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-			submitInfo.commandBufferCount = 1;
-			submitInfo.pCommandBuffers = &commandBuffer.Get();
-
-			vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-			vkQueueWaitIdle(queue);
-		};
-
-		commandBuffer.setup(allocInfo, beginFunc, endFunc);
+		vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+		vkQueueWaitIdle(queue); 
 	}
 }
 

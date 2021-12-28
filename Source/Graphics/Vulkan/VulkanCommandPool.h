@@ -8,20 +8,30 @@ namespace zyh
 	class VulkanSwapchain;
 	class VulkanCommandPool;
 
-	extern enum E_QUEUE_FAMILY : uint8_t;
+	enum E_QUEUE_FAMILY : uint8_t;
 
 	class VulkanCommand : public TVulkanObject<VkCommandBuffer>
 	{
 	public:
+		VulkanCommand() noexcept {}
+		VulkanCommand(const VulkanCommand& rhs) noexcept;
+		VulkanCommand(VulkanCommand&& rhs) noexcept;
+
 		~VulkanCommand();
 		void connect(VulkanLogicalDevice* logicalDevice, VulkanCommandPool* commandPool);
-		void setup(VkCommandBufferAllocateInfo allocInfo, std::function<void()> beginFunc = nullptr, std::function<void()> endFunc = nullptr);
+		void setup(VkCommandBufferAllocateInfo allocInfo);
+		void cleanup() override;
 
 	private:
 		VulkanLogicalDevice* mVulkanLogicalDevice_{ nullptr };
 		VulkanCommandPool* mVulkanCommandPool_{ nullptr };
-		std::function<void()> mEndFunc_{ nullptr };
+
+	public:
+		void begin(VkCommandBufferBeginInfo* beginInfo);
+		void end();
 	};
+
+	typedef std::function<void(VulkanCommand&)> SingleTimeExecFunc;
 
 	class VulkanCommandPool : public TVulkanObject<VkCommandPool>
 	{
@@ -29,7 +39,7 @@ namespace zyh
 		VulkanCommandPool(E_QUEUE_FAMILY queueFamily) : mQueueFamily_{ queueFamily } {}
 		void connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, VulkanSwapchain* swapchain);
 		void setup() override;
-		void bindCommandBuffer();
+		void cleanup() override;
 	
 	private:
 		VulkanPhysicalDevice* mVulkanPhysicalDevice_{ nullptr };
@@ -42,7 +52,7 @@ namespace zyh
 		void _setupCommandBuffers();
 
 	public:
-		VulkanCommand&& GenerateSingleTimeCommand();
+		void generateSingleTimeCommand(SingleTimeExecFunc execFunc);
 
 
 	private:

@@ -29,24 +29,22 @@ namespace zyh
 			const std::string& vertShaderFile, const std::string& fragShaderFile,
 			VkExtent2D extend, VkSampleCountFlagBits msaaSamples
 		);
-		virtual void prepare(
-			const std::string& vertShaderFile, const std::string& fragShaderFile,
-			VkExtent2D extend, VkSampleCountFlagBits msaaSamples
-		);
+		virtual void cleanup() override;
 
 	protected:
 		VulkanRenderPassBase* mVulkanRenderPass_;
 
 	protected:
+		VkPipelineLayout mVkPipelineLayout_;
+		VkDescriptorSetLayout mVkDescriptorSetLayout_;
+		virtual void _setupDescriptorSetLayout();
 		virtual void _setupGraphicsPipeline(
 			const std::string& vertShaderFile, const std::string& fragShaderFile,
 			VkExtent2D extend, VkSampleCountFlagBits msaaSamples
 		);
-		virtual void _setupDescriptorSetLayout();
-		
 
-	protected:
-		VkPipelineLayout mVkPipelineLayout_;
-		VkDescriptorSetLayout mVkDescriptorSetLayout_;
+	public:
+		const VkPipelineLayout& getPipelineLayout() { return mVkPipelineLayout_; }
+		const VkDescriptorSetLayout& getDescriptorSetLayout() { return mVkDescriptorSetLayout_; }
 	};
 }

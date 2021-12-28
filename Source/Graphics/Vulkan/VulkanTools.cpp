@@ -1,7 +1,6 @@
 #include <assert.h>
 #include <string>
 #include <iostream>
-#include <WinUser.h>
 
 #include "VulkanTools.h"
 
@@ -12,11 +11,27 @@ namespace zyh
 	{
 		bool errorModeSilent = false;
 
-		void exitFatal()
+		LPCWSTR stringToLPCWSTR(const std::string& orig)
 		{
-			exitFatal("Unknown Error", -1);
+			size_t origsize = orig.length() + 1;
+			const size_t newsize = 100;
+			size_t convertedChars = 0;
+			wchar_t* wcstring = (wchar_t*)malloc(sizeof(wchar_t) * (orig.length() - 1));
+			mbstowcs_s(&convertedChars, wcstring, origsize, orig.c_str(), _TRUNCATE);
+
+			return wcstring;
 		}
 
+		void exitFatal(int32_t exitCode)
+		{
+			exitFatal("Unknown Error", exitCode);
+		}
+
+		void exitFatal(int32_t exitCode, const std::string& message)
+		{
+			exitFatal(message, exitCode);
+		}
+		
 		void exitFatal(const std::string& message, int32_t exitCode)
 		{
 #if defined(_WIN32)
