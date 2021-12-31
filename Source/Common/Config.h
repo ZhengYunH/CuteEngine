@@ -7,10 +7,12 @@
 
 
 #ifdef ZYH_DEBUG
-#define HYBRID_CHECK(X, ...) assert(X)
+#include <assert.h>
+#define HYBRID_CHECK(X, ...) assert((X))
 #else
 #define HYBRID_CHECK(X, ...)
 #endif
 
 
+#define UNEXPECTED(X) (X)
 #define SafeDestroy(X) if(X){ delete X; X=nullptr;}

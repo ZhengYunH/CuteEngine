@@ -155,9 +155,10 @@ namespace zyh
 			case KEY_S:
 			case KEY_A:
 			case KEY_D:
-				mCamera_.handleInputKeyDown(uMsg);
+				mCamera_.handleInputKeyDown(wParam);
 				break;
 			}
+			break;
 
 		case WM_KEYUP:
 			switch (wParam)
@@ -168,38 +169,42 @@ namespace zyh
 			case KEY_ESCAPE:
 				PostQuitMessage(0);
 				break;
+			case KEY_B:
+				mCamera_.reset();
+				break;
 
 			case KEY_W:
 			case KEY_S:
 			case KEY_A:
 			case KEY_D:
-				mCamera_.handleInputKeyUp(uMsg);
+				mCamera_.handleInputKeyUp(wParam);
 				break;
 			}
+			break;
 
 		case WM_LBUTTONDOWN:
-			mCamera_.handleMouseButtonDown(LEFT);
+			mCamera_.handleMouseButtonDown(LEFT, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_RBUTTONDOWN:
-			mCamera_.handleMouseButtonDown(RIGHT);
+			mCamera_.handleMouseButtonDown(RIGHT, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_MBUTTONDOWN:
-			mCamera_.handleMouseButtonDown(MID);
+			mCamera_.handleMouseButtonDown(MID, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_LBUTTONUP:
-			mCamera_.handleMouseButtonUp(LEFT);
+			mCamera_.handleMouseButtonUp(LEFT, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_RBUTTONUP:
-			mCamera_.handleMouseButtonUp(RIGHT);
+			mCamera_.handleMouseButtonUp(RIGHT, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_MBUTTONUP:
-			mCamera_.handleMouseButtonUp(MID);
+			mCamera_.handleMouseButtonUp(MID, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_MOUSEWHEEL:
 			mCamera_.handleMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
 			break;
 		case WM_MOUSEMOVE:
-			mCamera_.handleMouseMove(LOWORD(lParam), HIWORD(lParam));
+			mCamera_.handleMouseMove(LOWORD(lParam), HIWORD(lParam), mDeltaTime_);
 			break;
 		case WM_SIZE:
 			if (wParam == SIZE_MINIMIZED) // minimized
@@ -347,6 +352,10 @@ namespace zyh
 
 		createCommandBuffers();
 		createSyncObjects();
+
+		mCamera_.mScreenHeight_ = static_cast<float>(mSwapchain_->getExtend().height);
+		mCamera_.mScreenWidth_ = static_cast<float>(mSwapchain_->getExtend().width);
+		mCamera_.updateProjMatrix();
 	}
 
 	void VulkanBase::mainLoop()
@@ -364,8 +373,11 @@ namespace zyh
 					}
 				}
 
-				if(!mIsPaused_)
+				if (!mIsPaused_)
+				{
+					mCamera_.tick(mDeltaTime_);
 					drawFrame();
+				}
 			}
 #endif
 			
@@ -498,14 +510,25 @@ namespace zyh
 
 		UniformBufferObject ubo{};
 
-		Matrix4x4 modelMat, viewMat, projMat;
-		modelMat = Matrix4x4::GenerateRotate(Matrix4x4(), time * glm::radians(90.0f), Vector3(0.0f, 0.0f, 1.0f));
-		viewMat = Matrix4x4::GenerateLookAt(Vector3(2.0f, 2.0f, 2.0f), Vector3(0.0f, 0.0f, 0.0f), Vector3(0.0f, 0.0f, 1.0f));
-		projMat = Matrix4x4::GeneratePerspective(glm::radians(45.0f), mSwapchain_->getExtend().width / (float)mSwapchain_->getExtend().height, 0.1f, 10.0f);
+		auto convertToGlmMat = [](const Matrix4x4& mat) -> glm::mat4x4
+		{
+			return glm::mat4x4
+			{
+				mat.m00, mat.m01, mat.m02, mat.m03,
+				mat.m10, mat.m11, mat.m12, mat.m13,
+				mat.m20, mat.m21, mat.m22, mat.m23,
+				mat.m30, mat.m31, mat.m32, mat.m33,
+			};
+		};
 
-		ubo.model = modelMat;
-		ubo.view = viewMat;
-		ubo.proj = projMat;
+		Matrix4x4 modelMat = Matrix4x4();
+		modelMat.SetIdentity();
+		Matrix4x3 viewMat = mCamera_.getViewMatrix();
+		Matrix4x4 projMat = mCamera_.getProjMatrix();
+
+		ubo.model = convertToGlmMat(modelMat);
+		ubo.view = convertToGlmMat(viewMat);
+		ubo.proj = convertToGlmMat(projMat);
 		ubo.proj[1][1] *= -1;
 
 		mUniformBuffers_[currentImage]->setupData(&ubo, sizeof(ubo));

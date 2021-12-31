@@ -69,28 +69,28 @@ namespace zyh
 
 	protected: // Device Relate
 		/** @brief Encapsulated instance */
-		VulkanInstance* mInstance_;
+		VulkanInstance* mInstance_{ nullptr };
 		VkDebugUtilsMessengerEXT mDebugMessenger_;
 
-		VulkanSurface* mSurface_;
+		VulkanSurface* mSurface_{ nullptr };
 
 		/** @brief Encapsulated physical device */
-		VulkanPhysicalDevice* mPhysicalDevice_; 
+		VulkanPhysicalDevice* mPhysicalDevice_{ nullptr };
 
 		/** @brief Encapsulated logical device */
-		VulkanLogicalDevice* mLogicalDevice_;
+		VulkanLogicalDevice* mLogicalDevice_{ nullptr };
 
 		/** @brief Encapsulated swapchain*/
-		VulkanSwapchain* mSwapchain_;
+		VulkanSwapchain* mSwapchain_{ nullptr };
 
 		/** @brief Encapsulated command pool*/
-		VulkanCommandPool* mGraphicsCommandPool_;
+		VulkanCommandPool* mGraphicsCommandPool_{ nullptr };
 
-		VulkanImage* mDepthStencil_;
+		VulkanImage* mDepthStencil_{ nullptr };
 
-		VulkanRenderPassBase* mRenderPass_;
+		VulkanRenderPassBase* mRenderPass_{ nullptr };
 
-		VulkanGraphicsPipeline* mGraphicsPipeline_;
+		VulkanGraphicsPipeline* mGraphicsPipeline_{ nullptr };
 
 		/** @brief Synchronization Objects*/
 		const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -117,6 +117,8 @@ namespace zyh
 		uint32_t mHeight_{ 0 };
 		bool mEnableValidationLayers_{ Setting::IsDebugMode };
 		Camera mCamera_;
+		// TODO
+		float mDeltaTime_{ 0.033f };
 
 		TCache<VkSampleCountFlagBits> mMsaaSamples_;
 		TCache<VkFormat> mDepthFromat_;

@@ -30,6 +30,7 @@
 
 enum EMOUSE_BUTTON : char
 {
+	NONE=0,
 	LEFT,
 	MID,
 	RIGHT,
