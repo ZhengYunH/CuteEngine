@@ -12,6 +12,8 @@
 #include "VulkanBuffer.h"
 
 #include "Graphics/Common/ResourceLoader.h"
+#include "Common/TestData.h"
+
 
 namespace zyh
 {
@@ -149,18 +151,15 @@ namespace zyh
 			PostQuitMessage(0);
 			break;
 		case WM_KEYDOWN:
+			mCamera_.handleInputKeyDown(wParam);
 			switch (wParam)
 			{
-			case KEY_W:
-			case KEY_S:
-			case KEY_A:
-			case KEY_D:
-				mCamera_.handleInputKeyDown(wParam);
 				break;
 			}
 			break;
 
 		case WM_KEYUP:
+			mCamera_.handleInputKeyUp(wParam);
 			switch (wParam)
 			{
 			case KEY_P:
@@ -171,13 +170,6 @@ namespace zyh
 				break;
 			case KEY_B:
 				mCamera_.reset();
-				break;
-
-			case KEY_W:
-			case KEY_S:
-			case KEY_A:
-			case KEY_D:
-				mCamera_.handleInputKeyUp(wParam);
 				break;
 			}
 			break;
@@ -521,13 +513,13 @@ namespace zyh
 			};
 		};
 
-		Matrix4x4 modelMat = Matrix4x4();
-		modelMat.SetIdentity();
+		Matrix4x3 modelMat = Matrix4x3();
+		modelMat.SetRotationX(DegreeToRadian(-90.f), Vector3::GetZero());
 		Matrix4x3 viewMat = mCamera_.getViewMatrix();
 		Matrix4x4 projMat = mCamera_.getProjMatrix();
 
 		ubo.model = convertToGlmMat(modelMat);
-		ubo.view = convertToGlmMat(viewMat.GetInverse());
+		ubo.view = convertToGlmMat(viewMat);
 		ubo.proj = convertToGlmMat(projMat);
 		ubo.proj[1][1] *= -1;
 

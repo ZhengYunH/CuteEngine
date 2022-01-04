@@ -27,10 +27,12 @@
 #define KEY_N 0x4E
 #define KEY_O 0x4F
 #define KEY_T 0x54
+#define KEY_Q 0x51
+#define KEY_E 0x45
+
 
 enum EMOUSE_BUTTON : char
 {
-	NONE=0,
 	LEFT,
 	MID,
 	RIGHT,

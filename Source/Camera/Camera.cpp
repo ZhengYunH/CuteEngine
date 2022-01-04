@@ -4,26 +4,82 @@ namespace zyh
 {
 	void Camera::handleInputKeyDown(WPARAM key)
 	{
-		mPressingKey_ = key;
+		switch (key)
+		{
+#define HANDLE_CASE(CHAR) \
+		case KEY_##CHAR: \
+			mPressingKeyBit_ |= ECAMERA_KEY_BIT::EC_KEY_##CHAR; \
+			break;
+			HANDLE_CASE(W);
+			HANDLE_CASE(S);
+			HANDLE_CASE(A);
+			HANDLE_CASE(D);
+			HANDLE_CASE(Q);
+			HANDLE_CASE(E);
+#undef HANDLE_CASE
+
+		default:
+			break;
+		}
 	}
 
 	void Camera::handleInputKeyUp(WPARAM key)
 	{
-		if(mPressingKey_ == key)
-			mPressingKey_ = 0;
+		switch (key)
+		{
+#define HANDLE_CASE(CHAR) \
+		case KEY_##CHAR: \
+			mPressingKeyBit_ &= ~ECAMERA_KEY_BIT::EC_KEY_##CHAR; \
+			break;
+		HANDLE_CASE(W);
+		HANDLE_CASE(S);
+		HANDLE_CASE(A);
+		HANDLE_CASE(D);
+		HANDLE_CASE(Q);
+		HANDLE_CASE(E);
+#undef HANDLE_CASE
+
+		default:
+			break;
+		}
 	}
 
 	void Camera::handleMouseButtonDown(EMOUSE_BUTTON key, int32_t x, int32_t y)
 	{
-		mPressingMouseKey_ = key;
+		switch (key)
+		{
+		case LEFT:
+			mPressingMouseKeyBit_ |= EC_MOUSE_LEFT;
+			break;
+		case MID:
+			mPressingMouseKeyBit_ |= EC_MOUSE_MID;
+			break;
+		case RIGHT:
+			mPressingMouseKeyBit_ |= EC_MOUSE_RIGHT;
+			break;
+		default:
+			break;
+		}
 		mLastMousePositionX = x;
 		mLastMousePositionY = y;
 	}
 
 	void Camera::handleMouseButtonUp(EMOUSE_BUTTON key, int32_t x, int32_t y)
 	{
-		if (key == mPressingMouseKey_)
-			mPressingMouseKey_ = NONE;
+		switch (key)
+		{
+		case LEFT:
+			mPressingMouseKeyBit_ &= ~EC_MOUSE_LEFT;
+			break;
+		case MID:
+			mPressingMouseKeyBit_ &= ~EC_MOUSE_MID;
+			break;
+		case RIGHT:
+			mPressingMouseKeyBit_ &= ~EC_MOUSE_RIGHT;
+			break;
+		default:
+			break;
+		}
 	}
 
 	void Camera::handleMouseWheel(short delta)
@@ -34,34 +90,39 @@ namespace zyh
 
 	void Camera::handleMouseMove(int32_t x, int32_t y, float deltaTime)
 	{
-		if (mPressingMouseKey_ != NONE)
+		if (mPressingMouseKeyBit_)
 		{
 			float fixMoveDistance = 0.01f;
-			float fixRotateRate = 0.03f;
+			float fixRotateRate = 0.05f;
 			float deltaX = float(x - mLastMousePositionX);
 			float deltaY = float(y - mLastMousePositionY);
-			switch (mPressingMouseKey_)
+#define HANDLE_MOUSE(BUTTON) if (mPressingMouseKeyBit_ &  ECAMEAR_MOUSE_BUTTON::EC_MOUSE_##BUTTON)
+
+			HANDLE_MOUSE(LEFT)
 			{
-			case LEFT:
-				mViewMatrix_.SetPitchYawRoll(
-					Clamp(mViewMatrix_.GetPitch() + fixRotateRate * deltaTime * deltaY, -MATH_HALF_PI + 0.1f, MATH_HALF_PI - 0.1f),
-					mViewMatrix_.GetYaw() - fixRotateRate * deltaTime * deltaX,
-					mViewMatrix_.GetRoll()
+				mTransform_.SetPitchYawRoll(
+					Clamp(mTransform_.GetPitch() - fixRotateRate * deltaTime * deltaY, -MATH_HALF_PI + 0.1f, MATH_HALF_PI - 0.1f),
+					mTransform_.GetYaw() - fixRotateRate * deltaTime * deltaX,
+					mTransform_.GetRoll()
 				);
-				break;
-			case MID:
-				mViewMatrix_.SetTranslation(
-					  mViewMatrix_.GetTranslation() 
-					- mViewMatrix_.GetYAxis() * deltaY * fixMoveDistance 
-					+ mViewMatrix_.GetXAxis() * deltaX * fixMoveDistance
-				);
-				break;
-			case RIGHT:
-				break;
-			default:
-				assert(0);
-				break;
 			}
+
+			HANDLE_MOUSE(MID)
+			{
+				mTransform_.SetTranslation(
+					mTransform_.GetTranslation()
+					- mTransform_.GetYAxis() * deltaY * fixMoveDistance
+					+ mTransform_.GetXAxis() * deltaX * fixMoveDistance
+				);
+			}
+
+			HANDLE_MOUSE(RIGHT)
+			{
+
+			}
+
+#undef HANDLE_MOUSE
+
 			mLastMousePositionX = x;
 			mLastMousePositionY = y;
 		}
@@ -69,29 +130,17 @@ namespace zyh
 
 	void Camera::tick(float deltaTime)
 	{
-		if (mPressingKey_)
+		if (mPressingKeyBit_)
 		{
-			float moveSpeed = 0.01f;
-			Vector3 zAxis = mViewMatrix_.GetZAxis();
-			switch (mPressingKey_)
-			{
-			case KEY_W:
-				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() - mViewMatrix_.GetZAxis() * deltaTime * moveSpeed);
-				break;
-			case KEY_S:
-				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() + mViewMatrix_.GetZAxis() * deltaTime * moveSpeed);
-				break;
-			case KEY_A:
-				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() - mViewMatrix_.GetXAxis() * deltaTime * moveSpeed);
-				break;
-			case KEY_D:
-				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() + mViewMatrix_.GetXAxis() * deltaTime * moveSpeed);
-				break;
-			default:
-				break;
-			}
+#define HANDLE_KEY(CHAR) if (mPressingKeyBit_ & ECAMERA_KEY_BIT::EC_KEY_##CHAR)
+			HANDLE_KEY(W) mTransform_.SetTranslation(mTransform_.GetTranslation() - mTransform_.GetZAxis() * deltaTime * mMoveSpeed_);
+			HANDLE_KEY(S) mTransform_.SetTranslation(mTransform_.GetTranslation() + mTransform_.GetZAxis() * deltaTime * mMoveSpeed_);
+			HANDLE_KEY(A) mTransform_.SetTranslation(mTransform_.GetTranslation() - mTransform_.GetXAxis() * deltaTime * mMoveSpeed_);
+			HANDLE_KEY(D) mTransform_.SetTranslation(mTransform_.GetTranslation() + mTransform_.GetXAxis() * deltaTime * mMoveSpeed_);
+			HANDLE_KEY(Q) mTransform_.SetTranslation(mTransform_.GetTranslation() - mTransform_.GetYAxis() * deltaTime * mMoveSpeed_);
+			HANDLE_KEY(E) mTransform_.SetTranslation(mTransform_.GetTranslation() + mTransform_.GetYAxis() * deltaTime * mMoveSpeed_);
+#undef HANDLE_KEY
 		}
-		
 	}
 
 	void Camera::updateProjMatrix()
