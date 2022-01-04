@@ -36,8 +36,8 @@ namespace zyh
 	{
 		if (mPressingMouseKey_ != NONE)
 		{
-			float fixMoveDistance = 0.1f;
-			float fixRotateRate = 0.1f;
+			float fixMoveDistance = 0.01f;
+			float fixRotateRate = 0.03f;
 			float deltaX = float(x - mLastMousePositionX);
 			float deltaY = float(y - mLastMousePositionY);
 			switch (mPressingMouseKey_)
@@ -45,16 +45,17 @@ namespace zyh
 			case LEFT:
 				mViewMatrix_.SetPitchYawRoll(
 					Clamp(mViewMatrix_.GetPitch() + fixRotateRate * deltaTime * deltaY, -MATH_HALF_PI + 0.1f, MATH_HALF_PI - 0.1f),
-					mViewMatrix_.GetYaw() + fixRotateRate * deltaTime * deltaX,
+					mViewMatrix_.GetYaw() - fixRotateRate * deltaTime * deltaX,
 					mViewMatrix_.GetRoll()
 				);
 				break;
 			case MID:
 				mViewMatrix_.SetTranslation(
 					  mViewMatrix_.GetTranslation() 
-					+ mViewMatrix_.GetZAxis() * deltaY * fixMoveDistance 
+					- mViewMatrix_.GetYAxis() * deltaY * fixMoveDistance 
 					+ mViewMatrix_.GetXAxis() * deltaX * fixMoveDistance
 				);
+				break;
 			case RIGHT:
 				break;
 			default:
@@ -71,19 +72,20 @@ namespace zyh
 		if (mPressingKey_)
 		{
 			float moveSpeed = 0.01f;
+			Vector3 zAxis = mViewMatrix_.GetZAxis();
 			switch (mPressingKey_)
 			{
 			case KEY_W:
-				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() + mViewMatrix_.GetZAxis() * deltaTime * moveSpeed);
-				break;
-			case KEY_S:
 				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() - mViewMatrix_.GetZAxis() * deltaTime * moveSpeed);
 				break;
+			case KEY_S:
+				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() + mViewMatrix_.GetZAxis() * deltaTime * moveSpeed);
+				break;
 			case KEY_A:
-				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() + mViewMatrix_.GetXAxis() * deltaTime * moveSpeed);
+				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() - mViewMatrix_.GetXAxis() * deltaTime * moveSpeed);
 				break;
 			case KEY_D:
-				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() - mViewMatrix_.GetXAxis() * deltaTime * moveSpeed);
+				mViewMatrix_.SetTranslation(mViewMatrix_.GetTranslation() + mViewMatrix_.GetXAxis() * deltaTime * moveSpeed);
 				break;
 			default:
 				break;

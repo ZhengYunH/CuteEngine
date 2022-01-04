@@ -527,7 +527,7 @@ namespace zyh
 		Matrix4x4 projMat = mCamera_.getProjMatrix();
 
 		ubo.model = convertToGlmMat(modelMat);
-		ubo.view = convertToGlmMat(viewMat);
+		ubo.view = convertToGlmMat(viewMat.GetInverse());
 		ubo.proj = convertToGlmMat(projMat);
 		ubo.proj[1][1] *= -1;
 
