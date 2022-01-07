@@ -152,10 +152,6 @@ namespace zyh
 			break;
 		case WM_KEYDOWN:
 			mCamera_.handleInputKeyDown(wParam);
-			switch (wParam)
-			{
-				break;
-			}
 			break;
 
 		case WM_KEYUP:
@@ -453,8 +449,8 @@ namespace zyh
 	{
 		createTextureImage();
 
-		// ResourceLoader::loadModel("Resource/models/viking_room.obj", mVertices_, mIndices_);
-		ResourceLoader::loadModel("Resource/models/chair_low_chair.fbx", mVertices_, mIndices_);
+		ResourceLoader::loadModel("Resource/models/viking_room.obj", mVertices_, mIndices_);
+		// ResourceLoader::loadModel("Resource/models/chair_low_chair.fbx", mVertices_, mIndices_);
 
 		// temp buffer
 		VulkanBuffer stagingBuffer;

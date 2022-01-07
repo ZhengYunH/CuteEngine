@@ -9,6 +9,7 @@
 #include "Common/KeyCodes.h"
 #include "Camera/Camera.h"
 #include "Graphics/Common/Geometry.h"
+#include "Graphics/Common/RenderMesh.h"
 
 
 namespace zyh
@@ -147,6 +148,7 @@ namespace zyh
 		VulkanTextureImage* mTextureImage_;
 		void createTextureImage();
 
+		RenderMesh* mModelRenderMesh_{ nullptr };
 		std::vector<Vertex> mVertices_;
 		std::vector<uint32_t> mIndices_;
 		VulkanBuffer* mVertexBuffer_;
