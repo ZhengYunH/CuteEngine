@@ -9,7 +9,7 @@
 #include "Common/KeyCodes.h"
 #include "Camera/Camera.h"
 #include "Graphics/Common/Geometry.h"
-#include "Graphics/Common/RenderMesh.h"
+
 
 
 namespace zyh
@@ -27,6 +27,8 @@ namespace zyh
 	class VulkanGraphicsPipeline;
 	class VulkanBuffer;
 
+	class VulkanRenderElement;
+
 
 	class VulkanBase
 	{
@@ -43,19 +45,17 @@ namespace zyh
 		VulkanBase() {};
 		virtual ~VulkanBase();
 
-		virtual void run(HINSTANCE hinstance)
+		virtual void Initialize(HINSTANCE hinstance)
 		{
 			registerInstance(this);
 			initVulkan();
 			initWindow(hinstance);
 			setupVulkan();
-
 			prepare();
-			mainLoop();
-			cleanup();
+
 		}
 
-	protected:
+	public:
 		virtual void initVulkan();
 		virtual void initWindow(HINSTANCE hinstance)
 		{
@@ -63,8 +63,8 @@ namespace zyh
 		}
 		virtual void setupVulkan();
 		virtual void prepare();
-		virtual void mainLoop();
-		virtual void cleanup();
+		virtual void Tick();
+		virtual void CleanUp();
 		virtual void windowResize(uint32_t width, uint32_t height);
 
 
@@ -148,16 +148,7 @@ namespace zyh
 		VulkanTextureImage* mTextureImage_;
 		void createTextureImage();
 
-		RenderMesh* mModelRenderMesh_{ nullptr };
-		std::vector<Vertex> mVertices_;
-		std::vector<uint32_t> mIndices_;
-		VulkanBuffer* mVertexBuffer_;
-		VulkanBuffer* mIndexBuffer_;
-		struct UniformBufferObject {
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-		};
+		std::vector<VulkanRenderElement*> mRenderElements_;
 		std::vector<VulkanBuffer*> mUniformBuffers_;
 		void loadData();
 		void createUniformBuffer();

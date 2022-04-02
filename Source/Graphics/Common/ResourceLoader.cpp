@@ -26,6 +26,13 @@ namespace zyh
 			return buffer;
 		}
 
+		void loadModel(const std::string& modelPath, IModel& model)
+		{
+			IPrimitive* prim = model.GeneratePrimitive();
+			model.AddPrimitive(prim);
+			loadModel(modelPath, prim->mVertices_, prim->mIndices_);
+		}
+
 		void loadModel(const std::string& modelPath, std::vector<Vertex>& outVertexs, std::vector<uint32_t>& outIndices)
 		{
 			size_t index = modelPath.rfind('.');
@@ -46,8 +53,6 @@ namespace zyh
 			{
 				assert(0);
 			}
-
-
 		}
 	}
 }

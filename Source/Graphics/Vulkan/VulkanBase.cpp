@@ -11,6 +11,8 @@
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanBuffer.h"
 
+#include "VulkanRenderElement.h"
+
 #include "Graphics/Common/ResourceLoader.h"
 #include "Common/TestData.h"
 
@@ -230,7 +232,7 @@ namespace zyh
 		mSwapchain_ = new VulkanSwapchain();
 		mGraphicsCommandPool_ = new VulkanCommandPool(GRAPHICS);
 		mDepthStencil_ = new VulkanImage();
-		mRenderPass_ = new VulkanRenderPassBase();
+		mRenderPass_ = new VulkanRenderPassBase("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
 		mGraphicsPipeline_ = new VulkanGraphicsPipeline();
 
 		// connect
@@ -271,12 +273,7 @@ namespace zyh
 		
 		mRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
 
-		mGraphicsPipeline_->setup(
-			"Resource/shaders/vert.spv",
-			"Resource/shaders/frag.spv",
-			mSwapchain_->getExtend(),
-			getMsaaSamples()
-		);
+		mGraphicsPipeline_->setup();
 	}
 
 	void VulkanBase::createSyncObjects()
@@ -302,26 +299,14 @@ namespace zyh
 
 	VkSampleCountFlagBits VulkanBase::getMsaaSamples()
 	{
-		if (!mMsaaSamples_.IsValid())
-		{
-			*mMsaaSamples_ = mPhysicalDevice_->getMaxUsableSampleCount();
-			mMsaaSamples_.IsValid(true);
-		}
-		return *mMsaaSamples_;
+		HYBRID_CHECK(GInstance->mMsaaSamples_.IsValid());
+		return *GInstance->mMsaaSamples_;
 	}
 
 	VkFormat VulkanBase::getDepthFormat()
 	{
-		if (!mDepthFromat_.IsValid())
-		{
-			*mDepthFromat_ = mPhysicalDevice_->findSupportedFormat(
-				{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-				VK_IMAGE_TILING_OPTIMAL,
-				VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-			);
-			mDepthFromat_.IsValid(true);
-		}
-		return *mDepthFromat_;
+		HYBRID_CHECK(GInstance->mDepthFormat_.IsValid());
+		return *GInstance->mDepthFormat_;
 	}
 
 	/// impl
@@ -346,7 +331,7 @@ namespace zyh
 		mCamera_.updateProjMatrix();
 	}
 
-	void VulkanBase::mainLoop()
+	void VulkanBase::Tick()
 	{
 		bool quitMessageReceived = false;
 		while (!quitMessageReceived) {
@@ -374,7 +359,7 @@ namespace zyh
 		vkDeviceWaitIdle(mLogicalDevice_->Get());
 	}
 
-	void VulkanBase::cleanup()
+	void VulkanBase::CleanUp()
 	{
 		vkDeviceWaitIdle(mLogicalDevice_->Get());
 
@@ -387,8 +372,10 @@ namespace zyh
 		SafeDestroy(mTextureImage_);
 		SafeDestroy(mDepthResources_);
 		SafeDestroy(mColorResources_);
-		SafeDestroy(mIndexBuffer_);
-		SafeDestroy(mVertexBuffer_);
+
+		for (auto& element : mRenderElements_)
+			SafeDestroy(element);
+
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(mLogicalDevice_->Get(), mRenderFinishedSemaphores_[i], nullptr);
 			vkDestroySemaphore(mLogicalDevice_->Get(), mImageAvailableSemaphores_[i], nullptr);
@@ -448,143 +435,20 @@ namespace zyh
 	void VulkanBase::loadData()
 	{
 		createTextureImage();
+		VulkanRenderElement* element;
+		
+		element = new VulkanRenderElement("Resource/models/viking_room.obj");
+		element->connect(mPhysicalDevice_, mLogicalDevice_, mGraphicsCommandPool_);
+		element->setup();
+		mRenderElements_.push_back(element);
 
-		ResourceLoader::loadModel("Resource/models/viking_room.obj", mVertices_, mIndices_);
-		// ResourceLoader::loadModel("Resource/models/chair_low_chair.fbx", mVertices_, mIndices_);
-
-		// temp buffer
-		VulkanBuffer stagingBuffer;
-		stagingBuffer.connect(mPhysicalDevice_, mLogicalDevice_);
-
-		// create Vertex Buffer
-		VkDeviceSize bufferSize = sizeof(mVertices_[0]) * mVertices_.size();
-		mVertexBuffer_ = new VulkanBuffer();
-		mVertexBuffer_->connect(mPhysicalDevice_, mLogicalDevice_);
-		mVertexBuffer_->setup(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		stagingBuffer.setup(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		stagingBuffer.setupData(mVertices_.data(), bufferSize);
-		VulkanBuffer::copyBuffer(mGraphicsCommandPool_, stagingBuffer.Get().buffer, mVertexBuffer_->Get().buffer, bufferSize);
-
-		// create Index Buffer
-		bufferSize = sizeof(mIndices_[0]) * mIndices_.size();
-		mIndexBuffer_ = new VulkanBuffer();
-		mIndexBuffer_->connect(mPhysicalDevice_, mLogicalDevice_);
-		mIndexBuffer_->setup(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-		stagingBuffer.setup(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		stagingBuffer.setupData(mIndices_.data(), bufferSize);
-		VulkanBuffer::copyBuffer(mGraphicsCommandPool_, stagingBuffer.Get().buffer, mIndexBuffer_->Get().buffer, bufferSize);
+		element = new VulkanRenderElement("Resource/models/chair_low_chair.fbx");
+		element->connect(mPhysicalDevice_, mLogicalDevice_, mGraphicsCommandPool_);
+		element->setup();
+		mRenderElements_.push_back(element);
 
 		createUniformBuffer();
 		createDescriptorSets();
-	}
-
-	void VulkanBase::createUniformBuffer()
-	{
-		mUniformBuffers_.resize(mSwapchain_->getImageCount());
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-		for (auto& uniformBuffer : mUniformBuffers_)
-		{
-			uniformBuffer = new VulkanBuffer();
-			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
-			uniformBuffer->setup(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		}
-	}
-
-	void VulkanBase::updateUniformBuffer(uint32_t currentImage)
-	{
-		static auto startTime = std::chrono::high_resolution_clock::now();
-
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-		UniformBufferObject ubo{};
-
-		auto convertToGlmMat = [](const Matrix4x4& mat) -> glm::mat4x4
-		{
-			return glm::mat4x4
-			{
-				mat.m00, mat.m01, mat.m02, mat.m03,
-				mat.m10, mat.m11, mat.m12, mat.m13,
-				mat.m20, mat.m21, mat.m22, mat.m23,
-				mat.m30, mat.m31, mat.m32, mat.m33,
-			};
-		};
-
-		Matrix4x3 modelMat = Matrix4x3();
-		modelMat.SetRotationX(DegreeToRadian(-90.f), Vector3::GetZero());
-		Matrix4x3 viewMat = mCamera_.getViewMatrix();
-		Matrix4x4 projMat = mCamera_.getProjMatrix();
-
-		ubo.model = convertToGlmMat(modelMat);
-		ubo.view = convertToGlmMat(viewMat);
-		ubo.proj = convertToGlmMat(projMat);
-		ubo.proj[1][1] *= -1;
-
-		mUniformBuffers_[currentImage]->setupData(&ubo, sizeof(ubo));
-	}
-
-	void VulkanBase::createDescriptorSets()
-	{
-		// create Descriptor Pool
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(mSwapchain_->getImageCount());
-
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(mSwapchain_->getImageCount());
-
-		VkDescriptorPoolCreateInfo poolInfo{};
-		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-		poolInfo.pPoolSizes = poolSizes.data();
-		poolInfo.maxSets = static_cast<uint32_t>(mSwapchain_->getImageCount());
-
-		VK_CHECK_RESULT(vkCreateDescriptorPool(mLogicalDevice_->Get(), &poolInfo, nullptr, &mDescriptorPool_), "failed to create descriptor pool!");
-
-		// bind Descriptor Sets
-		std::vector<VkDescriptorSetLayout> layouts(mSwapchain_->getImageCount(), mGraphicsPipeline_->getDescriptorSetLayout());
-		
-		VkDescriptorSetAllocateInfo allocInfo{};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = mDescriptorPool_;
-		allocInfo.descriptorSetCount = static_cast<uint32_t>(mSwapchain_->getImageCount());
-		allocInfo.pSetLayouts = layouts.data();
-
-		mDescriptorSets_.resize(mSwapchain_->getImageCount());
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(mLogicalDevice_->Get(), &allocInfo, mDescriptorSets_.data()), "failed to allocate descriptor sets!");
-
-		for (size_t i = 0; i < mDescriptorSets_.size(); i++) {
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = mUniformBuffers_[i]->Get().buffer;
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
-
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = mTextureImage_->Get().view;
-			imageInfo.sampler = mTextureImage_->getTextureSampler();
-
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
-
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = mDescriptorSets_[i];
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = mDescriptorSets_[i];
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &imageInfo;
-
-			vkUpdateDescriptorSets(mLogicalDevice_->Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-		}
-
 	}
 
 	void VulkanBase::createCommandBuffers()
@@ -628,16 +492,11 @@ namespace zyh
 			vkCmdBeginRenderPass(vkCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline_->Get());
 
-			VkBuffer vertexBuffers[] = { mVertexBuffer_->Get().buffer };
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(vkCommandBuffer, mIndexBuffer_->Get().buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline_->getPipelineLayout(), 0, 1, &mDescriptorSets_[i], 0, nullptr);
-			vkCmdDrawIndexed(vkCommandBuffer, static_cast<uint32_t>(mIndices_.size()), 1, 0, 0, 0);
+			for (auto& renderElement : mRenderElements_)
+				renderElement->draw(vkCommandBuffer);
 			vkCmdEndRenderPass(vkCommandBuffer);
 			
 			mCommandBuffers_[i]->end();
-
 		}
 	}
 
@@ -712,12 +571,7 @@ namespace zyh
 		mSwapchain_->setup(&mWidth_, &mHeight_);
 		mRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
 
-		mGraphicsPipeline_->setup(
-			"Resource/shaders/vert.spv",
-			"Resource/shaders/frag.spv",
-			mSwapchain_->getExtend(),
-			getMsaaSamples()
-		);
+		mGraphicsPipeline_->setup();
 		createColorResources();
 		createDepthResources();
 

@@ -25,9 +25,9 @@ namespace zyh
 		}
 
 	public:
-		float m00{ 0.0f }, m01{ 0.0f }, m02{ 0.0f };
-		float m10{ 0.0f }, m11{ 0.0f }, m12{ 0.0f };
-		float m20{ 0.0f }, m21{ 0.0f }, m22{ 0.0f };
+		float m00{ 1.0f }, m01{ 0.0f }, m02{ 0.0f };
+		float m10{ 0.0f }, m11{ 1.0f }, m12{ 0.0f };
+		float m20{ 0.0f }, m21{ 0.0f }, m22{ 1.0f };
 		float m30{ 0.0f }, m31{ 0.0f }, m32{ 0.0f };
 
 		static constexpr int DIMENSION = 12;

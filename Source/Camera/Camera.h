@@ -66,7 +66,7 @@ namespace zyh
 		char mPressingMouseKeyBit_{ 0 };
 		int32_t mLastMousePositionX, mLastMousePositionY;
 		float mFov_{ 45.f };
-		float mNear_{ 0.05f };
+		float mNear_{ 0.01f };
 		float mFar_{ 5000.f };
 		float mMoveSpeed_{ 0.01f };
 		

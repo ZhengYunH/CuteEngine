@@ -92,7 +92,7 @@ namespace zyh
 	{
 		if (mPressingMouseKeyBit_)
 		{
-			float fixMoveDistance = 0.01f;
+			float fixMoveDistance = 0.001f;
 			float fixRotateRate = 0.05f;
 			float deltaX = float(x - mLastMousePositionX);
 			float deltaY = float(y - mLastMousePositionY);

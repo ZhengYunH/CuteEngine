@@ -25,14 +25,11 @@ namespace zyh
 		mVulkanRenderPass_ = renderPass;
 	}
 
-	void VulkanGraphicsPipeline::setup(
-		const std::string& vertShaderFile, const std::string& fragShaderFile,
-		VkExtent2D extend, VkSampleCountFlagBits msaaSamples
-	)
+	void VulkanGraphicsPipeline::setup()
 	{
 		VulkanGraphicsPipelineBase::setup();
 		_setupDescriptorSetLayout();
-		_setupGraphicsPipeline(vertShaderFile, fragShaderFile, extend, msaaSamples);
+		_setupGraphicsPipeline();
 	}
 
 	void VulkanGraphicsPipeline::cleanup()
@@ -71,10 +68,10 @@ namespace zyh
 		);
 	}
 
-	void VulkanGraphicsPipeline::_setupGraphicsPipeline(const std::string& vertShaderFile, const std::string& fragShaderFile, VkExtent2D extend, VkSampleCountFlagBits msaaSamples)
+	void VulkanGraphicsPipeline::_setupGraphicsPipeline()
 	{
-		VkShaderModule vertShaderModule = mVulkanLogicalDevice->createShaderModule(vertShaderFile);
-		VkShaderModule fragShaderModule = mVulkanLogicalDevice->createShaderModule(fragShaderFile);
+		VkShaderModule vertShaderModule = mVulkanLogicalDevice->createShaderModule(mVulkanRenderPass_->getVertShaderFile());
+		VkShaderModule fragShaderModule = mVulkanLogicalDevice->createShaderModule(mVulkanRenderPass_->getVertShaderFile());
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -114,14 +111,14 @@ namespace zyh
 		VkViewport viewport{};
 		viewport.x = 0.0f;
 		viewport.y = 0.0f;
-		viewport.width = (float)extend.width;
-		viewport.height = (float)extend.height;
+		viewport.width = (float)GInstance->mExtend_->width;
+		viewport.height = (float)GInstance->mExtend_->height;
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
-		scissor.extent = extend;
+		scissor.extent = *(GInstance->mExtend);
 
 		VkPipelineViewportStateCreateInfo viewportState{};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -150,7 +147,7 @@ namespace zyh
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisampling.sampleShadingEnable = VK_TRUE; // enable sample shading in the pipeline
-		multisampling.rasterizationSamples = msaaSamples;
+		multisampling.rasterizationSamples = GInstance->mMsaaSamples_;
 		multisampling.minSampleShading = .2f; // min fraction for sample shading; closer to one is smooth
 		multisampling.pSampleMask = nullptr; // Optional
 		multisampling.alphaToCoverageEnable = VK_FALSE; // Optional

@@ -16,3 +16,16 @@
 
 #define UNEXPECTED(X) (X)
 #define SafeDestroy(X) if(X){ delete X; X=nullptr;}
+#define SafeDestroyArray(X) if(X){delete[] X; X=nullptr;}
+
+
+
+#include<vector>
+#include<map>
+
+enum RenderSet : uint32_t
+{
+	NONE = 0,
+	SCENE = 1,
+	SHADOW = 2
+};

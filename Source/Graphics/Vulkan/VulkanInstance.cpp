@@ -34,6 +34,7 @@ namespace zyh
 		_setupInstance();
 		if (mEnableValidationLayers_)
 			_setupDebugMessenger();
+		VulkanInstance* GInstance = this;
 	}
 
 	void VulkanInstance::cleanup()

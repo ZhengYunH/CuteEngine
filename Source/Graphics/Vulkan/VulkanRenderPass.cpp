@@ -1,6 +1,6 @@
 #include "VulkanRenderPass.h"
 #include "VulkanLogicalDevice.h"
-
+#include "VulkanRenderElement.h"
 
 namespace zyh
 {
@@ -89,5 +89,15 @@ namespace zyh
 		vkDestroyRenderPass(mVulkanLogicalDevice_->Get(), mVkImpl_, nullptr);
 	}
 
+	void VulkanRenderPassBase::Draw(VkCommandBuffer commandBuffer)
+	{
+		for (VulkanRenderElement* element : mElements_)
+		{
+			if (element)
+			{
+				element->draw(commandBuffer);
+			}
+		}
+	}
 }
 

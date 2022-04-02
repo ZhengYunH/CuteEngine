@@ -38,6 +38,12 @@ namespace zyh
 		void setup() override;
 		void cleanup() override;
 
+	public:
+		TCache<VkFormat> mColorFormat_;
+		TCache<VkFormat> mDepthFormat_;
+		TCache<VkExtent2D> mExtend_;
+		TCache<VkSampleCountFlagBits> mMsaaSamples_;
+
 	protected:
 		const std::vector<const char*> _getRequiredExtensions();
 		const std::vector<const char*>& _getValidationLayers();
@@ -60,4 +66,6 @@ namespace zyh
 		};
 		VkDebugUtilsMessengerEXT mDebugMessenger_;
 	};
+
+	VulkanInstance* GInstance;
 }

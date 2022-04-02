@@ -25,10 +25,7 @@ namespace zyh
 	{
 	public:
 		virtual void connect(VulkanLogicalDevice* logicalDevice, VulkanRenderPassBase* renderPass);
-		virtual void setup(
-			const std::string& vertShaderFile, const std::string& fragShaderFile,
-			VkExtent2D extend, VkSampleCountFlagBits msaaSamples
-		);
+		virtual void setup();
 		virtual void cleanup() override;
 
 	protected:
@@ -38,10 +35,7 @@ namespace zyh
 		VkPipelineLayout mVkPipelineLayout_;
 		VkDescriptorSetLayout mVkDescriptorSetLayout_;
 		virtual void _setupDescriptorSetLayout();
-		virtual void _setupGraphicsPipeline(
-			const std::string& vertShaderFile, const std::string& fragShaderFile,
-			VkExtent2D extend, VkSampleCountFlagBits msaaSamples
-		);
+		virtual void _setupGraphicsPipeline();
 
 	public:
 		const VkPipelineLayout& getPipelineLayout() { return mVkPipelineLayout_; }

@@ -35,6 +35,8 @@
 
 namespace zyh
 {
+	class VulkanInstance;
+
 	template<typename _Type>
 	class TCache
 	{
@@ -98,4 +100,6 @@ namespace zyh
 		void exitFatal(int32_t exitCode, const std::string& message);
 		void exitFatal(const std::string& message, int32_t exitCode=-1);
 	}
+
+	extern VulkanInstance* GInstance;
 }

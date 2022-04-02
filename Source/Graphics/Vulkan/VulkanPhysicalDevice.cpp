@@ -20,6 +20,17 @@ namespace zyh
 
 		mVkImpl_ = _chooseSuitablePhysicsDevice(devices);
 		HYBRID_CHECK(mVkImpl_, "failed to find a suitable GPU!");
+
+		*GInstance->mMsaaSamples_ = getMaxUsableSampleCount();
+		GInstance->mMsaaSamples_.IsValid(true);
+
+		*GInstance->mDepthFormat_ = findSupportedFormat(
+			{ VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+		);
+		GInstance->mDepthFormat_.IsValid(true);
+
 	}
 
 	const QueueFamilyIndices VulkanPhysicalDevice::findQueueFamilies(const VkSurfaceKHR surface /*= nullptr*/)

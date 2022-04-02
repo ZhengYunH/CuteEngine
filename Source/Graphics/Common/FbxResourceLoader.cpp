@@ -18,8 +18,6 @@ namespace zyh
 			isInit = true;
 		}
 
-		void _collectMesh(FbxNode* pNode);
-
 		void loadModel(const std::string& modelPath, std::vector<Vertex>& outVertexs, std::vector<uint32_t>& outIndices)
 		{
 			InitModule();
@@ -46,35 +44,53 @@ namespace zyh
 			// The file is imported, so get rid of the importer.
 			lImporter->Destroy();
 
-			FbxNode* lRootNode = lScene->GetRootNode();
-			if (lRootNode) {
-				auto count = lRootNode->GetChildCount();
-				for (int i = 0; i < count; i++)
+			std::unordered_map<Vertex, uint32_t> uniqueVertices{};
+			for (int meshIndex = 0; meshIndex < 1/*lScene->GetGeometryCount()*/; ++meshIndex)
+			{
+				const FbxMesh* pMesh = static_cast<const FbxMesh*>(lScene->GetGeometry(meshIndex));
+				if (pMesh)
 				{
-					FbxNode* pNode = lRootNode->GetChild(i);
-					FbxNodeAttribute::EType attr = pNode->GetNodeAttribute()->GetAttributeType();
-					if (attr == FbxNodeAttribute::eMesh)
+					const char* nodeName = pMesh->GetName();
+					
+					auto ttt = pMesh->GetPolygonCount();
+					for (int polygonCount = 0; polygonCount < pMesh->GetPolygonCount(); ++polygonCount)
 					{
-						_collectMesh(pNode);
+						int polygonTotal = pMesh->GetPolygonSize(polygonCount);
+						int polygonStart = pMesh->GetPolygonVertexIndex(polygonCount);
+
+						std::vector<uint32_t> indiceArray(polygonTotal);
+						for (int vertIndex = 0; vertIndex < polygonTotal; ++vertIndex)
+						{
+							Vertex vertex{};
+							int vertexIndex = pMesh->GetPolygonVertices()[polygonStart + vertIndex];
+							const auto& vertPos = pMesh->GetControlPointAt(vertexIndex);
+							vertex.pos = { vertPos[0], vertPos[1], vertPos[2] };
+							vertex.color = { 1.0f, 1.0f, 1.0f };
+							
+							if (uniqueVertices.count(vertex) == 0) {
+								uniqueVertices[vertex] = static_cast<uint32_t>(outVertexs.size());
+								outVertexs.push_back(vertex);
+							}
+
+							indiceArray[vertIndex] = uniqueVertices[vertex];
+						}
+
+						for (size_t polygonCount = 0; polygonCount <= polygonTotal - 3; ++polygonCount)
+						{
+							outIndices.push_back(indiceArray[polygonCount]);
+							outIndices.push_back(indiceArray[polygonCount + 1]);
+							outIndices.push_back(indiceArray[polygonCount + 2]);
+
+
+							/*outIndices.push_back(indiceArray[polygonCount]);
+							outIndices.push_back(indiceArray[polygonCount + polygonCount % 2 + 1]);
+							outIndices.push_back(indiceArray[polygonCount + 2 - polygonCount % 2]);*/
+						}
 					}
 				}
 			}
 
 			lSdkManager->Destroy();
 		}
-
-		void _collectMesh(FbxNode* pNode)
-		{
-			const char* nodeName = pNode->GetName();
-			FbxDouble3 translation = pNode->LclTranslation.Get();
-			FbxDouble3 rotation = pNode->LclRotation.Get();
-			FbxDouble3 scaling = pNode->LclScaling.Get();
-			for (int i = 0; i < pNode->GetChildCount(); i++)
-			{
-				FbxNode* pSubNode = pNode->GetChild(i);
-				_collectMesh(pSubNode);
-			}
-		}
-
 	}
 }

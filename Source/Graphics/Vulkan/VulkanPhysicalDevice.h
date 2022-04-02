@@ -62,7 +62,7 @@ namespace zyh
 	};
 	typedef TCache<_QueueFamilyIndices> QueueFamilyIndices;
 
-	class VulkanPhysicalDevice : public TVulkanObject< VkPhysicalDevice>
+	class VulkanPhysicalDevice : public TVulkanObject<VkPhysicalDevice>
 	{
 	public:
 		void connect(VulkanInstance* instance, VulkanSurface* surface);
