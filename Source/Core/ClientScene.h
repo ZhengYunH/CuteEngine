@@ -5,24 +5,29 @@
 namespace zyh
 {
 	class IEntity;
+	
 	class IPrimitivesComponent;
+
 	class IRenderElement;
+	class IRenderScene;
 
 	class ClientScene
 	{
 	public:
-		void Initialize() { LoadScene(); }
+		void Initialize();
 		void Tick();
-		void CleanUp() {}
+		void CleanUp() { SafeDestroy(mRenderScene_); }
 
 		void AddEntity(IEntity* entity);
 		void DelEntity(IEntity* entity);
 
 		void AddPrimitive(IPrimitivesComponent* prim);
+
 		void DelPrimitive(IPrimitivesComponent* prim);
 
-		void AddRenderElement(RenderSet renderset, IRenderElement* element);
-		const std::vector<IRenderElement*> GetRenderElements(RenderSet renderSet);
+		/// RenderScene Utility
+		bool AddRenderElement(RenderSet renderset, IRenderElement* element);
+		const std::vector<IRenderElement*>& GetRenderElements(RenderSet renderSet);
 
 	protected:
 		void LoadScene();
@@ -37,7 +42,7 @@ namespace zyh
 		std::vector<IPrimitivesComponent*> mPrimitives_;
 		std::vector<IPrimitivesComponent*> mPrimitivesAfterCulling_;
 
-		std::map<RenderSet, std::vector<IRenderElement*>> mRenderElements_;
+		IRenderScene* mRenderScene_;
 	};
 
 }

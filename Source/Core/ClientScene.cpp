@@ -1,9 +1,18 @@
 #include "Core/ClientScene.h"
 #include "IEntity.h"
+#include "Graphics/Common/IRenderScene.h"
 #include "IPrimitivesComponent.h"
+
 
 namespace zyh
 {
+
+	void ClientScene::Initialize()
+	{
+		LoadScene();
+		mRenderScene_ = new IRenderScene();
+	}
+
 	void ClientScene::Tick()
 	{
 		DispatchTickEvent();
@@ -36,24 +45,20 @@ namespace zyh
 			mPrimitives_.erase(itr);
 	}
 
-	void ClientScene::AddRenderElement(RenderSet renderSet, IRenderElement* element)
+	bool ClientScene::AddRenderElement(RenderSet renderSet, IRenderElement* element)
 	{
-		if (mRenderElements_.find(renderSet) == mRenderElements_.end())
-			mRenderElements_[renderSet] = std::vector<IRenderElement*>();
-		mRenderElements_[renderSet].push_back(element);
+		return mRenderScene_->AddRenderElement(renderSet, element);
 	}
 
-	const std::vector<IRenderElement*> ClientScene::GetRenderElements(RenderSet renderSet)
+	const std::vector<IRenderElement*>& ClientScene::GetRenderElements(RenderSet renderSet)
 	{
-		if (mRenderElements_.find(renderSet) != mRenderElements_.end())
-			return mRenderElements_[renderSet];
-		return std::vector<IRenderElement*>();
+		return mRenderScene_->GetRenderElements(renderSet);
 	}
 
 	void ClientScene::LoadScene()
 	{
 		IEntity* entity = new IEntity();
-		entity->AddComponent<IPrimitivesComponent>();
+		entity->AddComponent<IPrimitivesComponent>("Resource/models/viking_room.obj");
 		IPrimitivesComponent* comp = entity->GetComponent<IPrimitivesComponent>();
 		AddEntity(entity);
 	}
@@ -68,12 +73,11 @@ namespace zyh
 	void ClientScene::CollectPrimitives()
 	{
 		mPrimitivesAfterCulling_.clear();
-		mRenderElements_.clear();
 
 		Culling();
 		for (IPrimitivesComponent* prim : mPrimitivesAfterCulling_)
 		{
-			prim->CollectPrimitives();
+			prim->CollectPrimitives(mRenderScene_);
 		}
 	}
 

@@ -53,15 +53,7 @@ namespace zyh
 		}
 
 	public:
-		void draw(VkCommandBuffer commandBuffer)
-		{
-			VkBuffer vertexBuffers[] = { mVertexBuffer_->Get().buffer };
-			VkDeviceSize offsets[] = { 0 };
-			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer_->Get().buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, static_cast<VulkanMaterial*>(mMaterial_)->getPipelineLayout(), 0, 1, static_cast<VulkanMaterial*>(mMaterial_)->getDescriptorSet(), 0, nullptr);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mIndices_.size()), 1, 0, 0, 0);
-		}
+		void draw(VkCommandBuffer commandBuffer);
 
 	protected:
 		VulkanBuffer* mVertexBuffer_;

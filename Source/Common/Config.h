@@ -29,3 +29,6 @@ enum RenderSet : uint32_t
 	SCENE = 1,
 	SHADOW = 2
 };
+
+#include <vector>
+typedef std::vector<bool> BitArray;

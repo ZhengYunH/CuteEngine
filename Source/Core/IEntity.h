@@ -10,8 +10,8 @@ namespace zyh
 	public:
 		void Tick();
 		
-		template<typename T>
-		void AddComponent() { mComponents_.push_back(new T()); }
+		template<typename T, typename... ArgsType>
+		void AddComponent(ArgsType&&... args) { mComponents_.push_back(new T(std::forward<ArgsType>(args)...)); }
 
 		template<typename T>
 		T* GetComponent() { return static_cast<T*>(mComponents_[0]); }

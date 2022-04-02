@@ -49,7 +49,7 @@ namespace zyh
 		mColorFormat_ = surfaceFormat.format;
 		mColorSpace_ = surfaceFormat.colorSpace;
 
-		*GVulkanGlobalInstance->mExtend_ = mExtend2D_;
+		*GInstance->mExtend_ = mExtend2D_;
 		GInstance->mExtend_.IsValid(true);
 	}
 #endif 

@@ -147,4 +147,9 @@ namespace zyh
 		mUniformBuffers_[currentImage]->setupData(&ubo, sizeof(ubo));
 	}
 
+	VkPipelineLayout VulkanMaterial::getPipelineLayout()
+	{
+		return mGraphicsPipeline_->getPipelineLayout();
+	}
+
 }

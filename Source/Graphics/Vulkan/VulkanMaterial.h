@@ -33,7 +33,7 @@ namespace zyh
 	public:
 		virtual void updateUniformBuffer(uint32_t currentImage);
 		VkDescriptorSet getDescriptorSet() { return mDescriptorSets_[0]; }
-		VkPipelineLayout getPipelineLayout() { return mGraphicsPipeline_->getPipelineLayout(); }
+		VkPipelineLayout getPipelineLayout();
 
 	protected:
 		VulkanLogicalDevice* mLogicalDevice_;
