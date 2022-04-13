@@ -49,6 +49,9 @@ namespace zyh
 		mColorFormat_ = surfaceFormat.format;
 		mColorSpace_ = surfaceFormat.colorSpace;
 
+		*GInstance->mColorFormat_ = mColorFormat_;
+		GInstance->mColorFormat_.IsValid(true);
+
 		*GInstance->mExtend_ = mExtend2D_;
 		GInstance->mExtend_.IsValid(true);
 	}
@@ -315,6 +318,9 @@ namespace zyh
 	VkResult VulkanSwapchain::_createSwapchainImages()
 	{
 		uint32_t imageCount = getImageCount();
+		*GInstance->mImageCount_ = imageCount;
+		GInstance->mImageCount_.IsValid(true);
+
 		mImages_.resize(imageCount);
 		VK_CHECK_RESULT(fpGetSwapchainImagesKHR(mVulkanLogicalDevice_->Get(), mVkImpl_, &imageCount, mImages_.data()));
 

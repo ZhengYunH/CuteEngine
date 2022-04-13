@@ -25,6 +25,8 @@ namespace zyh
 		}
 	}
 
+	VulkanInstance* GInstance;
+
 	void VulkanInstance::setup()
 	{
 		if (mEnableValidationLayers_ && !_checkValidationLayerSupport()) {
@@ -34,7 +36,7 @@ namespace zyh
 		_setupInstance();
 		if (mEnableValidationLayers_)
 			_setupDebugMessenger();
-		VulkanInstance* GInstance = this;
+		GInstance = this;
 	}
 
 	void VulkanInstance::cleanup()

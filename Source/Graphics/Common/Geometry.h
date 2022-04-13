@@ -1,6 +1,9 @@
 #pragma once
 #include "Graphics/Vulkan/VulkanHeader.h"
 
+/// <summary>
+/// Define Basic Geometry Data Struct
+/// </summary>
 
 struct Vertex {
 	glm::vec3 pos;

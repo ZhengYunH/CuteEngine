@@ -43,6 +43,7 @@ namespace zyh
 		TCache<VkFormat> mDepthFormat_;
 		TCache<VkExtent2D> mExtend_;
 		TCache<VkSampleCountFlagBits> mMsaaSamples_;
+		TCache<uint32_t> mImageCount_;
 
 	protected:
 		const std::vector<const char*> _getRequiredExtensions();
@@ -66,6 +67,4 @@ namespace zyh
 		};
 		VkDebugUtilsMessengerEXT mDebugMessenger_;
 	};
-
-	VulkanInstance* GInstance;
 }

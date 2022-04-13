@@ -39,8 +39,6 @@ namespace zyh
 			GVulkanInstance = instance;
 		}
 
-		
-
 	public:
 		VulkanBase() {};
 		virtual ~VulkanBase();
@@ -66,9 +64,9 @@ namespace zyh
 		virtual void Tick();
 		virtual void CleanUp();
 		virtual void windowResize(uint32_t width, uint32_t height);
+		void AddRenderPass(VulkanRenderPassBase* renderPass) { mRenderPasses_.push_back(renderPass); }
 
-
-	protected: // Device Relate
+	public: // Device Relate
 		/** @brief Encapsulated instance */
 		VulkanInstance* mInstance_{ nullptr };
 		VkDebugUtilsMessengerEXT mDebugMessenger_;
@@ -87,11 +85,11 @@ namespace zyh
 		/** @brief Encapsulated command pool*/
 		VulkanCommandPool* mGraphicsCommandPool_{ nullptr };
 
-		VulkanImage* mDepthStencil_{ nullptr };
-
 		VulkanRenderPassBase* mRenderPass_{ nullptr };
 
-		VulkanGraphicsPipeline* mGraphicsPipeline_{ nullptr };
+		std::vector<VulkanRenderPassBase*> mRenderPasses_;
+
+		VulkanImage* mDepthStencil_{ nullptr };
 
 		/** @brief Synchronization Objects*/
 		const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -117,7 +115,6 @@ namespace zyh
 		uint32_t mWidth_{ 0 };
 		uint32_t mHeight_{ 0 };
 		bool mEnableValidationLayers_{ Setting::IsDebugMode };
-		Camera mCamera_;
 		// TODO
 		float mDeltaTime_{ 0.033f };
 
@@ -144,19 +141,6 @@ namespace zyh
 
 		VulkanImage* mDepthResources_;
 		void createDepthResources();
-
-		VulkanTextureImage* mTextureImage_;
-		void createTextureImage();
-
-		std::vector<VulkanRenderElement*> mRenderElements_;
-		std::vector<VulkanBuffer*> mUniformBuffers_;
-		void loadData();
-		void createUniformBuffer();
-		void updateUniformBuffer(uint32_t currentImage);
-
-		VkDescriptorPool mDescriptorPool_;
-		std::vector<VkDescriptorSet> mDescriptorSets_;
-		void createDescriptorSets();
 
 		std::vector<VulkanCommand*> mCommandBuffers_;
 		void createCommandBuffers();

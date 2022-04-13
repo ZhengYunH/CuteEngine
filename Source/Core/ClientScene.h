@@ -5,6 +5,7 @@
 namespace zyh
 {
 	class IEntity;
+	class Camera;
 	
 	class IPrimitivesComponent;
 
@@ -16,26 +17,30 @@ namespace zyh
 	public:
 		void Initialize();
 		void Tick();
-		void CleanUp() { SafeDestroy(mRenderScene_); }
+		void CleanUp();
 
 		void AddEntity(IEntity* entity);
 		void DelEntity(IEntity* entity);
 
 		void AddPrimitive(IPrimitivesComponent* prim);
-
 		void DelPrimitive(IPrimitivesComponent* prim);
 
 		/// RenderScene Utility
 		bool AddRenderElement(RenderSet renderset, IRenderElement* element);
 		const std::vector<IRenderElement*>& GetRenderElements(RenderSet renderSet);
 
+		void CollectAllRenderElements();
+
 	protected:
 		void LoadScene();
 
 	protected:
 		void DispatchTickEvent();
-		void CollectPrimitives();
-		void Culling();
+		void CollectRenderElements(RenderSet renderSet);
+		void Culling(RenderSet renderSet);
+
+	public:
+		Camera* GetCamera() { return mCamera_; }
 
 	private:
 		std::vector<IEntity*> mEntitys_;
@@ -43,6 +48,7 @@ namespace zyh
 		std::vector<IPrimitivesComponent*> mPrimitivesAfterCulling_;
 
 		IRenderScene* mRenderScene_;
+		Camera* mCamera_;
 	};
 
 }

@@ -40,7 +40,7 @@ namespace zyh
 		VulkanPhysicalDevice* mPhysicalDevice_;
 		uint32_t			mLayoutCount_;
 
-	protected:
+	public:
 		VulkanGraphicsPipeline* mGraphicsPipeline_;
 		virtual void createGraphicsPipeline();
 
@@ -54,6 +54,8 @@ namespace zyh
 		virtual void createDescriptorSets();
 
 		VulkanTextureImage* mTextureImage_;
+		void createTextureImage();
 
+		class VulkanRenderPassBase* mRenderPass_{ nullptr };
 	};
 }

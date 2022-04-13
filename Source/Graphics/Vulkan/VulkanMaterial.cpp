@@ -1,15 +1,23 @@
+#include "Core/Engine.h"
+#include "Core/ClientScene.h"
+#include "Camera/Camera.h"
+
+#include "VulkanBase.h"
+#include "VulkanInstance.h"
 #include "VulkanMaterial.h"
 #include "VulkanLogicalDevice.h"
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanBuffer.h"
 #include "VulkanImage.h"
 #include "Math/Matrix4x4.h"
+#include "VulkanRenderPass.h"
 
 namespace zyh
 {
 	VulkanMaterial::VulkanMaterial()
 	{
-		
+		mRenderPass_ = new VulkanRenderPassBase("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
+		mGraphicsPipeline_ = new VulkanGraphicsPipeline();
 	}
 
 	void VulkanMaterial::connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, uint32_t layoutCount)
@@ -17,13 +25,16 @@ namespace zyh
 		mPhysicalDevice_ = physicalDevice;
 		mLogicalDevice_ = logicalDevice;
 		mLayoutCount_ = layoutCount;
-		mGraphicsPipeline_->connect(logicalDevice);
+		mRenderPass_->connect(mLogicalDevice_);
+		mGraphicsPipeline_->connect(mLogicalDevice_, mRenderPass_);
 	}
 
 	void VulkanMaterial::setup()
 	{
+		mRenderPass_->setup(*GInstance->mColorFormat_, *GInstance->mMsaaSamples_, *GInstance->mDepthFormat_);
 		createGraphicsPipeline();
 		createUniformBuffers();
+		createTextureImage();
 		createDesciptorPool();
 		createDescriptorSets();
 	}
@@ -109,6 +120,16 @@ namespace zyh
 		}
 	}
 
+	void VulkanMaterial::createTextureImage()
+	{
+		mTextureImage_ = new VulkanTextureImage("Resource/textures/viking_room.png");
+		mTextureImage_->connect(mPhysicalDevice_, mLogicalDevice_, GEngine->Vulkan->mGraphicsCommandPool_);
+		mTextureImage_->setup(VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT
+		);
+	}
+
 	void VulkanMaterial::cleanup()
 	{
 		throw std::logic_error("The method or operation is not implemented.");
@@ -136,8 +157,8 @@ namespace zyh
 
 		Matrix4x3 modelMat = Matrix4x3();
 		modelMat.SetRotationX(DegreeToRadian(-90.f), Vector3::GetZero());
-		Matrix4x3 viewMat = mCamera_.getViewMatrix();
-		Matrix4x4 projMat = mCamera_.getProjMatrix();
+		Matrix4x3 viewMat = GEngine->Scene->GetCamera()->getViewMatrix();
+		Matrix4x4 projMat = GEngine->Scene->GetCamera()->getProjMatrix();
 
 		ubo.model = convertToGlmMat(modelMat);
 		ubo.view = convertToGlmMat(viewMat);
@@ -151,5 +172,6 @@ namespace zyh
 	{
 		return mGraphicsPipeline_->getPipelineLayout();
 	}
+
 
 }

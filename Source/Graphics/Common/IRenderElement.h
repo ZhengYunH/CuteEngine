@@ -2,7 +2,7 @@
 #include "Common/Config.h"
 #include "Graphics/Common/Geometry.h"
 #include "Graphics/Common/ResourceLoader.h"
-#include "Graphics/Common/IModel.h"
+#include "Graphics/Common/IPrimitive.h"
 
 
 namespace zyh
@@ -10,24 +10,12 @@ namespace zyh
 	class IRenderElement
 	{
 	public:
-		IRenderElement()
+		IRenderElement(IPrimitive* InPrimtives)
+			: mPrimitives_(InPrimtives)
 		{
-		}
-
-		IRenderElement(const std::string& meshFileName)
-		{
-			mModel_ = new IModel();
-			LoadModel(meshFileName);
-		}
-
-		void LoadModel(const std::string& meshFileName)
-		{
-			ResourceLoader::loadModel(meshFileName, *mModel_);
 		}
 
 	protected:
-		IModel* mModel_;
-		std::vector<Vertex> mVertices_;
-		std::vector<uint32_t> mIndices_;
+		IPrimitive* mPrimitives_;
 	};
 }

@@ -2,21 +2,25 @@
 #include "IEntity.h"
 #include "Graphics/Common/IRenderScene.h"
 #include "IPrimitivesComponent.h"
-
+#include "Camera/Camera.h"
 
 namespace zyh
 {
-
 	void ClientScene::Initialize()
 	{
-		LoadScene();
 		mRenderScene_ = new IRenderScene();
+		mCamera_ = new Camera();
+		LoadScene();
 	}
 
 	void ClientScene::Tick()
 	{
 		DispatchTickEvent();
-		CollectPrimitives();
+	}
+
+	void ClientScene::CleanUp()
+	{
+		SafeDestroy(mRenderScene_);
 	}
 
 	void ClientScene::AddEntity(IEntity* entity)
@@ -61,6 +65,7 @@ namespace zyh
 		entity->AddComponent<IPrimitivesComponent>("Resource/models/viking_room.obj");
 		IPrimitivesComponent* comp = entity->GetComponent<IPrimitivesComponent>();
 		AddEntity(entity);
+		CollectAllRenderElements();
 	}
 
 	void ClientScene::DispatchTickEvent()
@@ -70,18 +75,24 @@ namespace zyh
 			entity->Tick();
 		}
 	}
-	void ClientScene::CollectPrimitives()
+
+	void ClientScene::CollectAllRenderElements()
+	{
+		CollectRenderElements(RenderSet::SCENE);
+	}
+
+	void ClientScene::CollectRenderElements(RenderSet renderSet)
 	{
 		mPrimitivesAfterCulling_.clear();
 
-		Culling();
+		Culling(renderSet);
 		for (IPrimitivesComponent* prim : mPrimitivesAfterCulling_)
 		{
-			prim->CollectPrimitives(mRenderScene_);
+			prim->EmitRenderElements(renderSet, *mRenderScene_);
 		}
 	}
 
-	void ClientScene::Culling()
+	void ClientScene::Culling(RenderSet renderSet)
 	{
 		for (IPrimitivesComponent* prim : mPrimitives_)
 		{
@@ -89,7 +100,4 @@ namespace zyh
 				mPrimitivesAfterCulling_.push_back(prim);
 		}
 	}
-
-	
-
 }

@@ -9,10 +9,10 @@ namespace zyh
 	{
 	public:
 		virtual ~IMaterial() {}
-		virtual bool IsValid() { return true; }
-		virtual const TRenderSets& GetSupportRenderSet() { return mRenderSets_; }
+		virtual bool IsValid() const { return true; }
+		virtual const TRenderSets& GetSupportRenderSet() const { return mRenderSets_; }
 
 	public:
-		TRenderSets mRenderSets_;
+		TRenderSets mRenderSets_{ SCENE };
 	};
 }

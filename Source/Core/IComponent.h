@@ -6,7 +6,7 @@ namespace zyh
 	class IComponent
 	{
 	public:
-		virtual void Tick() = 0;
+		virtual void Tick() {}
 		virtual bool IsTickable() { return mTickable_; }
 
 	protected:

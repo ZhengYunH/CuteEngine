@@ -3,8 +3,8 @@
 #include "IComponent.h"
 #include "Engine.h"
 #include "ClientScene.h"
-#include "Graphics/Common/IPrimitive.h"
 #include "Graphics/Common/ResourceLoader.h"
+#include "Graphics/Vulkan/VulkanModel.h"
 
 
 namespace zyh
@@ -18,40 +18,22 @@ namespace zyh
 		IPrimitivesComponent(const std::string& meshFileName)
 		{
 			GEngine->Scene->AddPrimitive(this);
-			LoadData(meshFileName);
+			mModel_ = new VulkanModel(meshFileName);
 		}
 		virtual ~IPrimitivesComponent()
 		{
 			GEngine->Scene->DelPrimitive(this);
+			SafeDestroy(mModel_);
 		}
 
 	public:
-		virtual void LoadData(const std::string& meshFileName)
+		virtual void EmitRenderElements(RenderSet renderSet, IRenderScene& renderScene)
 		{
-			IPrimitive* prim = AddPrimitive();
-			ResourceLoader::loadModel(meshFileName, prim->mVertices_, prim->mIndices_);
-		}
-		virtual void CollectPrimitives(IRenderScene* renderScene)
-		{
-			for (auto& primitive : mPrimitives)
-			{
-				primitive->CollectPrimitives(renderScene);
-			}
+			mModel_->EmitRenderElements(renderSet, renderScene);
 		}
 		virtual bool Culling() { return true; }
 
-		template<typename... ArgsType>
-		IPrimitive* AddPrimitive(ArgsType&&... args)
-		{
-			IPrimitive* prim = new prim(std::forward<ArgsType>(args)...);
-		}
-
-		void AddPrimitive(IPrimitive* primitive)
-		{
-			mPrimitives.push_back(primitive);
-		}
-
 	protected:
-		std::vector<IPrimitive*> mPrimitives;
+		VulkanModel* mModel_;
 	};
 }

@@ -9,7 +9,6 @@ namespace zyh
 		mVulkanLogicalDevice_ = logicalDevice;
 	}
 
-
 	void VulkanRenderPassBase::setup(VkFormat colorFormat, VkSampleCountFlagBits msaaSample, VkFormat depthFormat)
 	{
 		std::array<VkAttachmentDescription, 3> attachments = {};

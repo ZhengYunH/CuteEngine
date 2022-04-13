@@ -6,24 +6,30 @@
 #include "IPrimitive.h"
 #include "Math/Matrix4x4.h"
 
-
 namespace zyh
 {
 	class IMesh
 	{
 	public:
-		IMesh() {}
+		IMesh(const std::string& InMeshFileName) 
+		{
+			std::string primFileName = InMeshFileName;
+			AddPrimitive(new IPrimitive(primFileName));
+		}
 		virtual ~IMesh() 
 		{
-			for (auto& prim : mPrimitives_)
+			for (auto prim : mPrimitives_)
 				SafeDestroy(prim);
 			mPrimitives_.clear();
 		}
 
 	public:
-		const std::string& GetName() { return mName_; }
+		const std::string& GetName() const
+		{ 
+			return mName_; 
+		}
 
-		virtual size_t AddPrimitive(IPrimitive* prim, Matrix4x3* localTransform = nullptr ) 
+		virtual size_t AddPrimitive(IPrimitive* prim, Matrix4x3* localTransform=nullptr) 
 		{ 
 			mPrimitives_.push_back(prim); 
 			if (localTransform)

@@ -1,3 +1,6 @@
+#include "Core/Engine.h"
+#include "Core/ClientScene.h"
+
 #include "VulkanBase.h"
 #include "VulkanTools.h"
 #include "VulkanInstance.h"
@@ -153,11 +156,11 @@ namespace zyh
 			PostQuitMessage(0);
 			break;
 		case WM_KEYDOWN:
-			mCamera_.handleInputKeyDown(wParam);
+			GEngine->Scene->GetCamera()->handleInputKeyDown(wParam);
 			break;
 
 		case WM_KEYUP:
-			mCamera_.handleInputKeyUp(wParam);
+			GEngine->Scene->GetCamera()->handleInputKeyUp(wParam);
 			switch (wParam)
 			{
 			case KEY_P:
@@ -167,34 +170,34 @@ namespace zyh
 				PostQuitMessage(0);
 				break;
 			case KEY_B:
-				mCamera_.reset();
+				GEngine->Scene->GetCamera()->reset();
 				break;
 			}
 			break;
 
 		case WM_LBUTTONDOWN:
-			mCamera_.handleMouseButtonDown(LEFT, LOWORD(lParam), HIWORD(lParam));
+			GEngine->Scene->GetCamera()->handleMouseButtonDown(LEFT, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_RBUTTONDOWN:
-			mCamera_.handleMouseButtonDown(RIGHT, LOWORD(lParam), HIWORD(lParam));
+			GEngine->Scene->GetCamera()->handleMouseButtonDown(RIGHT, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_MBUTTONDOWN:
-			mCamera_.handleMouseButtonDown(MID, LOWORD(lParam), HIWORD(lParam));
+			GEngine->Scene->GetCamera()->handleMouseButtonDown(MID, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_LBUTTONUP:
-			mCamera_.handleMouseButtonUp(LEFT, LOWORD(lParam), HIWORD(lParam));
+			GEngine->Scene->GetCamera()->handleMouseButtonUp(LEFT, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_RBUTTONUP:
-			mCamera_.handleMouseButtonUp(RIGHT, LOWORD(lParam), HIWORD(lParam));
+			GEngine->Scene->GetCamera()->handleMouseButtonUp(RIGHT, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_MBUTTONUP:
-			mCamera_.handleMouseButtonUp(MID, LOWORD(lParam), HIWORD(lParam));
+			GEngine->Scene->GetCamera()->handleMouseButtonUp(MID, LOWORD(lParam), HIWORD(lParam));
 			break;
 		case WM_MOUSEWHEEL:
-			mCamera_.handleMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
+			GEngine->Scene->GetCamera()->handleMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
 			break;
 		case WM_MOUSEMOVE:
-			mCamera_.handleMouseMove(LOWORD(lParam), HIWORD(lParam), mDeltaTime_);
+			GEngine->Scene->GetCamera()->handleMouseMove(LOWORD(lParam), HIWORD(lParam), mDeltaTime_);
 			break;
 		case WM_SIZE:
 			if (wParam == SIZE_MINIMIZED) // minimized
@@ -231,9 +234,8 @@ namespace zyh
 		mLogicalDevice_ = new VulkanLogicalDevice();
 		mSwapchain_ = new VulkanSwapchain();
 		mGraphicsCommandPool_ = new VulkanCommandPool(GRAPHICS);
-		mDepthStencil_ = new VulkanImage();
 		mRenderPass_ = new VulkanRenderPassBase("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
-		mGraphicsPipeline_ = new VulkanGraphicsPipeline();
+		mDepthStencil_ = new VulkanImage();
 
 		// connect
 		mSurface_->connect(mInstance_);
@@ -241,9 +243,8 @@ namespace zyh
 		mLogicalDevice_->connect(mInstance_, mPhysicalDevice_);
 		mSwapchain_->connect(mInstance_, mPhysicalDevice_, mLogicalDevice_, mSurface_);
 		mGraphicsCommandPool_->connect(mPhysicalDevice_, mLogicalDevice_, mSwapchain_);
-		mDepthStencil_->connect(mPhysicalDevice_, mLogicalDevice_);
 		mRenderPass_->connect(mLogicalDevice_);
-		mGraphicsPipeline_->connect(mLogicalDevice_, mRenderPass_);
+		mDepthStencil_->connect(mPhysicalDevice_, mLogicalDevice_);
 	}
 
 	void VulkanBase::setupVulkan()
@@ -264,16 +265,15 @@ namespace zyh
 		mSwapchain_->setup(&mWidth_, &mHeight_);
 		
 		mGraphicsCommandPool_->setup();
-		
+
+		mRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
+		AddRenderPass(mRenderPass_);
+
 		mDepthStencil_->setup(
 			mWidth_, mHeight_, 1,
 			getMsaaSamples(), getDepthFormat(), VK_IMAGE_TILING_OPTIMAL, 
 			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT
 		);
-		
-		mRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
-
-		mGraphicsPipeline_->setup();
 	}
 
 	void VulkanBase::createSyncObjects()
@@ -321,14 +321,12 @@ namespace zyh
 		};
 		mSwapchain_->setupFrameBuffer(*mRenderPass_, attachments);
 
-		loadData();
-
 		createCommandBuffers();
 		createSyncObjects();
 
-		mCamera_.mScreenHeight_ = static_cast<float>(mSwapchain_->getExtend().height);
-		mCamera_.mScreenWidth_ = static_cast<float>(mSwapchain_->getExtend().width);
-		mCamera_.updateProjMatrix();
+		GEngine->Scene->GetCamera()->mScreenHeight_ = static_cast<float>(mSwapchain_->getExtend().height);
+		GEngine->Scene->GetCamera()->mScreenWidth_ = static_cast<float>(mSwapchain_->getExtend().width);
+		GEngine->Scene->GetCamera()->updateProjMatrix();
 	}
 
 	void VulkanBase::Tick()
@@ -348,7 +346,7 @@ namespace zyh
 
 				if (!mIsPaused_)
 				{
-					mCamera_.tick(mDeltaTime_);
+					GEngine->Scene->GetCamera()->tick(mDeltaTime_);
 					drawFrame();
 				}
 			}
@@ -366,23 +364,14 @@ namespace zyh
 		for (auto& buffer : mCommandBuffers_)
 			SafeDestroy(buffer);
 
-		for(auto& buffer : mUniformBuffers_)
-			SafeDestroy(buffer)
-
-		SafeDestroy(mTextureImage_);
 		SafeDestroy(mDepthResources_);
 		SafeDestroy(mColorResources_);
-
-		for (auto& element : mRenderElements_)
-			SafeDestroy(element);
 
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(mLogicalDevice_->Get(), mRenderFinishedSemaphores_[i], nullptr);
 			vkDestroySemaphore(mLogicalDevice_->Get(), mImageAvailableSemaphores_[i], nullptr);
 			vkDestroyFence(mLogicalDevice_->Get(), mInFlightFences_[i], nullptr);
 		}
-		SafeDestroy(mGraphicsPipeline_);
-		SafeDestroy(mRenderPass_);
 		SafeDestroy(mDepthStencil_);
 		SafeDestroy(mSwapchain_);
 		SafeDestroy(mLogicalDevice_);
@@ -422,37 +411,16 @@ namespace zyh
 		);
 	}
 
-	void VulkanBase::createTextureImage()
-	{
-		mTextureImage_ = new VulkanTextureImage("Resource/textures/viking_room.png");
-		mTextureImage_->connect(mPhysicalDevice_, mLogicalDevice_, mGraphicsCommandPool_);
-		mTextureImage_->setup(VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT
-		);
-	}
-
-	void VulkanBase::loadData()
-	{
-		createTextureImage();
-		VulkanRenderElement* element;
-		
-		element = new VulkanRenderElement("Resource/models/viking_room.obj");
-		element->connect(mPhysicalDevice_, mLogicalDevice_, mGraphicsCommandPool_);
-		element->setup();
-		mRenderElements_.push_back(element);
-
-		element = new VulkanRenderElement("Resource/models/chair_low_chair.fbx");
-		element->connect(mPhysicalDevice_, mLogicalDevice_, mGraphicsCommandPool_);
-		element->setup();
-		mRenderElements_.push_back(element);
-
-		createUniformBuffer();
-		createDescriptorSets();
-	}
-
 	void VulkanBase::createCommandBuffers()
 	{
+		GEngine->Scene->CollectAllRenderElements();
+		for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
+		{
+			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+			element->connect(mPhysicalDevice_, mLogicalDevice_, mGraphicsCommandPool_);
+			element->setup();
+		}
+
 		mCommandBuffers_.resize(mSwapchain_->getImageCount());
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -460,7 +428,7 @@ namespace zyh
 		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 		allocInfo.commandBufferCount = 1;
 
-		for (size_t i = 0; i < mCommandBuffers_.size(); ++i) 
+		for (size_t i = 0; i < mCommandBuffers_.size(); ++i)
 		{
 			mCommandBuffers_[i] = new VulkanCommand();
 			mCommandBuffers_[i]->connect(mLogicalDevice_, mGraphicsCommandPool_);
@@ -473,35 +441,47 @@ namespace zyh
 
 			mCommandBuffers_[i]->begin(&beginInfo);
 
-			VkRenderPassBeginInfo renderPassInfo{};
-			renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-			renderPassInfo.renderPass = mRenderPass_->Get();
-			renderPassInfo.framebuffer = mSwapchain_->getFrameBuffer(static_cast<uint32_t>(i));
-			renderPassInfo.renderArea.offset = { 0, 0 };
-			renderPassInfo.renderArea.extent = mSwapchain_->getExtend();
+			for (auto renderPass : mRenderPasses_)
+			{
+				VkRenderPassBeginInfo renderPassInfo{};
+				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+				renderPassInfo.renderPass = renderPass->Get();
+				renderPassInfo.framebuffer = mSwapchain_->getFrameBuffer(static_cast<uint32_t>(i));
+				renderPassInfo.renderArea.offset = { 0, 0 };
+				renderPassInfo.renderArea.extent = mSwapchain_->getExtend();
 
-			std::array<VkClearValue, 2> clearValues{};
-			clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-			clearValues[1].depthStencil = { 1.0f, 0 };
+				std::array<VkClearValue, 2> clearValues{};
+				clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+				clearValues[1].depthStencil = { 1.0f, 0 };
 
-			renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-			renderPassInfo.pClearValues = clearValues.data();
+				renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+				renderPassInfo.pClearValues = clearValues.data();
 
-			VkCommandBuffer vkCommandBuffer = mCommandBuffers_[i]->Get();
+				VkCommandBuffer vkCommandBuffer = mCommandBuffers_[i]->Get();
 
-			vkCmdBeginRenderPass(vkCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mGraphicsPipeline_->Get());
+				vkCmdBeginRenderPass(vkCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-			for (auto& renderElement : mRenderElements_)
-				renderElement->draw(vkCommandBuffer);
-			vkCmdEndRenderPass(vkCommandBuffer);
-			
-			mCommandBuffers_[i]->end();
+				for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
+				{
+					VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+					element->draw(vkCommandBuffer);
+				}
+				vkCmdEndRenderPass(vkCommandBuffer);
+
+				mCommandBuffers_[i]->end();
+			}
 		}
 	}
 
 	void VulkanBase::drawFrame()
 	{
+		GEngine->Scene->CollectAllRenderElements();
+		for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
+		{
+			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+			element->mMaterial_->updateUniformBuffer(mCurrentFrame_);
+		}
+
 		vkWaitForFences(mLogicalDevice_->Get(), 1, &mInFlightFences_[mCurrentFrame_], VK_TRUE, UINT64_MAX);
 
 		// Acquiring an image from the swap chain
@@ -514,8 +494,6 @@ namespace zyh
 		}
 		// Mark the image as now being in use by this frame
 		mImagesInFights_[imageIndex] = mImagesInFights_[mCurrentFrame_];
-
-		updateUniformBuffer(imageIndex);
 
 		// Submitting the command buffer
 		VkSubmitInfo submitInfo{};
@@ -569,9 +547,7 @@ namespace zyh
 
 		// Recreate swap chain
 		mSwapchain_->setup(&mWidth_, &mHeight_);
-		mRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
 
-		mGraphicsPipeline_->setup();
 		createColorResources();
 		createDepthResources();
 
@@ -581,8 +557,6 @@ namespace zyh
 		};
 		mSwapchain_->setupFrameBuffer(*mRenderPass_, attachments);
 		
-		createUniformBuffer();
-		createDescriptorSets();
 		createCommandBuffers();
 	}
 
@@ -593,14 +567,8 @@ namespace zyh
 		
 		for (auto& buffer : mCommandBuffers_)
 			SafeDestroy(buffer);
-
-		for (auto& buffer : mUniformBuffers_)
-			SafeDestroy(buffer);
 		
-		mGraphicsPipeline_->cleanup();
-		mRenderPass_->cleanup();
 		mSwapchain_->cleanup();
-		vkDestroyDescriptorPool(mLogicalDevice_->Get(), mDescriptorPool_, nullptr);
 	}
 
 }

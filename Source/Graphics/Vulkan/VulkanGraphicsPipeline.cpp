@@ -1,3 +1,5 @@
+#include "VulkanInstance.h"
+
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanLogicalDevice.h"
 #include "VulkanRenderPass.h"
@@ -71,7 +73,7 @@ namespace zyh
 	void VulkanGraphicsPipeline::_setupGraphicsPipeline()
 	{
 		VkShaderModule vertShaderModule = mVulkanLogicalDevice->createShaderModule(mVulkanRenderPass_->getVertShaderFile());
-		VkShaderModule fragShaderModule = mVulkanLogicalDevice->createShaderModule(mVulkanRenderPass_->getVertShaderFile());
+		VkShaderModule fragShaderModule = mVulkanLogicalDevice->createShaderModule(mVulkanRenderPass_->getFragShaderFile());
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -118,7 +120,7 @@ namespace zyh
 
 		VkRect2D scissor{};
 		scissor.offset = { 0, 0 };
-		scissor.extent = *(GInstance->mExtend);
+		scissor.extent = *(GInstance->mExtend_);
 
 		VkPipelineViewportStateCreateInfo viewportState{};
 		viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -147,7 +149,7 @@ namespace zyh
 		VkPipelineMultisampleStateCreateInfo multisampling{};
 		multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 		multisampling.sampleShadingEnable = VK_TRUE; // enable sample shading in the pipeline
-		multisampling.rasterizationSamples = GInstance->mMsaaSamples_;
+		multisampling.rasterizationSamples = *(GInstance->mMsaaSamples_);
 		multisampling.minSampleShading = .2f; // min fraction for sample shading; closer to one is smooth
 		multisampling.pSampleMask = nullptr; // Optional
 		multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
