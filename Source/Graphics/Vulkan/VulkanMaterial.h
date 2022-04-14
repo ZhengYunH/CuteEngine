@@ -31,7 +31,7 @@ namespace zyh
 		virtual void cleanup() override;
 
 	public:
-		virtual void updateUniformBuffer(uint32_t currentImage);
+		virtual void updateUniformBuffer(size_t currentImage);
 		VkDescriptorSet getDescriptorSet() { return mDescriptorSets_[0]; }
 		VkPipelineLayout getPipelineLayout();
 

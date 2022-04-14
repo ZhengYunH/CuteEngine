@@ -13,7 +13,6 @@
 #define HYBRID_CHECK(X, ...)
 #endif
 
-
 #define UNEXPECTED(X) (X)
 #define SafeDestroy(X) if(X){ delete X; X=nullptr;}
 #define SafeDestroyArray(X) if(X){delete[] X; X=nullptr;}
@@ -32,3 +31,5 @@ enum RenderSet : uint32_t
 
 #include <vector>
 typedef std::vector<bool> BitArray;
+
+#define BIND_EVENT(Event, Object, FuncName) Event.Bind(std::bind(&decltype(b)::FuncName, &b, std::placeholders::_1));

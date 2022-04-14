@@ -1,6 +1,8 @@
 #pragma comment(linker, "/subsystem:console")
 #include <iostream>
 #include "Core/Engine.h"
+#include "Core/EventHelper.h"
+
 
 
 int main()

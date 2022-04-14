@@ -135,7 +135,7 @@ namespace zyh
 		throw std::logic_error("The method or operation is not implemented.");
 	}
 
-	void VulkanMaterial::updateUniformBuffer(uint32_t currentImage)
+	void VulkanMaterial::updateUniformBuffer(size_t currentImage)
 	{
 		static auto startTime = std::chrono::high_resolution_clock::now();
 
