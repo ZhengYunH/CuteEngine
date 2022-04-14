@@ -49,7 +49,6 @@ namespace zyh
 			BindInputEvent(MidMouseUp, *this, Camera::EventMidMouseUp);
 			BindInputEvent(MouseMove, *this, Camera::EventMouseMove);
 			BindInputEvent(MouseWheel, *this, Camera::EventMouseWheel);
-
 		}
 
 	public:

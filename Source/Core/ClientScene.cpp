@@ -15,8 +15,9 @@ namespace zyh
 
 	void ClientScene::Tick()
 	{
-		mCamera_->tick(GEngine->GetDeltaTime());
+		DispatchOSMessage();
 		DispatchTickEvent();
+		mCamera_->tick(GEngine->GetDeltaTime());
 	}
 
 	void ClientScene::CleanUp()
@@ -101,4 +102,19 @@ namespace zyh
 				mPrimitivesAfterCulling_.push_back(prim);
 		}
 	}
+
+	void ClientScene::DispatchOSMessage()
+	{
+#if defined(_WIN32)
+		MSG msg;
+		while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+			if (msg.message == WM_QUIT) {
+				return;
+			}
+		}
+#endif
+	}
+
 }

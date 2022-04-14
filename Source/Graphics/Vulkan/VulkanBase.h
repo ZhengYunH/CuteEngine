@@ -1,8 +1,4 @@
 #pragma once
-#if defined(_WIN32)
-#include <windows.h>
-#endif
-
 #include "VulkanHeader.h"
 #include "VulkanTools.h"
 #include "Common/Setting.h"
@@ -32,7 +28,6 @@ namespace zyh
 
 	class VulkanBase
 	{
-		static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		static VulkanBase* GVulkanInstance;
 		static void registerInstance(VulkanBase* instance)
 		{
@@ -43,22 +38,16 @@ namespace zyh
 		VulkanBase() {};
 		virtual ~VulkanBase();
 
-		virtual void Initialize(HINSTANCE hinstance)
+		virtual void Initialize()
 		{
 			registerInstance(this);
 			initVulkan();
-			initWindow(hinstance);
 			setupVulkan();
 			prepare();
-
 		}
 
 	public:
 		virtual void initVulkan();
-		virtual void initWindow(HINSTANCE hinstance)
-		{
-			setupWindow(hinstance, WndProc);
-		}
 		virtual void setupVulkan();
 		virtual void prepare();
 		virtual void Tick();
@@ -98,14 +87,7 @@ namespace zyh
 		std::vector<VkFence> mInFlightFences_;
 		std::vector<VkFence> mImagesInFights_;
 
-	protected: // Window Relate
-#if defined(_WIN32)
-		HWND setupWindow(HINSTANCE hinstance, WNDPROC wndproc);
-		virtual void handleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
-		HWND mWindow_;
-		HINSTANCE mWindowInstance_;
-#endif
+	protected:
 		virtual VkSampleCountFlagBits getMsaaSamples();
 		virtual VkFormat getDepthFormat();
 

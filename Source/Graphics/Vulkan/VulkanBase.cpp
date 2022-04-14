@@ -26,175 +26,54 @@ namespace zyh
 	VulkanBase* VulkanBase::GVulkanInstance = nullptr;
 
 #if defined(_WIN32)
-	HWND VulkanBase::setupWindow(HINSTANCE hinstance, WNDPROC wndproc)
-	{
-		this->mWindowInstance_ = hinstance;
+	//void VulkanBase::handleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	//{
+	//	
 
-		WNDCLASSEX wndClass;
+	//	//switch (uMsg)
+	//	//{
+	//	//case WM_CLOSE:
+	//	//	mIsPaused_ = true;
+	//	//	DestroyWindow(hWnd);
+	//	//	PostQuitMessage(0);
+	//	//	break;
+	//	//case WM_KEYDOWN:
+	//	//	break;
 
-		wndClass.cbSize = sizeof(WNDCLASSEX);
-		wndClass.style = CS_HREDRAW | CS_VREDRAW;
-		wndClass.lpfnWndProc = wndproc;
-		wndClass.cbClsExtra = 0;
-		wndClass.cbWndExtra = 0;
-		wndClass.hInstance = hinstance;
-		wndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-		wndClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-		wndClass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-		wndClass.lpszMenuName = NULL;
-		wndClass.lpszClassName = tools::stringToLPCWSTR(Setting::AppTitle);
-		wndClass.hIconSm = LoadIcon(NULL, IDI_WINLOGO);
+	//	//case WM_KEYUP:
+	//	//	switch (wParam)
+	//	//	{
+	//	//	case KEY_P:
+	//	//		mIsPaused_ = !mIsPaused_;
+	//	//		break;
+	//	//	case KEY_ESCAPE:
+	//	//		PostQuitMessage(0);
+	//	//		break;
+	//	//	case KEY_B:
+	//	//		break;
+	//	//	}
+	//	//	break;
 
-		if (!RegisterClassEx(&wndClass))
-		{
-			std::cout << "Could not register window class!\n";
-			fflush(stdout);
-			exit(1);
-		}
-
-		int screenWidth = GetSystemMetrics(SM_CXSCREEN);
-		int screenHeight = GetSystemMetrics(SM_CYSCREEN);
-
-		if (Setting::IsFullscreen)
-		{
-			if ((Setting::AppWidth != (uint32_t)screenWidth) && (Setting::AppHeight != (uint32_t)screenHeight))
-			{
-				DEVMODE dmScreenSettings;
-				memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
-				dmScreenSettings.dmSize = sizeof(dmScreenSettings);
-				dmScreenSettings.dmPelsWidth = Setting::AppWidth;
-				dmScreenSettings.dmPelsHeight = Setting::AppHeight;
-				dmScreenSettings.dmBitsPerPel = 32;
-				dmScreenSettings.dmFields = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
-				if (ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
-				{
-					if (MessageBox(NULL, L"Full Screen Mode not supported!\n Switch to window mode?", L"Error", MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
-					{
-						Setting::IsFullscreen = false;
-					}
-					else
-					{
-						return nullptr;
-					}
-				}
-				screenWidth = Setting::AppWidth;
-				screenHeight = Setting::AppHeight;
-			}
-		}
-
-		DWORD dwExStyle;
-		DWORD dwStyle;
-
-		if (Setting::IsFullscreen)
-		{
-			dwExStyle = WS_EX_APPWINDOW;
-			dwStyle = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
-		}
-		else
-		{
-			dwExStyle = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
-			dwStyle = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
-		}
-
-		RECT windowRect;
-		windowRect.left = 0L;
-		windowRect.top = 0L;
-		windowRect.right = Setting::IsFullscreen ? (long)screenWidth : (long)Setting::AppWidth;
-		windowRect.bottom = Setting::IsFullscreen ? (long)screenHeight : (long)Setting::AppHeight;
-
-		AdjustWindowRectEx(&windowRect, dwStyle, FALSE, dwExStyle);
-
-		std::string windowTitle = Setting::AppTitle;
-		mWindow_ = CreateWindowEx(0,
-			tools::stringToLPCWSTR(windowTitle),
-			tools::stringToLPCWSTR(windowTitle),
-			dwStyle | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
-			0,
-			0,
-			windowRect.right - windowRect.left,
-			windowRect.bottom - windowRect.top,
-			NULL,
-			NULL,
-			hinstance,
-			NULL);
-
-		if (!Setting::IsFullscreen)
-		{
-			// Center on screen
-			uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - windowRect.right) / 2;
-			uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - windowRect.bottom) / 2;
-			SetWindowPos(mWindow_, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
-		}
-
-		if (!mWindow_)
-		{
-			printf("Could not create window!\n");
-			fflush(stdout);
-			return nullptr;
-		}
-
-		ShowWindow(mWindow_, SW_SHOW);
-		SetForegroundWindow(mWindow_);
-		SetFocus(mWindow_);
-
-		return mWindow_;
-	}
-
-	LRESULT VulkanBase::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		if (VulkanBase::GVulkanInstance)
-			VulkanBase::GVulkanInstance->handleMessage(hWnd, uMsg, wParam, lParam);
-		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-	}
-
-	void VulkanBase::handleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		GInputSystem->HandleMessage(hWnd, uMsg, wParam, lParam);
-
-		switch (uMsg)
-		{
-		case WM_CLOSE:
-			mIsPaused_ = true;
-			DestroyWindow(hWnd);
-			PostQuitMessage(0);
-			break;
-		case WM_KEYDOWN:
-			break;
-
-		case WM_KEYUP:
-			switch (wParam)
-			{
-			case KEY_P:
-				mIsPaused_ = !mIsPaused_;
-				break;
-			case KEY_ESCAPE:
-				PostQuitMessage(0);
-				break;
-			case KEY_B:
-				break;
-			}
-			break;
-
-		case WM_SIZE:
-			if (wParam == SIZE_MINIMIZED) // minimized
-			{
-				mIsPaused_ = true; // just pause rendering when minimize screen
-			}
-			else
-			{
-				mIsPaused_ = false;
-				if(mIsResizing_)
-					windowResize(LOWORD(lParam), HIWORD(lParam));
-			}
-			break;
-		case WM_ENTERSIZEMOVE:
-			mIsResizing_ = true;
-			break;
-		case WM_EXITSIZEMOVE:
-			mIsResizing_ = false;
-			break;
-		}
-	}
+	//	//case WM_SIZE:
+	//	//	if (wParam == SIZE_MINIMIZED) // minimized
+	//	//	{
+	//	//		mIsPaused_ = true; // just pause rendering when minimize screen
+	//	//	}
+	//	//	else
+	//	//	{
+	//	//		mIsPaused_ = false;
+	//	//		if(mIsResizing_)
+	//	//			windowResize(LOWORD(lParam), HIWORD(lParam));
+	//	//	}
+	//	//	break;
+	//	//case WM_ENTERSIZEMOVE:
+	//	//	mIsResizing_ = true;
+	//	//	break;
+	//	//case WM_EXITSIZEMOVE:
+	//	//	mIsResizing_ = false;
+	//	//	break;
+	//	//}
+	//}
 #endif
 
 	VulkanBase::~VulkanBase()
@@ -231,7 +110,7 @@ namespace zyh
 		mInstance_->setup();
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)		
-		mSurface_->setup(mWindowInstance_, mWindow_);
+		mSurface_->setup(GEngine->mWindowInstance_, GEngine->mWindow_);
 #endif
 
 		mPhysicalDevice_->setup();
@@ -307,29 +186,17 @@ namespace zyh
 
 	void VulkanBase::Tick()
 	{
+		drawFrame();
+
+/*
 		bool quitMessageReceived = false;
 		while (!quitMessageReceived) {
-#if defined(_WIN32)
-			MSG msg;
-			while (!quitMessageReceived) {
-				while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-					if (msg.message == WM_QUIT) {
-						return;
-					}
-				}
-
-				if (!mIsPaused_)
-				{
-					drawFrame();
-				}
+			if (!mIsPaused_)
+			{
+				drawFrame();
 			}
-#endif
-			
 		}
-
-		vkDeviceWaitIdle(mLogicalDevice_->Get());
+*/
 	}
 
 	void VulkanBase::CleanUp()

@@ -38,6 +38,7 @@ namespace zyh
 		void DispatchTickEvent();
 		void CollectRenderElements(RenderSet renderSet);
 		void Culling(RenderSet renderSet);
+		void DispatchOSMessage();
 
 	public:
 		Camera* GetCamera() { return mCamera_; }

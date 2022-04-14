@@ -53,8 +53,4 @@ auto Bind(RetType(T::* f)(Args...), T* t)
 	return MakeSeqs<sizeof...(Args) + 1>::bind(t, f);
 }
 
-
-// #define BIND_EVENT(Event, Object, FuncName) Event.Bind(std::bind(&(std::remove_reference_t<decltype(Object)>::FuncName), &(Object), std::placeholders::_1));
-
 #define BIND_EVENT(Event, Object, Func) Event.Bind(Bind(&Func, &Object));
-

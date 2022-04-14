@@ -1,4 +1,7 @@
 #pragma once
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 namespace zyh
 {
@@ -7,6 +10,8 @@ namespace zyh
 
 	class Engine
 	{
+		static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+
 	public:
 		Engine();
 		~Engine();
@@ -27,6 +32,15 @@ namespace zyh
 	private:
 		// TODO 
 		float mDeltaTime_{ 0.033f };
+
+	protected:
+#if defined(_WIN32)
+		HWND SetupWindow();
+	public:
+		void HandleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		HWND mWindow_;
+		HINSTANCE mWindowInstance_;
+#endif
 	};
 
 	extern Engine* GEngine;
