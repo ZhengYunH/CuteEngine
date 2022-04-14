@@ -15,6 +15,7 @@ namespace zyh
 
 	void ClientScene::Tick()
 	{
+		mCamera_->tick(GEngine->GetDeltaTime());
 		DispatchTickEvent();
 	}
 

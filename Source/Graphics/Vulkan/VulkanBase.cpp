@@ -18,6 +18,7 @@
 
 #include "Graphics/Common/ResourceLoader.h"
 #include "Common/TestData.h"
+#include "Core/InputSystem.h"
 
 
 namespace zyh
@@ -148,6 +149,8 @@ namespace zyh
 
 	void VulkanBase::handleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		GInputSystem->HandleMessage(hWnd, uMsg, wParam, lParam);
+
 		switch (uMsg)
 		{
 		case WM_CLOSE:
@@ -156,11 +159,9 @@ namespace zyh
 			PostQuitMessage(0);
 			break;
 		case WM_KEYDOWN:
-			GEngine->Scene->GetCamera()->handleInputKeyDown(wParam);
 			break;
 
 		case WM_KEYUP:
-			GEngine->Scene->GetCamera()->handleInputKeyUp(wParam);
 			switch (wParam)
 			{
 			case KEY_P:
@@ -170,35 +171,10 @@ namespace zyh
 				PostQuitMessage(0);
 				break;
 			case KEY_B:
-				GEngine->Scene->GetCamera()->reset();
 				break;
 			}
 			break;
 
-		case WM_LBUTTONDOWN:
-			GEngine->Scene->GetCamera()->handleMouseButtonDown(LEFT, LOWORD(lParam), HIWORD(lParam));
-			break;
-		case WM_RBUTTONDOWN:
-			GEngine->Scene->GetCamera()->handleMouseButtonDown(RIGHT, LOWORD(lParam), HIWORD(lParam));
-			break;
-		case WM_MBUTTONDOWN:
-			GEngine->Scene->GetCamera()->handleMouseButtonDown(MID, LOWORD(lParam), HIWORD(lParam));
-			break;
-		case WM_LBUTTONUP:
-			GEngine->Scene->GetCamera()->handleMouseButtonUp(LEFT, LOWORD(lParam), HIWORD(lParam));
-			break;
-		case WM_RBUTTONUP:
-			GEngine->Scene->GetCamera()->handleMouseButtonUp(RIGHT, LOWORD(lParam), HIWORD(lParam));
-			break;
-		case WM_MBUTTONUP:
-			GEngine->Scene->GetCamera()->handleMouseButtonUp(MID, LOWORD(lParam), HIWORD(lParam));
-			break;
-		case WM_MOUSEWHEEL:
-			GEngine->Scene->GetCamera()->handleMouseWheel(GET_WHEEL_DELTA_WPARAM(wParam));
-			break;
-		case WM_MOUSEMOVE:
-			GEngine->Scene->GetCamera()->handleMouseMove(LOWORD(lParam), HIWORD(lParam), mDeltaTime_);
-			break;
 		case WM_SIZE:
 			if (wParam == SIZE_MINIMIZED) // minimized
 			{
@@ -346,7 +322,6 @@ namespace zyh
 
 				if (!mIsPaused_)
 				{
-					GEngine->Scene->GetCamera()->tick(mDeltaTime_);
 					drawFrame();
 				}
 			}

@@ -21,6 +21,7 @@
 
 #include<vector>
 #include<map>
+#include<functional>
 
 enum RenderSet : uint32_t
 {
@@ -32,4 +33,28 @@ enum RenderSet : uint32_t
 #include <vector>
 typedef std::vector<bool> BitArray;
 
-#define BIND_EVENT(Event, Object, FuncName) Event.Bind(std::bind(&decltype(b)::FuncName, &b, std::placeholders::_1));
+
+template<int N, int ...I>
+struct MakeSeqs : MakeSeqs<N - 1, N - 1, I...> {};
+
+template<int...I>
+struct MakeSeqs<1, I...>
+{
+	template<class T, class _Fx>
+	static auto bind(T&& _Obj, _Fx&& _Func)
+	{
+		return std::bind(std::forward<_Fx>(_Func), std::forward<T>(_Obj), std::_Ph<I>{}...);
+	}
+};
+
+template <class T, typename RetType, typename...Args>
+auto Bind(RetType(T::* f)(Args...), T* t)
+{
+	return MakeSeqs<sizeof...(Args) + 1>::bind(t, f);
+}
+
+
+// #define BIND_EVENT(Event, Object, FuncName) Event.Bind(std::bind(&(std::remove_reference_t<decltype(Object)>::FuncName), &(Object), std::placeholders::_1));
+
+#define BIND_EVENT(Event, Object, Func) Event.Bind(Bind(&Func, &Object));
+

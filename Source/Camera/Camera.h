@@ -3,6 +3,8 @@
 #include "Math/Matrix4x4.h"
 #include "Math/MathUtil.h"
 #include "Common/KeyCodes.h"
+#include "Core/InputSystem.h"
+#include "Core/Engine.h"
 #include <wtypes.h>
 #include <cstdint>
 
@@ -35,8 +37,35 @@ namespace zyh
 		{
 			mTransform_.SetIdentity();
 			updateProjMatrix();
+			
+			BindInputEvent(KeyDown, *this, Camera::EventKeyDown);
+			BindInputEvent(KeyUp, *this, Camera::EventKeyUp);
+
+			BindInputEvent(LeftMouseDown, *this, Camera::EventLeftMouseDown);
+			BindInputEvent(RightMouseDown, *this, Camera::EventRightMouseDown);
+			BindInputEvent(MidMouseDown, *this, Camera::EventMidMouseDown);
+			BindInputEvent(LeftMouseUp, *this, Camera::EventLeftMouseUp);
+			BindInputEvent(RightMouseUp, *this, Camera::EventRightMouseUp);
+			BindInputEvent(MidMouseUp, *this, Camera::EventMidMouseUp);
+			BindInputEvent(MouseMove, *this, Camera::EventMouseMove);
+			BindInputEvent(MouseWheel, *this, Camera::EventMouseWheel);
+
 		}
 
+	public:
+		/// Event Binding
+ 		void EventKeyDown(KEY_TYPE key) { this->handleInputKeyDown(key); }
+		void EventKeyUp(KEY_TYPE key) { this->handleInputKeyUp(key); }
+		void EventLeftMouseDown(KEY_TYPE x, KEY_TYPE y) { this->handleMouseButtonDown(LEFT, x, y); }
+		void EventRightMouseDown(KEY_TYPE x, KEY_TYPE y) { this->handleMouseButtonDown(RIGHT, x, y); }
+		void EventMidMouseDown(KEY_TYPE x, KEY_TYPE y) { this->handleMouseButtonDown(MID, x, y); }
+		void EventLeftMouseUp(KEY_TYPE x, KEY_TYPE y) { this->handleMouseButtonUp(LEFT, x, y); }
+		void EventRightMouseUp(KEY_TYPE x, KEY_TYPE y) { this->handleMouseButtonUp(RIGHT, x, y); }
+		void EventMidMouseUp(KEY_TYPE x, KEY_TYPE y) { this->handleMouseButtonUp(MID, x, y); }
+		void EventMouseWheel(short delta) { this->handleMouseWheel(delta); }
+		void EventMouseMove(KEY_TYPE x, KEY_TYPE y) { this->handleMouseMove(x, y, GEngine->GetDeltaTime()); }
+
+	private:
 		void handleInputKeyDown(WPARAM key);
 		void handleInputKeyUp(WPARAM key);
 		void handleMouseButtonDown(EMOUSE_BUTTON key, int32_t x, int32_t y);
@@ -44,6 +73,7 @@ namespace zyh
 		void handleMouseWheel(short delta);
 		void handleMouseMove(int32_t x, int32_t y, float deltaTime);
 
+	public:
 		void tick(float deltaTime);
 		void setTransform(const Matrix4x3& mat) { mTransform_ = mat; }
 		void reset() { 

@@ -38,4 +38,5 @@ enum EMOUSE_BUTTON : char
 	RIGHT,
 };
 
+typedef uint32_t KEY_TYPE;
 #endif

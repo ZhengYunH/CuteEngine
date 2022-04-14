@@ -17,7 +17,10 @@ namespace zyh
 			HANDLE_CASE(Q);
 			HANDLE_CASE(E);
 #undef HANDLE_CASE
-
+		
+		case KEY_B:
+			reset();
+			break;
 		default:
 			break;
 		}

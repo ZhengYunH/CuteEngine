@@ -13,6 +13,7 @@ namespace zyh
 
 	public:
 		void Run();
+		inline const float GetDeltaTime() const { return mDeltaTime_; }
 
 	private:
 		void Initialize();
@@ -22,6 +23,10 @@ namespace zyh
 	public:
 		ClientScene* Scene;
 		VulkanBase* Vulkan;
+
+	private:
+		// TODO 
+		float mDeltaTime_{ 0.033f };
 	};
 
 	extern Engine* GEngine;
