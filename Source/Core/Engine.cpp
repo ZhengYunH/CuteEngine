@@ -6,13 +6,6 @@ namespace zyh
 {
 	Engine* GEngine = new Engine();
 
-	LRESULT Engine::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-	{
-		if(GInputSystem)
-			GInputSystem->HandleMessage(hWnd, uMsg, wParam, lParam);
-		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
-	}
-
 	Engine::Engine()
 	{
 		Scene = new ClientScene();
@@ -37,15 +30,27 @@ namespace zyh
 
 	void Engine::Initialize()
 	{
-		SetupWindow();
+		mCurrFrameTicks_ = mLastFrameTicks_ =  clock();
+
+		InitializeWindow();
 		Scene->Initialize();
 		Vulkan->Initialize();
 	}
 
 	void Engine::Tick()
 	{
+		// Update Timer First
+		mLastFrameTicks_ = mCurrFrameTicks_;
+		mCurrFrameTicks_ = clock();
+		mDeltaTime_ = (mCurrFrameTicks_ - mLastFrameTicks_) * 1.f / CLOCKS_PER_SEC;
+
+		// Tick Logic Scene
 		Scene->Tick();
+
+		// Tick Render Scene(TODO: MultiThread)
 		Vulkan->Tick();
+
+		mCurrFrame_ += 1;
 	}
 
 	void Engine::CleanUp()
@@ -53,8 +58,17 @@ namespace zyh
 		Scene->CleanUp();
 		Vulkan->CleanUp();
 	}
+	
+#if defined(_WIN32)
+	LRESULT Engine::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	{
+		if (GInputSystem)
+			GInputSystem->HandleMessage(hWnd, uMsg, wParam, lParam);
+		return (DefWindowProc(hWnd, uMsg, wParam, lParam));
+	}
 
-	HWND Engine::SetupWindow()
+
+	HWND Engine::InitializeWindow()
 	{
 		mWindowInstance_ = GetModuleHandle(0);
 
@@ -166,4 +180,5 @@ namespace zyh
 		SetFocus(mWindow_);
 		return mWindow_;
 	}
+#endif
 }

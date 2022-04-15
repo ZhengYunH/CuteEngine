@@ -3,6 +3,9 @@
 #include <windows.h>
 #endif
 
+#include "Common/Config.h"
+
+
 namespace zyh
 {
 	class ClientScene;
@@ -10,8 +13,6 @@ namespace zyh
 
 	class Engine
 	{
-		static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
 	public:
 		Engine();
 		~Engine();
@@ -30,14 +31,19 @@ namespace zyh
 		VulkanBase* Vulkan;
 
 	private:
-		// TODO 
+		clock_t mCurrFrameTicks_{ 0 };
+		clock_t mLastFrameTicks_{ 0 };
 		float mDeltaTime_{ 0.033f };
+		uint64_t mCurrFrame_{ 0 };
+
+	public:
+		inline bool IsFirstFrame() const { return mCurrFrame_ == 0; }
 
 	protected:
 #if defined(_WIN32)
-		HWND SetupWindow();
+		static LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		HWND InitializeWindow();
 	public:
-		void HandleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 		HWND mWindow_;
 		HINSTANCE mWindowInstance_;
 #endif

@@ -22,6 +22,9 @@
 #include<vector>
 #include<map>
 #include<functional>
+#include<stdint.h>
+#include <time.h>
+
 
 enum RenderSet : uint32_t
 {
