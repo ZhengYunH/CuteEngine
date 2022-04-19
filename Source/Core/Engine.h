@@ -31,8 +31,9 @@ namespace zyh
 		VulkanBase* Vulkan;
 
 	private:
-		clock_t mCurrFrameTicks_{ 0 };
-		clock_t mLastFrameTicks_{ 0 };
+		typedef std::chrono::steady_clock::time_point TimeType;
+		TimeType mCurrFrameTime_;
+		TimeType mLastFrameTime_;
 		float mDeltaTime_{ 0.033f };
 		uint64_t mCurrFrame_{ 0 };
 

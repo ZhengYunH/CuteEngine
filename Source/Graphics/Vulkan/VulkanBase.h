@@ -124,9 +124,12 @@ namespace zyh
 		VulkanImage* mDepthResources_;
 		void createDepthResources();
 
-		std::vector<VulkanCommand*> mCommandBuffers_;
+		std::vector<std::vector<VulkanCommand*>> mCommandBuffers_;
 		void createCommandBuffers();
+		void bindCommandBuffer();
 
+		size_t mEncodeImage_ = 0;
+		size_t mCurrentImage_ = 0;
 		size_t mCurrentFrame_ = 0;
 		bool mFrameBufferResized_ = false;
 		virtual void drawFrame();

@@ -25,60 +25,8 @@ namespace zyh
 {
 	VulkanBase* VulkanBase::GVulkanInstance = nullptr;
 
-#if defined(_WIN32)
-	//void VulkanBase::handleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-	//{
-	//	
-
-	//	//switch (uMsg)
-	//	//{
-	//	//case WM_CLOSE:
-	//	//	mIsPaused_ = true;
-	//	//	DestroyWindow(hWnd);
-	//	//	PostQuitMessage(0);
-	//	//	break;
-	//	//case WM_KEYDOWN:
-	//	//	break;
-
-	//	//case WM_KEYUP:
-	//	//	switch (wParam)
-	//	//	{
-	//	//	case KEY_P:
-	//	//		mIsPaused_ = !mIsPaused_;
-	//	//		break;
-	//	//	case KEY_ESCAPE:
-	//	//		PostQuitMessage(0);
-	//	//		break;
-	//	//	case KEY_B:
-	//	//		break;
-	//	//	}
-	//	//	break;
-
-	//	//case WM_SIZE:
-	//	//	if (wParam == SIZE_MINIMIZED) // minimized
-	//	//	{
-	//	//		mIsPaused_ = true; // just pause rendering when minimize screen
-	//	//	}
-	//	//	else
-	//	//	{
-	//	//		mIsPaused_ = false;
-	//	//		if(mIsResizing_)
-	//	//			windowResize(LOWORD(lParam), HIWORD(lParam));
-	//	//	}
-	//	//	break;
-	//	//case WM_ENTERSIZEMOVE:
-	//	//	mIsResizing_ = true;
-	//	//	break;
-	//	//case WM_EXITSIZEMOVE:
-	//	//	mIsResizing_ = false;
-	//	//	break;
-	//	//}
-	//}
-#endif
-
 	VulkanBase::~VulkanBase()
 	{
-
 	}
 
 	void VulkanBase::initVulkan()
@@ -123,12 +71,6 @@ namespace zyh
 
 		mRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
 		AddRenderPass(mRenderPass_);
-
-		mDepthStencil_->setup(
-			mWidth_, mHeight_, 1,
-			getMsaaSamples(), getDepthFormat(), VK_IMAGE_TILING_OPTIMAL, 
-			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT
-		);
 	}
 
 	void VulkanBase::createSyncObjects()
@@ -184,27 +126,17 @@ namespace zyh
 		GEngine->Scene->GetCamera()->updateProjMatrix();
 	}
 
-	void VulkanBase::Tick()
-	{
-		drawFrame();
-
-/*
-		bool quitMessageReceived = false;
-		while (!quitMessageReceived) {
-			if (!mIsPaused_)
-			{
-				drawFrame();
-			}
-		}
-*/
-	}
-
 	void VulkanBase::CleanUp()
 	{
 		vkDeviceWaitIdle(mLogicalDevice_->Get());
 
-		for (auto& buffer : mCommandBuffers_)
-			SafeDestroy(buffer);
+		for (auto& buffers : mCommandBuffers_)
+		{
+			for (auto& buffer : buffers)
+			{
+				SafeDestroy(buffer);
+			}
+		}
 
 		SafeDestroy(mDepthResources_);
 		SafeDestroy(mColorResources_);
@@ -272,23 +204,75 @@ namespace zyh
 
 		for (size_t i = 0; i < mCommandBuffers_.size(); ++i)
 		{
-			mCommandBuffers_[i] = new VulkanCommand();
-			mCommandBuffers_[i]->connect(mLogicalDevice_, mGraphicsCommandPool_);
-			mCommandBuffers_[i]->setup(allocInfo);
+			mCommandBuffers_[i] = std::vector<VulkanCommand*>();
+			auto& lastBuffers = mCommandBuffers_[i];
 
+			for (size_t j = 0; j < 1; ++j)
+			{
+				lastBuffers.push_back(new VulkanCommand());
+				auto buffer = lastBuffers[j];
+				buffer->connect(mLogicalDevice_, mGraphicsCommandPool_);
+				buffer->setup(allocInfo);
+			}
+			
+		}
+	}
+
+	void VulkanBase::Tick()
+	{
+		if (mIsPaused_)
+		{
+			return;
+		}
+
+		GEngine->Scene->CollectAllRenderElements();
+		for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
+		{
+			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+			element->mMaterial_->updateUniformBuffer(mCurrentFrame_); // TODO: Global & ItemWise
+		}
+
+		// Acquiring an image from the swap chain
+		{
+			uint32_t imageIndex;
+
+			// acquire next image we want to use
+			mSwapchain_->acquireNextImage(mImageAvailableSemaphores_[mCurrentFrame_], &imageIndex);
+
+			// Check if a previous frame is using this image (if true, wait for it)
+			if (mImagesInFights_[imageIndex] != VK_NULL_HANDLE) {
+				vkWaitForFences(mLogicalDevice_->Get(), 1, &mImagesInFights_[imageIndex], VK_TRUE, UINT64_MAX);
+			}
+			mCurrentImage_ = imageIndex;
+		}
+
+		bindCommandBuffer();
+		drawFrame();
+
+		mCurrentFrame_ = (mCurrentFrame_ + 1) % MAX_FRAMES_IN_FLIGHT;
+	}
+
+	void VulkanBase::bindCommandBuffer()
+	{
+		auto& buffers = mCommandBuffers_[mCurrentImage_];
+
+		for (size_t i = 0; i < buffers.size(); ++i)
+		{
 			VkCommandBufferBeginInfo beginInfo{};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 			beginInfo.flags = 0;
 			beginInfo.pInheritanceInfo = nullptr;
 
-			mCommandBuffers_[i]->begin(&beginInfo);
+			auto& commandBuffer = buffers[i];
+
+			commandBuffer->begin(&beginInfo);
 
 			for (auto renderPass : mRenderPasses_)
 			{
 				VkRenderPassBeginInfo renderPassInfo{};
 				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 				renderPassInfo.renderPass = renderPass->Get();
-				renderPassInfo.framebuffer = mSwapchain_->getFrameBuffer(static_cast<uint32_t>(i));
+				renderPassInfo.framebuffer = mSwapchain_->getFrameBuffer(static_cast<uint32_t>(mCurrentImage_));
 				renderPassInfo.renderArea.offset = { 0, 0 };
 				renderPassInfo.renderArea.extent = mSwapchain_->getExtend();
 
@@ -299,8 +283,7 @@ namespace zyh
 				renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
 				renderPassInfo.pClearValues = clearValues.data();
 
-				VkCommandBuffer vkCommandBuffer = mCommandBuffers_[i]->Get();
-
+				VkCommandBuffer vkCommandBuffer = commandBuffer->Get();
 				vkCmdBeginRenderPass(vkCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 				for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
@@ -308,34 +291,19 @@ namespace zyh
 					VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
 					element->draw(vkCommandBuffer);
 				}
-				vkCmdEndRenderPass(vkCommandBuffer);
 
-				mCommandBuffers_[i]->end();
+				vkCmdEndRenderPass(vkCommandBuffer);
 			}
+			commandBuffer->end();
 		}
 	}
 
 	void VulkanBase::drawFrame()
 	{
-		GEngine->Scene->CollectAllRenderElements();
-		for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
-		{
-			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-			element->mMaterial_->updateUniformBuffer(mCurrentFrame_);
-		}
-
 		vkWaitForFences(mLogicalDevice_->Get(), 1, &mInFlightFences_[mCurrentFrame_], VK_TRUE, UINT64_MAX);
 
-		// Acquiring an image from the swap chain
-		uint32_t imageIndex;
-		VkResult result = mSwapchain_->acquireNextImage(mImageAvailableSemaphores_[mCurrentFrame_], &imageIndex);
-
-		// Check if a previous frame is using this image (i.e. there is its fence to wait on)
-		if (mImagesInFights_[imageIndex] != VK_NULL_HANDLE) {
-			vkWaitForFences(mLogicalDevice_->Get(), 1, &mImagesInFights_[imageIndex], VK_TRUE, UINT64_MAX);
-		}
-		// Mark the image as now being in use by this frame
-		mImagesInFights_[imageIndex] = mImagesInFights_[mCurrentFrame_];
+		uint32_t imageIndex = static_cast<int32_t>(mCurrentImage_);
+		VkResult result;
 
 		// Submitting the command buffer
 		VkSubmitInfo submitInfo{};
@@ -345,8 +313,8 @@ namespace zyh
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &mCommandBuffers_[imageIndex]->Get();
+		submitInfo.commandBufferCount = static_cast<uint32_t>(mCommandBuffers_[mCurrentImage_].size());
+		submitInfo.pCommandBuffers = &mCommandBuffers_[mCurrentImage_][0]->Get();
 
 		VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores_[mCurrentFrame_] };
 		submitInfo.signalSemaphoreCount = 1;
@@ -354,6 +322,7 @@ namespace zyh
 
 		vkResetFences(mLogicalDevice_->Get(), 1, &mInFlightFences_[mCurrentFrame_]);
 		VK_CHECK_RESULT(vkQueueSubmit(mLogicalDevice_->graphicsQueue(), 1, &submitInfo, mInFlightFences_[mCurrentFrame_]), "failed to submit draw command buffer!");
+		mImagesInFights_[mCurrentImage_] = mInFlightFences_[mCurrentFrame_];
 
 		// Presentation
 		VkPresentInfoKHR presentInfo{};
@@ -377,8 +346,6 @@ namespace zyh
 		else if (result != VK_SUCCESS) {
 			throw std::runtime_error("failed to present swap chain image!");
 		}
-
-		mCurrentFrame_ = (mCurrentFrame_ + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
 
 	void VulkanBase::recreateSwapchain()
@@ -407,9 +374,14 @@ namespace zyh
 		mDepthStencil_->cleanup();
 		mColorResources_->cleanup();
 		
-		for (auto& buffer : mCommandBuffers_)
-			SafeDestroy(buffer);
-		
+		for (auto& buffers : mCommandBuffers_)
+		{
+			for (auto& buffer : buffers)
+			{
+				SafeDestroy(buffer);
+			}
+		}
+			
 		mSwapchain_->cleanup();
 	}
 

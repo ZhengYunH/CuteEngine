@@ -30,7 +30,7 @@ namespace zyh
 
 	void Engine::Initialize()
 	{
-		mCurrFrameTicks_ = mLastFrameTicks_ =  clock();
+		mCurrFrameTime_ = mLastFrameTime_ = std::chrono::high_resolution_clock::now();
 
 		InitializeWindow();
 		Scene->Initialize();
@@ -40,9 +40,9 @@ namespace zyh
 	void Engine::Tick()
 	{
 		// Update Timer First
-		mLastFrameTicks_ = mCurrFrameTicks_;
-		mCurrFrameTicks_ = clock();
-		mDeltaTime_ = (mCurrFrameTicks_ - mLastFrameTicks_) * 1.f / CLOCKS_PER_SEC;
+		mLastFrameTime_ = mCurrFrameTime_;
+		mCurrFrameTime_ = std::chrono::high_resolution_clock::now();
+		mDeltaTime_ = std::chrono::duration<float, std::chrono::seconds::period>(mCurrFrameTime_ - mLastFrameTime_).count();
 
 		// Tick Logic Scene
 		Scene->Tick();
