@@ -90,13 +90,7 @@ namespace zyh
 
 	void VulkanRenderPassBase::Draw(VkCommandBuffer commandBuffer)
 	{
-		for (VulkanRenderElement* element : mElements_)
-		{
-			if (element)
-			{
-				element->draw(commandBuffer);
-			}
-		}
+		
 	}
 }
 

@@ -214,7 +214,6 @@ namespace zyh
 				buffer->connect(mLogicalDevice_, mGraphicsCommandPool_);
 				buffer->setup(allocInfo);
 			}
-			
 		}
 	}
 
@@ -289,7 +288,7 @@ namespace zyh
 				for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
 				{
 					VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-					element->draw(vkCommandBuffer);
+					element->draw(vkCommandBuffer, mCurrentFrame_);
 				}
 
 				vkCmdEndRenderPass(vkCommandBuffer);

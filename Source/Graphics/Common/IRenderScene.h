@@ -12,6 +12,12 @@ namespace zyh
 		IRenderScene() {}
 
 	public:
+		void Clear(RenderSet renderSet)
+		{
+			mRenderElements_[renderSet].clear();
+			mIsDirtys_.clear();
+		}
+
 		bool AddRenderElement(RenderSet renderSet, IRenderElement* element) 
 		{ 
 			if (mRenderElements_.find(renderSet) == mRenderElements_.end())

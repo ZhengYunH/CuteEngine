@@ -86,6 +86,7 @@ namespace zyh
 	void ClientScene::CollectRenderElements(RenderSet renderSet)
 	{
 		mPrimitivesAfterCulling_.clear();
+		mRenderScene_->Clear(renderSet);
 
 		Culling(renderSet);
 		for (IPrimitivesComponent* prim : mPrimitivesAfterCulling_)

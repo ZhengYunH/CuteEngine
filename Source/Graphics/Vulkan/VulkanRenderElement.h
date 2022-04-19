@@ -76,7 +76,7 @@ namespace zyh
 
 	public:
 		// TODO: should be optimized, less pipeline change
-		void draw(VkCommandBuffer commandBuffer)
+		void draw(VkCommandBuffer commandBuffer, size_t currImage)
 		{
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->mGraphicsPipeline_->Get());
 
@@ -84,7 +84,7 @@ namespace zyh
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 			vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer_->Get().buffer, 0, VK_INDEX_TYPE_UINT32);
-			VkDescriptorSet set = mMaterial_->getDescriptorSet();
+			VkDescriptorSet set = mMaterial_->getDescriptorSet(currImage);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipelineLayout(), 0, 1, &set, 0, nullptr);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mPrimitives_->mIndices_.size()), 1, 0, 0, 0);
 		}

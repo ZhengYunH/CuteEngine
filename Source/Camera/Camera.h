@@ -98,7 +98,7 @@ namespace zyh
 		float mFov_{ 45.f };
 		float mNear_{ 0.01f };
 		float mFar_{ 5000.f };
-		float mMoveSpeed_{ 0.1f };
+		float mMoveSpeed_{ 1.f };
 		
 	public:
 		float mScreenHeight_{ -1.0f };

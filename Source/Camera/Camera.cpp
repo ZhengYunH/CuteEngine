@@ -96,7 +96,7 @@ namespace zyh
 		if (mPressingMouseKeyBit_)
 		{
 			float fixMoveDistance = 0.001f;
-			float fixRotateRate = 0.05f;
+			float fixRotateRate = 5.f;
 			float deltaX = float(x - mLastMousePositionX);
 			float deltaY = float(y - mLastMousePositionY);
 #define HANDLE_MOUSE(BUTTON) if (mPressingMouseKeyBit_ &  ECAMEAR_MOUSE_BUTTON::EC_MOUSE_##BUTTON)

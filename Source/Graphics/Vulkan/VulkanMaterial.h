@@ -32,7 +32,7 @@ namespace zyh
 
 	public:
 		virtual void updateUniformBuffer(size_t currentImage);
-		VkDescriptorSet getDescriptorSet() { return mDescriptorSets_[0]; }
+		VkDescriptorSet getDescriptorSet(size_t currentImage) { return mDescriptorSets_[currentImage]; }
 		VkPipelineLayout getPipelineLayout();
 
 	protected:

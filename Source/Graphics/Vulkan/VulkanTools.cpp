@@ -37,6 +37,7 @@ namespace zyh
 #if defined(_WIN32)
 			if (!errorModeSilent) {
 				MessageBox(NULL, stringToLPCWSTR(message), NULL, MB_OK | MB_ICONERROR);
+				assert(false);
 			}
 #elif defined(__ANDROID__)
 			LOGE("Fatal error: %s", message.c_str());
