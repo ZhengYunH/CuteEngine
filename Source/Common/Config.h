@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <time.h>
 #include <chrono>
+#include <vector>
 
 
 enum RenderSet : uint32_t
@@ -33,8 +34,8 @@ enum RenderSet : uint32_t
 	SCENE = 1,
 	SHADOW = 2
 };
+typedef std::vector<RenderSet> TRenderSets;
 
-#include <vector>
 typedef std::vector<bool> BitArray;
 
 

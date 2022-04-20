@@ -38,7 +38,6 @@ namespace zyh
 	public:
 		using BindFuncType = std::function<RetType(ArgsType...)>;
 
-
 	public:
 		virtual void BoardCast(ArgsType... args)
 		{

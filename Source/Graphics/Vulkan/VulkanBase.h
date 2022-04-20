@@ -24,11 +24,12 @@ namespace zyh
 	class VulkanBuffer;
 
 	class VulkanRenderElement;
+	extern VulkanBase* GVulkanInstance;
 
+	class IRenderPass;
 
 	class VulkanBase
 	{
-		static VulkanBase* GVulkanInstance;
 		static void registerInstance(VulkanBase* instance)
 		{
 			GVulkanInstance = instance;
@@ -53,7 +54,7 @@ namespace zyh
 		virtual void Tick();
 		virtual void CleanUp();
 		virtual void windowResize(uint32_t width, uint32_t height);
-		void AddRenderPass(VulkanRenderPassBase* renderPass) { mRenderPasses_.push_back(renderPass); }
+		void AddRenderPass(IRenderPass* renderPass) { mRenderPasses_.push_back(renderPass); }
 
 	public: // Device Relate
 		/** @brief Encapsulated instance */
@@ -76,7 +77,7 @@ namespace zyh
 
 		VulkanRenderPassBase* mRenderPass_{ nullptr };
 
-		std::vector<VulkanRenderPassBase*> mRenderPasses_;
+		std::vector<IRenderPass*> mRenderPasses_;
 
 		VulkanImage* mDepthStencil_{ nullptr };
 
@@ -97,8 +98,6 @@ namespace zyh
 		uint32_t mWidth_{ 0 };
 		uint32_t mHeight_{ 0 };
 		bool mEnableValidationLayers_{ Setting::IsDebugMode };
-		// TODO
-		float mDeltaTime_{ 0.033f };
 
 		TCache<VkSampleCountFlagBits> mMsaaSamples_;
 		TCache<VkFormat> mDepthFromat_;
@@ -112,7 +111,6 @@ namespace zyh
 		};
 
 	private:
-		void setupDepthStencil();
 		// TODO: Encapsulated or insert to any class
 		void createSyncObjects();
 
@@ -135,5 +133,10 @@ namespace zyh
 		virtual void drawFrame();
 		virtual void recreateSwapchain();
 		virtual void _cleanupSwapchain();
+
+	public:
+		size_t GetCurrentImage() { return mCurrentImage_; }
+		VulkanCommand* GetCommandBuffer();
+		size_t mFreeCommandBufferIdx_{ 0 };
 	};
 }

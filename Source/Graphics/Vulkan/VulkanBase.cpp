@@ -19,11 +19,12 @@
 #include "Graphics/Common/ResourceLoader.h"
 #include "Common/TestData.h"
 #include "Core/InputSystem.h"
+#include "Graphics/Common/IRenderPass.h"
 
 
 namespace zyh
 {
-	VulkanBase* VulkanBase::GVulkanInstance = nullptr;
+	VulkanBase* GVulkanInstance = nullptr;
 
 	VulkanBase::~VulkanBase()
 	{
@@ -31,6 +32,8 @@ namespace zyh
 
 	void VulkanBase::initVulkan()
 	{
+		GVulkanInstance = this;
+
 		mInstance_ = new VulkanInstance();
 		mSurface_ = new VulkanSurface();
 		mPhysicalDevice_ = new VulkanPhysicalDevice();
@@ -38,7 +41,6 @@ namespace zyh
 		mSwapchain_ = new VulkanSwapchain();
 		mGraphicsCommandPool_ = new VulkanCommandPool(GRAPHICS);
 		mRenderPass_ = new VulkanRenderPassBase("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
-		mDepthStencil_ = new VulkanImage();
 
 		// connect
 		mSurface_->connect(mInstance_);
@@ -47,7 +49,6 @@ namespace zyh
 		mSwapchain_->connect(mInstance_, mPhysicalDevice_, mLogicalDevice_, mSurface_);
 		mGraphicsCommandPool_->connect(mPhysicalDevice_, mLogicalDevice_, mSwapchain_);
 		mRenderPass_->connect(mLogicalDevice_);
-		mDepthStencil_->connect(mPhysicalDevice_, mLogicalDevice_);
 	}
 
 	void VulkanBase::setupVulkan()
@@ -70,7 +71,6 @@ namespace zyh
 		mGraphicsCommandPool_->setup();
 
 		mRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
-		AddRenderPass(mRenderPass_);
 	}
 
 	void VulkanBase::createSyncObjects()
@@ -146,7 +146,6 @@ namespace zyh
 			vkDestroySemaphore(mLogicalDevice_->Get(), mImageAvailableSemaphores_[i], nullptr);
 			vkDestroyFence(mLogicalDevice_->Get(), mInFlightFences_[i], nullptr);
 		}
-		SafeDestroy(mDepthStencil_);
 		SafeDestroy(mSwapchain_);
 		SafeDestroy(mLogicalDevice_);
 		SafeDestroy(mPhysicalDevice_);
@@ -223,14 +222,6 @@ namespace zyh
 		{
 			return;
 		}
-
-		GEngine->Scene->CollectAllRenderElements();
-		for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
-		{
-			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-			element->mMaterial_->updateUniformBuffer(mCurrentFrame_); // TODO: Global & ItemWise
-		}
-
 		// Acquiring an image from the swap chain
 		{
 			uint32_t imageIndex;
@@ -245,6 +236,15 @@ namespace zyh
 			mCurrentImage_ = imageIndex;
 		}
 
+		mFreeCommandBufferIdx_ = 0;
+
+		GEngine->Scene->CollectAllRenderElements();
+		for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
+		{
+			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+			element->mMaterial_->updateUniformBuffer(mCurrentImage_); // TODO: Global & ItemWise
+		}
+
 		bindCommandBuffer();
 		drawFrame();
 
@@ -253,47 +253,25 @@ namespace zyh
 
 	void VulkanBase::bindCommandBuffer()
 	{
-		auto& buffers = mCommandBuffers_[mCurrentImage_];
-
-		for (size_t i = 0; i < buffers.size(); ++i)
+		for (auto renderpass : mRenderPasses_)
 		{
-			VkCommandBufferBeginInfo beginInfo{};
-			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-			beginInfo.flags = 0;
-			beginInfo.pInheritanceInfo = nullptr;
+			delete renderpass;
+		}
 
-			auto& commandBuffer = buffers[i];
+		mRenderPasses_.clear();
 
-			commandBuffer->begin(&beginInfo);
+		mRenderPasses_.push_back(
+			new IRenderPass(
+				"Test",
+				{ RenderSet::SCENE },
+				mRenderPass_,
+				mSwapchain_->getFrameBuffer(static_cast<uint32_t>(mCurrentImage_))
+			)
+		);
 
-			for (auto renderPass : mRenderPasses_)
-			{
-				VkRenderPassBeginInfo renderPassInfo{};
-				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-				renderPassInfo.renderPass = renderPass->Get();
-				renderPassInfo.framebuffer = mSwapchain_->getFrameBuffer(static_cast<uint32_t>(mCurrentImage_));
-				renderPassInfo.renderArea.offset = { 0, 0 };
-				renderPassInfo.renderArea.extent = mSwapchain_->getExtend();
-
-				std::array<VkClearValue, 2> clearValues{};
-				clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-				clearValues[1].depthStencil = { 1.0f, 0 };
-
-				renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-				renderPassInfo.pClearValues = clearValues.data();
-
-				VkCommandBuffer vkCommandBuffer = commandBuffer->Get();
-				vkCmdBeginRenderPass(vkCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-				for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
-				{
-					VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-					element->draw(vkCommandBuffer, mCurrentFrame_);
-				}
-
-				vkCmdEndRenderPass(vkCommandBuffer);
-			}
-			commandBuffer->end();
+		for (auto renderPass : mRenderPasses_)
+		{
+			renderPass->Draw(SCENE);
 		}
 	}
 
@@ -366,11 +344,13 @@ namespace zyh
 		mSwapchain_->setupFrameBuffer(*mRenderPass_, attachments);
 		
 		createCommandBuffers();
+
+
 	}
 
 	void VulkanBase::_cleanupSwapchain()
 	{
-		mDepthStencil_->cleanup();
+		mDepthResources_->cleanup();
 		mColorResources_->cleanup();
 		
 		for (auto& buffers : mCommandBuffers_)
@@ -382,6 +362,14 @@ namespace zyh
 		}
 			
 		mSwapchain_->cleanup();
+	}
+
+	VulkanCommand* VulkanBase::GetCommandBuffer()
+	{
+		VulkanCommand* cmd = mCommandBuffers_[mCurrentImage_][mFreeCommandBufferIdx_];
+		mFreeCommandBufferIdx_++;
+		HYBRID_CHECK(mFreeCommandBufferIdx_ <= mCommandBuffers_[mCurrentImage_].size());
+		return cmd;
 	}
 
 }

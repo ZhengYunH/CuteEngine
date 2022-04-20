@@ -3,8 +3,6 @@
 
 namespace zyh
 {
-	typedef std::vector<RenderSet> TRenderSets;
-
 	class IMaterial
 	{
 	public:

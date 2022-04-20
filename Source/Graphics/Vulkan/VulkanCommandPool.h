@@ -53,7 +53,7 @@ namespace zyh
 
 	public:
 		void generateSingleTimeCommand(SingleTimeExecFunc execFunc);
-
+		void generateCommand();
 
 	private:
 		std::vector<VkCommandBuffer> mCommandBuffers_;
