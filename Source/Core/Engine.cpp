@@ -1,6 +1,9 @@
 #include "Engine.h"
 #include "Graphics/Vulkan/VulkanBase.h"
 #include "ClientScene.h"
+#include "Graphics/Common/Renderer.h"
+#include "InputSystem.h"
+
 
 namespace zyh
 {
@@ -9,13 +12,11 @@ namespace zyh
 	Engine::Engine()
 	{
 		Scene = new ClientScene();
-		Vulkan = new VulkanBase();
 	}
 
 	Engine::~Engine()
 	{
 		delete Scene;
-		delete Vulkan;
 	}
 
 	void Engine::Run()
@@ -34,7 +35,6 @@ namespace zyh
 
 		InitializeWindow();
 		Scene->Initialize();
-		Vulkan->Initialize();
 	}
 
 	void Engine::Tick()
@@ -47,16 +47,12 @@ namespace zyh
 		// Tick Logic Scene
 		Scene->Tick();
 
-		// Tick Render Scene(TODO: MultiThread)
-		Vulkan->Tick();
-
 		mCurrFrame_ += 1;
 	}
 
 	void Engine::CleanUp()
 	{
 		Scene->CleanUp();
-		Vulkan->CleanUp();
 	}
 	
 #if defined(_WIN32)

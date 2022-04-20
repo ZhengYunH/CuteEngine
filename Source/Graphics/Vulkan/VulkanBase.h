@@ -3,9 +3,6 @@
 #include "VulkanTools.h"
 #include "Common/Setting.h"
 #include "Common/KeyCodes.h"
-#include "Camera/Camera.h"
-#include "Graphics/Common/Geometry.h"
-
 
 
 namespace zyh
@@ -23,8 +20,7 @@ namespace zyh
 	class VulkanGraphicsPipeline;
 	class VulkanBuffer;
 
-	class VulkanRenderElement;
-	extern VulkanBase* GVulkanInstance;
+	extern class VulkanBase* GVulkanInstance;
 
 	class IRenderPass;
 
@@ -51,7 +47,6 @@ namespace zyh
 		virtual void initVulkan();
 		virtual void setupVulkan();
 		virtual void prepare();
-		virtual void Tick();
 		virtual void CleanUp();
 		virtual void windowResize(uint32_t width, uint32_t height);
 		void AddRenderPass(IRenderPass* renderPass) { mRenderPasses_.push_back(renderPass); }
@@ -135,8 +130,11 @@ namespace zyh
 		virtual void _cleanupSwapchain();
 
 	public:
+		void DrawFrameBegin(size_t& OutCurrentImage);
+		void DrawFrameEnd() { drawFrame(); }
 		size_t GetCurrentImage() { return mCurrentImage_; }
 		VulkanCommand* GetCommandBuffer();
+		VkFramebuffer GetSwapchainFrameBuffer();
 		size_t mFreeCommandBufferIdx_{ 0 };
 	};
 }

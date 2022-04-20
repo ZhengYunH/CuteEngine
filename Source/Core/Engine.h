@@ -9,7 +9,6 @@
 namespace zyh
 {
 	class ClientScene;
-	class VulkanBase;
 
 	class Engine
 	{
@@ -28,7 +27,6 @@ namespace zyh
 		
 	public:
 		ClientScene* Scene;
-		VulkanBase* Vulkan;
 
 	private:
 		typedef std::chrono::steady_clock::time_point TimeType;

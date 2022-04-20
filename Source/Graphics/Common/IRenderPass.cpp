@@ -7,6 +7,12 @@
 
 namespace zyh
 {
+
+	void IRenderPass::Prepare(VkFramebuffer framebuffer)
+	{
+		mVKFramebuffer_ = framebuffer;
+	}
+
 	void IRenderPass::Draw(RenderSet renderSet)
 	{
 		if (!IsRenderSetSupported(renderSet))

@@ -5,6 +5,7 @@
 #include "VulkanMaterial.h"
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanInstance.h"
+#include "VulkanBase.h"
 
 
 namespace zyh
@@ -19,6 +20,8 @@ namespace zyh
 		VulkanRenderElement(IPrimitive* InPrimtives) : IRenderElement(InPrimtives)
 		{
 			mMaterial_ = new VulkanMaterial();
+			connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
+			setup();
 		}
 		virtual ~VulkanRenderElement() 
 		{ 

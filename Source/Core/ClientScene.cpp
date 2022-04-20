@@ -3,13 +3,18 @@
 #include "Graphics/Common/IRenderScene.h"
 #include "IPrimitivesComponent.h"
 #include "Camera/Camera.h"
+#include "Graphics/Common/Renderer.h"
+
 
 namespace zyh
 {
 	void ClientScene::Initialize()
 	{
 		mRenderScene_ = new IRenderScene();
+		mRenderer_ = new Renderer(mRenderScene_);
 		mCamera_ = new Camera();
+
+		mRenderer_->Build();
 		LoadScene();
 	}
 
@@ -18,6 +23,9 @@ namespace zyh
 		DispatchOSMessage();
 		DispatchTickEvent();
 		mCamera_->tick(GEngine->GetDeltaTime());
+
+		// Tick Render Scene(TODO: MultiThread)
+		mRenderer_->Draw();
 	}
 
 	void ClientScene::CleanUp()

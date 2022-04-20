@@ -20,6 +20,7 @@
 #include "Common/TestData.h"
 #include "Core/InputSystem.h"
 #include "Graphics/Common/IRenderPass.h"
+#include "Camera/Camera.h"
 
 
 namespace zyh
@@ -186,14 +187,6 @@ namespace zyh
 
 	void VulkanBase::createCommandBuffers()
 	{
-		GEngine->Scene->CollectAllRenderElements();
-		for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
-		{
-			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-			element->connect(mPhysicalDevice_, mLogicalDevice_, mGraphicsCommandPool_);
-			element->setup();
-		}
-
 		mCommandBuffers_.resize(mSwapchain_->getImageCount());
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -213,65 +206,6 @@ namespace zyh
 				buffer->connect(mLogicalDevice_, mGraphicsCommandPool_);
 				buffer->setup(allocInfo);
 			}
-		}
-	}
-
-	void VulkanBase::Tick()
-	{
-		if (mIsPaused_)
-		{
-			return;
-		}
-		// Acquiring an image from the swap chain
-		{
-			uint32_t imageIndex;
-
-			// acquire next image we want to use
-			mSwapchain_->acquireNextImage(mImageAvailableSemaphores_[mCurrentFrame_], &imageIndex);
-
-			// Check if a previous frame is using this image (if true, wait for it)
-			if (mImagesInFights_[imageIndex] != VK_NULL_HANDLE) {
-				vkWaitForFences(mLogicalDevice_->Get(), 1, &mImagesInFights_[imageIndex], VK_TRUE, UINT64_MAX);
-			}
-			mCurrentImage_ = imageIndex;
-		}
-
-		mFreeCommandBufferIdx_ = 0;
-
-		GEngine->Scene->CollectAllRenderElements();
-		for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet::SCENE))
-		{
-			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-			element->mMaterial_->updateUniformBuffer(mCurrentImage_); // TODO: Global & ItemWise
-		}
-
-		bindCommandBuffer();
-		drawFrame();
-
-		mCurrentFrame_ = (mCurrentFrame_ + 1) % MAX_FRAMES_IN_FLIGHT;
-	}
-
-	void VulkanBase::bindCommandBuffer()
-	{
-		for (auto renderpass : mRenderPasses_)
-		{
-			delete renderpass;
-		}
-
-		mRenderPasses_.clear();
-
-		mRenderPasses_.push_back(
-			new IRenderPass(
-				"Test",
-				{ RenderSet::SCENE },
-				mRenderPass_,
-				mSwapchain_->getFrameBuffer(static_cast<uint32_t>(mCurrentImage_))
-			)
-		);
-
-		for (auto renderPass : mRenderPasses_)
-		{
-			renderPass->Draw(SCENE);
 		}
 	}
 
@@ -323,6 +257,8 @@ namespace zyh
 		else if (result != VK_SUCCESS) {
 			throw std::runtime_error("failed to present swap chain image!");
 		}
+
+		mCurrentFrame_ = (mCurrentFrame_ + 1) % MAX_FRAMES_IN_FLIGHT;
 	}
 
 	void VulkanBase::recreateSwapchain()
@@ -370,6 +306,31 @@ namespace zyh
 		mFreeCommandBufferIdx_++;
 		HYBRID_CHECK(mFreeCommandBufferIdx_ <= mCommandBuffers_[mCurrentImage_].size());
 		return cmd;
+	}
+
+	VkFramebuffer VulkanBase::GetSwapchainFrameBuffer()
+	{
+		return mSwapchain_->getFrameBuffer(mCurrentImage_);
+	}
+
+	void VulkanBase::DrawFrameBegin(size_t& OutCurrentImage)
+	{
+		// Acquiring an image from the swap chain
+		{
+			uint32_t imageIndex;
+
+			// acquire next image we want to use
+			mSwapchain_->acquireNextImage(mImageAvailableSemaphores_[mCurrentFrame_], &imageIndex);
+
+			// Check if a previous frame is using this image (if true, wait for it)
+			if (mImagesInFights_[imageIndex] != VK_NULL_HANDLE) {
+				vkWaitForFences(mLogicalDevice_->Get(), 1, &mImagesInFights_[imageIndex], VK_TRUE, UINT64_MAX);
+			}
+			mCurrentImage_ = imageIndex;
+		}
+
+		mFreeCommandBufferIdx_ = 0;
+		OutCurrentImage = mCurrentImage_;
 	}
 
 }

@@ -25,12 +25,10 @@ namespace zyh
 		IRenderPass(
 			const std::string& renderPassName, 
 			const TRenderSets& renderSets,
-			VulkanRenderPassBase* renderPass,
-			VkFramebuffer framebuffer
+			VulkanRenderPassBase* renderPass
 		):	mName_(renderPassName),
 			mRenderSets_(renderSets),
-			mRenderPass_(renderPass),
-			mVKFramebuffer_(framebuffer)
+			mRenderPass_(renderPass)
 		{
 			InitRenderPass();
 		}
@@ -40,8 +38,12 @@ namespace zyh
 			return std::find(mRenderSets_.begin(), mRenderSets_.end(), renderSet) != mRenderSets_.end();
 		}
 
+		
+		void Prepare(VkFramebuffer framebuffer);
+
 		void Draw(RenderSet renderSet);
 	
+
 	protected:
 		void InitRenderPass();
 		void InitCommandBufferBeginInfo();

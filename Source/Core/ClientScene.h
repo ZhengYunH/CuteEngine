@@ -1,6 +1,6 @@
 #pragma once
 #include "Common/Config.h"
-
+#include "Core/Engine.h"
 
 namespace zyh
 {
@@ -49,6 +49,7 @@ namespace zyh
 		std::vector<IPrimitivesComponent*> mPrimitivesAfterCulling_;
 
 		IRenderScene* mRenderScene_;
+		class Renderer* mRenderer_;
 		Camera* mCamera_;
 	};
 
