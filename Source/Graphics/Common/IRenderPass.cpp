@@ -23,7 +23,7 @@ namespace zyh
 		mVKBufferBeginInfo_.pInheritanceInfo = nullptr;
 
 		mRenderPassInfo_.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		mRenderPassInfo_.renderPass = mRenderPass_->Get();
+		mRenderPassInfo_.renderPass = mRenderPass_;
 		mRenderPassInfo_.framebuffer = mVKFramebuffer_;
 		mRenderPassInfo_.renderArea.offset = { 0, 0 };
 		mRenderPassInfo_.renderArea.extent = *(GInstance->mExtend_);
@@ -40,14 +40,19 @@ namespace zyh
 		{
 			VkCommandBuffer vkCommandBuffer = command->Get();
 			vkCmdBeginRenderPass(vkCommandBuffer, &mRenderPassInfo_, VK_SUBPASS_CONTENTS_INLINE);
-			for (auto& renderElement : GEngine->Scene->GetRenderElements(renderSet))
-			{
-				VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-				element->draw(vkCommandBuffer, GVulkanInstance->GetCurrentImage());
-			}
+			_DrawElements(vkCommandBuffer, renderSet);
 			vkCmdEndRenderPass(vkCommandBuffer);
 		}
 		command->end();
+	}
+
+	void IRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet)
+	{
+		for (auto& renderElement : GEngine->Scene->GetRenderElements(renderSet))
+		{
+			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+			element->draw(vkCommandBuffer, GVulkanInstance->GetCurrentImage());
+		}
 	}
 
 	void IRenderPass::InitRenderPass()
@@ -65,5 +70,11 @@ namespace zyh
 	{
 
 	}
+
+	void ImGuiRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet)
+	{
+		ImGui_ImplVulkan_RenderDrawData(mDrawData_, vkCommandBuffer);
+	}
+
 }
 

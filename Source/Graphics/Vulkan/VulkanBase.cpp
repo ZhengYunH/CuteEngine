@@ -23,6 +23,11 @@
 #include "Camera/Camera.h"
 
 
+#include "Graphics/Imgui/imgui.h"
+#include "Graphics/Imgui/imgui_impl_vulkan.h"
+#include "Graphics/Imgui/imgui_impl_win32.h"
+
+
 namespace zyh
 {
 	VulkanBase* GVulkanInstance = nullptr;
@@ -199,7 +204,7 @@ namespace zyh
 			mCommandBuffers_[i] = std::vector<VulkanCommand*>();
 			auto& lastBuffers = mCommandBuffers_[i];
 
-			for (size_t j = 0; j < 1; ++j)
+			for (size_t j = 0; j < 2; ++j)
 			{
 				lastBuffers.push_back(new VulkanCommand());
 				auto buffer = lastBuffers[j];
@@ -332,5 +337,4 @@ namespace zyh
 		mFreeCommandBufferIdx_ = 0;
 		OutCurrentImage = mCurrentImage_;
 	}
-
 }

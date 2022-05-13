@@ -10,6 +10,12 @@ struct Vertex {
 	glm::vec3 color;
 	glm::vec2 texCoord;
 
+	Vertex(glm::vec3 inPos) : pos(inPos) {}
+	Vertex(glm::vec3 inPos, glm::vec3 inColor, glm::vec2 inTexCoord) 
+		: pos(inPos),  color(inColor), texCoord(inTexCoord)
+	{}
+
+
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription{};
 		bindingDescription.binding = 0;

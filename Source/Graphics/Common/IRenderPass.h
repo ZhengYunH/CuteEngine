@@ -13,7 +13,9 @@
 #include "Graphics/Vulkan/VulkanRenderPass.h"
 #include "Graphics/Vulkan/VulkanCommandPool.h"
 
-// usage
+#include "Graphics/Imgui/imgui.h"
+#include "Graphics/Imgui/imgui_impl_vulkan.h"
+#include "Graphics/Imgui/imgui_impl_win32.h"
 
 
 
@@ -27,6 +29,17 @@ namespace zyh
 			const TRenderSets& renderSets,
 			VulkanRenderPassBase* renderPass
 		):	mName_(renderPassName),
+			mRenderSets_(renderSets),
+			mRenderPass_(renderPass->Get())
+		{
+			InitRenderPass();
+		}
+
+		IRenderPass(
+			const std::string& renderPassName,
+			const TRenderSets& renderSets,
+			VkRenderPass renderPass
+		) : mName_(renderPassName),
 			mRenderSets_(renderSets),
 			mRenderPass_(renderPass)
 		{
@@ -43,6 +56,8 @@ namespace zyh
 
 		void Draw(RenderSet renderSet);
 	
+	protected:
+		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet);
 
 	protected:
 		void InitRenderPass();
@@ -52,11 +67,37 @@ namespace zyh
 	protected:
 		std::string mName_;
 		TRenderSets mRenderSets_;
-		VulkanRenderPassBase* mRenderPass_;
+		VkRenderPass mRenderPass_;
 		VkRenderPassBeginInfo mRenderPassInfo_{};
 	
 	private:
 		VkFramebuffer mVKFramebuffer_;
 		VkCommandBufferBeginInfo mVKBufferBeginInfo_{};
+	};
+
+	class ImGuiRenderPass : public IRenderPass
+	{
+	public:
+		ImGuiRenderPass(
+			const std::string& renderPassName,
+			const TRenderSets& renderSets,
+			VulkanRenderPassBase* renderPass
+		) : IRenderPass(renderPassName, renderSets, renderPass)
+		{
+		}
+
+		ImGuiRenderPass(
+			const std::string& renderPassName,
+			const TRenderSets& renderSets,
+			VkRenderPass renderPass
+		) : IRenderPass(renderPassName, renderSets, renderPass)
+		{
+		}
+
+	public:
+		ImDrawData* mDrawData_;
+
+	protected:
+		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet) override;
 	};
 }

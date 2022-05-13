@@ -59,3 +59,4 @@ auto Bind(RetType(T::* f)(Args...), T* t)
 }
 
 #define BIND_EVENT(Event, Object, Func) Event.Bind(Bind(&Func, &Object));
+
