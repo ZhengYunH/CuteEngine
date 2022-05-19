@@ -17,6 +17,8 @@ namespace zyh
 		alignas(16) glm::mat4 model;
 		alignas(16) glm::mat4 view;
 		alignas(16) glm::mat4 proj;
+		alignas(16) glm::vec4 lightColor; /* color + intensity*/
+		alignas(16) glm::vec3 lightDirection;
 	};
 
 	class VulkanMaterial : public IMaterial, public IVulkanObject

@@ -1,6 +1,7 @@
 #pragma once
 #include "Graphics/Common/Geometry.h"
 #include "Graphics/Common/ResourceLoader.h"
+#include "Math/Vector3.h"
 #include "IMaterial.h"
 
 namespace zyh
@@ -30,9 +31,15 @@ namespace zyh
 			return *mMaterial_; 
 		}
 
-		void AddVertex(Vertex point);
+		void AddVertex(Vertex point)
+		{
+			mVertices_.push_back(point);
+		}
 
-		void AddIndex(uint32_t index);
+		void AddIndex(uint32_t index)
+		{
+			mIndices_.push_back(index);
+		}
 
 	protected:
 		IMaterial* mMaterial_;
@@ -41,16 +48,6 @@ namespace zyh
 		std::vector<Vertex> mVertices_;
 		std::vector<uint32_t> mIndices_;
 	};
-
-	void IPrimitive::AddVertex(Vertex point)
-	{
-		mVertices_.push_back(point);
-	}
-
-	void IPrimitive::AddIndex(uint32_t index)
-	{
-		mIndices_.push_back(index);
-	}
 
 	class SpherePrimitive : IPrimitive
 	{
@@ -64,7 +61,7 @@ namespace zyh
 			float startV = 0;
 			float endV = MATH_PI;
 
-			const float division = mDivision_;
+			const size_t division = mDivision_;
 			const float stepU = (endU - startU) / division;
 			const float stepV = (endV - startV) / division;
 

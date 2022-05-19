@@ -165,6 +165,9 @@ namespace zyh
 		ubo.proj = convertToGlmMat(projMat);
 		ubo.proj[1][1] *= -1;
 
+		ubo.lightColor = glm::vec4(1.0, 1.0, 1.0, 0.1);
+		ubo.lightDirection = glm::vec3(0.5, 0.5, 1.0);
+
 		mUniformBuffers_[currentImage]->setupData(&ubo, sizeof(ubo));
 	}
 

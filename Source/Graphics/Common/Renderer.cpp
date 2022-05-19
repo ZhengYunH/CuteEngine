@@ -65,13 +65,13 @@ namespace zyh
 			)
 		);
 
-		mRenderPasses_.push_back(
+		/*mRenderPasses_.push_back(
 			new ImGuiRenderPass(
 				"GUI",
 				{ RenderSet::SCENE },
 				GVulkanInstance->mRenderPass_
 			)
-		);
+		);*/
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize.x = GVulkanInstance->mSwapchain_->getExtend().width;
@@ -84,6 +84,7 @@ namespace zyh
 
 	void Renderer::Draw()
 	{
+		/*
 		// GUI Test
 		ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 		bool show_another_window = true;
@@ -124,7 +125,7 @@ namespace zyh
 
 		ImGui::Render();
 		static_cast<ImGuiRenderPass*>(mRenderPasses_[1])->mDrawData_ = ImGui::GetDrawData();
-
+		*/
 
 		RenderSet renderSet = RenderSet::SCENE;
 

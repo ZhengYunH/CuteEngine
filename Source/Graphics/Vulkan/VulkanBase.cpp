@@ -204,7 +204,7 @@ namespace zyh
 			mCommandBuffers_[i] = std::vector<VulkanCommand*>();
 			auto& lastBuffers = mCommandBuffers_[i];
 
-			for (size_t j = 0; j < 2; ++j)
+			for (size_t j = 0; j < 1; ++j)
 			{
 				lastBuffers.push_back(new VulkanCommand());
 				auto buffer = lastBuffers[j];
