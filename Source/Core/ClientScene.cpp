@@ -75,6 +75,7 @@ namespace zyh
 		entity->AddComponent<IPrimitivesComponent>("Resource/models/viking_room.obj");
 		IPrimitivesComponent* comp = entity->GetComponent<IPrimitivesComponent>();
 		AddEntity(entity);
+
 		CollectAllRenderElements();
 	}
 

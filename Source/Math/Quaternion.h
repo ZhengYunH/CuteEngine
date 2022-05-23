@@ -18,6 +18,7 @@ namespace zyh
 	class Vector3;
 	class EulerAngles;
 	class Matrix3x3;
+	class Matrix4x3;
 
 	class Quaternion
 	{
@@ -85,6 +86,7 @@ namespace zyh
 		constexpr Quaternion(float nx, float ny, float nz, float nw) noexcept : x(nx), y(ny), z(nz), w(nw) {}
 		constexpr Quaternion(Vector3 imag, float real) noexcept : x(imag.x), y(imag.y), z(imag.z), w(real) {}
 		constexpr Quaternion(const Matrix3x3& mat);
+		constexpr Quaternion(const Matrix4x3& mat);
 		constexpr Quaternion(const EulerAngles& eulerAngle);
 
 	public: // operator

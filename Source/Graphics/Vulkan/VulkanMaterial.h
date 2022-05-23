@@ -3,6 +3,7 @@
 #include "VulkanHeader.h"
 #include "VulkanTools.h"
 #include "IVulkanObject.h"
+#include "Graphics/Light/LightBase.h"
 
 
 namespace zyh
@@ -17,8 +18,15 @@ namespace zyh
 		alignas(16) glm::mat4 model;
 		alignas(16) glm::mat4 view;
 		alignas(16) glm::mat4 proj;
-		alignas(16) glm::vec4 lightColor; /* color + intensity*/
-		alignas(16) glm::vec3 lightDirection;
+	};
+
+	const int N_MAX_POINT_LIGHT = 4;
+	struct UniformLightingBufferObject
+	{
+		DirectionLight directionalLight;
+		int32_t numOfPointLights;
+		PointLight pointLights[N_MAX_POINT_LIGHT];
+		SpotLight spotLight;
 	};
 
 	class VulkanMaterial : public IMaterial, public IVulkanObject
@@ -47,6 +55,7 @@ namespace zyh
 		virtual void createGraphicsPipeline();
 
 		std::vector<VulkanBuffer*> mUniformBuffers_;
+		std::vector<VulkanBuffer*> mUniformLightBuffers_;
 		virtual void createUniformBuffers();
 
 		VkDescriptorPool mDescriptorPool_;

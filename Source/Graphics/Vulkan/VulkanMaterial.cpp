@@ -47,8 +47,17 @@ namespace zyh
 	void VulkanMaterial::createUniformBuffers()
 	{
 		mUniformBuffers_.resize(mLayoutCount_);
+		mUniformLightBuffers_.resize(mLayoutCount_);
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 		for (auto& uniformBuffer : mUniformBuffers_)
+		{
+			uniformBuffer = new VulkanBuffer();
+			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
+			uniformBuffer->setup(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		}
+
+		bufferSize = sizeof(UniformLightingBufferObject);
+		for (auto& uniformBuffer : mUniformLightBuffers_)
 		{
 			uniformBuffer = new VulkanBuffer();
 			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
@@ -58,12 +67,15 @@ namespace zyh
 
 	void VulkanMaterial::createDesciptorPool()
 	{
-		std::array<VkDescriptorPoolSize, 2> poolSizes{};
+		std::array<VkDescriptorPoolSize, 3> poolSizes{};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(mLayoutCount_);
 
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		poolSizes[1].descriptorCount = static_cast<uint32_t>(mLayoutCount_);
+
+		poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		poolSizes[2].descriptorCount = static_cast<uint32_t>(mLayoutCount_);
 
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -98,7 +110,12 @@ namespace zyh
 			imageInfo.imageView = mTextureImage_->Get().view;
 			imageInfo.sampler = mTextureImage_->getTextureSampler();
 
-			std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+			VkDescriptorBufferInfo lightingbufferInfo{};
+			lightingbufferInfo.buffer = mUniformLightBuffers_[i]->Get().buffer;
+			lightingbufferInfo.offset = 0;
+			lightingbufferInfo.range = sizeof(UniformLightingBufferObject);
+
+			std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
 
 			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[0].dstSet = mDescriptorSets_[i];
@@ -115,6 +132,14 @@ namespace zyh
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pImageInfo = &imageInfo;
+
+			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[2].dstSet = mDescriptorSets_[i];
+			descriptorWrites[2].dstBinding = 2;
+			descriptorWrites[2].dstArrayElement = 0;
+			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			descriptorWrites[2].descriptorCount = 1;
+			descriptorWrites[2].pBufferInfo = &lightingbufferInfo;
 
 			vkUpdateDescriptorSets(mLogicalDevice_->Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
@@ -143,6 +168,7 @@ namespace zyh
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
 		UniformBufferObject ubo{};
+		UniformLightingBufferObject ulbo{};
 
 		auto convertToGlmMat = [](const Matrix4x4& mat) -> glm::mat4x4
 		{
@@ -165,10 +191,32 @@ namespace zyh
 		ubo.proj = convertToGlmMat(projMat);
 		ubo.proj[1][1] *= -1;
 
-		ubo.lightColor = glm::vec4(1.0, 1.0, 1.0, 0.1);
-		ubo.lightDirection = glm::vec3(0.5, 0.5, 1.0);
+		ulbo.directionalLight = DirectionLight
+		(
+			Vector3(0.5, 0.5, 1.0),
+			Vector3(0.1, 0.1, 0.1),
+			Vector3(0.3, 0.3, 0.3),
+			Vector3(0.2, 0.2, 0.2)
+		);
+		ulbo.numOfPointLights = 1;
+		ulbo.pointLights[0] = PointLight
+		(
+			Vector3(-0.5, -0.5, 1.0),
+			Vector3(0.1, 0.1, 0.1),
+			Vector3(0.3, 0.3, 0.3),
+			Vector3(0.3, 0.3, 0.3)
+		);
+		ulbo.spotLight = SpotLight
+		(
+			Vector3(0.5, 0.5, 1.0),
+			Vector3(-0.5, -0.5, -1.0),
+			Vector3(0.3, 0.3, 0.3),
+			Vector3(1.5, 1.5, 1.5),
+			Vector3(0.3, 0.3, 0.3)
+		);
 
 		mUniformBuffers_[currentImage]->setupData(&ubo, sizeof(ubo));
+		mUniformLightBuffers_[currentImage]->setupData(&ulbo, sizeof(ulbo));
 	}
 
 	VkPipelineLayout VulkanMaterial::getPipelineLayout()
