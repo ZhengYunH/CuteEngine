@@ -9,16 +9,19 @@ namespace zyh
 	class IModel
 	{
 	public:
-		IModel(const std::string& InModelFileName)
+		IModel(EPrimitiveType primType, const std::string& InModelFileName)
 		{
-			std::string meshFileName = InModelFileName;
-			mMesh_ = new IMesh(meshFileName);
+			mMesh_ = new IMesh(primType, InModelFileName);
 		}
+
 		virtual ~IModel() 
 		{ 
 			SafeDestroy(mMesh_); 
 		}
 		
+	public:
+		void UpdateTransform(Matrix4x3& mat) { mMesh_->UpdateEntityTransform(mat); }
+
 	public:
 		IMesh* mMesh_;
 	};

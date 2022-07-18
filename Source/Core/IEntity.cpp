@@ -12,4 +12,13 @@ namespace zyh
 			comp->Tick();
 		}
 	}
+
+	void IEntity::SetTransform(Matrix4x3& mat)
+	{
+		for (IComponent* comp : mUpdateTransformList_)
+		{
+			comp->UpdateTransform(mat);
+		}
+	}
+
 }

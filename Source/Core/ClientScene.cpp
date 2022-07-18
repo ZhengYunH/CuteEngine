@@ -5,6 +5,8 @@
 #include "Camera/Camera.h"
 #include "Graphics/Common/Renderer.h"
 
+#include "File/FileSystem.h"
+
 
 namespace zyh
 {
@@ -71,10 +73,26 @@ namespace zyh
 
 	void ClientScene::LoadScene()
 	{
-		IEntity* entity = new IEntity();
-		entity->AddComponent<IPrimitivesComponent>("Resource/models/viking_room.obj");
-		IPrimitivesComponent* comp = entity->GetComponent<IPrimitivesComponent>();
-		AddEntity(entity);
+		SceneXmlParser parser("Resource/files/scene.xml");
+		parser.load();
+		for (auto* entity : parser.GetEntities())
+		{
+			AddEntity(entity);
+		}
+
+		{
+			Matrix4x3 modelMat;
+			modelMat.SetRotationX(DegreeToRadian(-90.f), Vector3::GetZero());
+			mEntitys_[0]->SetTransform(modelMat);
+		}
+
+		// Test Box
+		{
+			Matrix4x3 modelMat;
+			modelMat.SetTranslation(Vector3(1, 0, 0));
+			modelMat.SetScale(Vector3(0.1f, 0.1f, 0.1f));
+			mEntitys_[1]->SetTransform(modelMat);
+		}
 
 		CollectAllRenderElements();
 	}

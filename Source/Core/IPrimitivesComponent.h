@@ -14,11 +14,11 @@ namespace zyh
 	class IPrimitivesComponent : public IComponent
 	{
 	public:
-		IPrimitivesComponent() {}
-		IPrimitivesComponent(const std::string& meshFileName)
+		IPrimitivesComponent(IEntity* Parent) : IComponent(Parent) {}
+		IPrimitivesComponent(IEntity* Parent, EPrimitiveType meshType, const std::string& meshFileName) : IComponent(Parent)
 		{
 			GEngine->Scene->AddPrimitive(this);
-			mModel_ = new VulkanModel(meshFileName);
+			mModel_ = new VulkanModel(meshType, meshFileName);
 		}
 		virtual ~IPrimitivesComponent()
 		{
@@ -32,6 +32,7 @@ namespace zyh
 			mModel_->EmitRenderElements(renderSet, renderScene);
 		}
 		virtual bool Culling() { return true; }
+		virtual void UpdateTransform(Matrix4x3& mat) override { mModel_->UpdateTransform(mat); }
 
 	protected:
 		VulkanModel* mModel_;

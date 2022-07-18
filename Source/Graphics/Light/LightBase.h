@@ -11,7 +11,7 @@ namespace zyh
 		DirectionLight() {}
 
 		DirectionLight(Vector3 Direction, Vector3 Ambient, Vector3 Diffuse, Vector3 Specular)
-			: mDirection_(Direction)
+			: mDirection_(Direction.GetNormalized())
 			, mAmbient_(Ambient)
 			, mDiffuse_(Diffuse)
 			, mSpecular_(Specular)
@@ -138,7 +138,7 @@ namespace zyh
 
 		SpotLight(Vector3 Position, Vector3 Direction, Vector3 Ambient, Vector3 Diffuse, Vector3 Specular)
 			: mPosition_(Position)
-			, mDirection_(Direction)
+			, mDirection_(Direction.GetNormalized())
 			, mAmbient_(Ambient)
 			, mDiffuse_(Diffuse)
 			, mSpecular_(Specular)

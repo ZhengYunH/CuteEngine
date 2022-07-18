@@ -81,5 +81,10 @@ void main() {
     for(int i = 0; i < lightData.nr_of_point_lights; i++)
         outputColor += CalcPointLight(lightData.pointLights[i]);
     outputColor += CalcSpotLight(lightData.spotLight);
-    outColor = vec4(outputColor * texture(texSampler, fragTexCoord).rgb, 1.0);
+	if(fragTexCoord.x < 0)
+		outColor = vec4(fragColor, 1.0);
+	else
+		outColor = vec4(outputColor * texture(texSampler, fragTexCoord).rgb, 1.0);
+
+    // outColor = vec4(vec3(gl_FragCoord.z), 1.0);
 }

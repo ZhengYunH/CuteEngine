@@ -160,42 +160,18 @@ namespace zyh
 		throw std::logic_error("The method or operation is not implemented.");
 	}
 
-	void VulkanMaterial::updateUniformBuffer(size_t currentImage)
+	void VulkanMaterial::updateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo)
 	{
 		static auto startTime = std::chrono::high_resolution_clock::now();
 
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-		UniformBufferObject ubo{};
-		UniformLightingBufferObject ulbo{};
-
-		auto convertToGlmMat = [](const Matrix4x4& mat) -> glm::mat4x4
-		{
-			return glm::mat4x4
-			{
-				mat.m00, mat.m01, mat.m02, mat.m03,
-				mat.m10, mat.m11, mat.m12, mat.m13,
-				mat.m20, mat.m21, mat.m22, mat.m23,
-				mat.m30, mat.m31, mat.m32, mat.m33,
-			};
-		};
-
-		Matrix4x3 modelMat = Matrix4x3();
-		modelMat.SetRotationX(DegreeToRadian(-90.f), Vector3::GetZero());
-		Matrix4x3 viewMat = GEngine->Scene->GetCamera()->getViewMatrix();
-		Matrix4x4 projMat = GEngine->Scene->GetCamera()->getProjMatrix();
-
-		ubo.model = convertToGlmMat(modelMat);
-		ubo.view = convertToGlmMat(viewMat);
-		ubo.proj = convertToGlmMat(projMat);
-		ubo.proj[1][1] *= -1;
-
 		ulbo.directionalLight = DirectionLight
 		(
 			Vector3(0.5, 0.5, 1.0),
 			Vector3(0.1, 0.1, 0.1),
-			Vector3(0.3, 0.3, 0.3),
+			Vector3(0.5, 0.5, 0.5),
 			Vector3(0.2, 0.2, 0.2)
 		);
 		ulbo.numOfPointLights = 1;
@@ -211,12 +187,15 @@ namespace zyh
 			Vector3(0.5, 0.5, 1.0),
 			Vector3(-0.5, -0.5, -1.0),
 			Vector3(0.3, 0.3, 0.3),
-			Vector3(1.5, 1.5, 1.5),
+			Vector3(0.5, 0.5, 0.5),
 			Vector3(0.3, 0.3, 0.3)
 		);
+	}
 
-		mUniformBuffers_[currentImage]->setupData(&ubo, sizeof(ubo));
-		mUniformLightBuffers_[currentImage]->setupData(&ulbo, sizeof(ulbo));
+	void VulkanMaterial::endUpdateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo)
+	{
+		mUniformBuffers_[mCurrentUpdateImage_]->setupData(&ubo, sizeof(ubo));
+		mUniformLightBuffers_[mCurrentUpdateImage_]->setupData(&ulbo, sizeof(ulbo));
 	}
 
 	VkPipelineLayout VulkanMaterial::getPipelineLayout()

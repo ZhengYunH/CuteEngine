@@ -134,7 +134,7 @@ namespace zyh
 		for (auto& renderElement : mRenderScene_->GetRenderElements(renderSet))
 		{
 			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-			element->mMaterial_->updateUniformBuffer(mCurrentImage_);
+			element->updateUniformBuffer(mCurrentImage_);
 		}
 
 		for (IRenderPass* pass : mRenderPasses_)

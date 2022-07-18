@@ -1,0 +1,19 @@
+<World>
+    <Filename>scene</Filename>
+    <Entities>
+		<Entity>
+			<Name>Test1</Name>
+			<IPrimitivesComponent>
+				<EPrimitiveType>1</EPrimitiveType>
+				<ResourcePath>Resource/models/viking_room.obj</ResourcePath>
+			</IPrimitivesComponent>
+		</Entity>
+		
+		<Entity>
+			<Name>Test2</Name>
+			<IPrimitivesComponent>
+				<EPrimitiveType>3</EPrimitiveType>
+			</IPrimitivesComponent>
+		</Entity>
+    </Entities>
+</World>

@@ -13,6 +13,7 @@
 #define HYBRID_CHECK(X, ...)
 #endif
 
+#define Unimplement(...) HYBRID_CHECK(0, ##__VA_ARGS__)
 #define UNEXPECTED(X) (X)
 #define SafeDestroy(X) if(X){ delete X; X=nullptr;}
 #define SafeDestroyArray(X) if(X){delete[] X; X=nullptr;}

@@ -6,6 +6,10 @@
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanInstance.h"
 #include "VulkanBase.h"
+#include "Math/Matrix4x4.h"
+#include "Core/Engine.h"
+#include "Core/ClientScene.h"
+#include "Camera/Camera.h"
 
 
 namespace zyh
@@ -78,6 +82,36 @@ namespace zyh
 		}
 
 	public:
+		void updateUniformBuffer(size_t currentImage)
+		{
+			UniformBufferObject ubo{};
+			UniformLightingBufferObject ulbo{};
+
+			auto convertToGlmMat = [](const Matrix4x4& mat) -> glm::mat4x4
+			{
+				return glm::mat4x4
+				{
+					mat.m00, mat.m01, mat.m02, mat.m03,
+					mat.m10, mat.m11, mat.m12, mat.m13,
+					mat.m20, mat.m21, mat.m22, mat.m23,
+					mat.m30, mat.m31, mat.m32, mat.m33,
+				};
+			};
+			
+			Matrix4x3 modelMat = mPrimitives_->GetTransform();
+			Matrix4x3 viewMat = GEngine->Scene->GetCamera()->getViewMatrix();
+			Matrix4x4 projMat = GEngine->Scene->GetCamera()->getProjMatrix();
+
+			ubo.model = convertToGlmMat(modelMat);
+			ubo.view = convertToGlmMat(viewMat);
+			ubo.proj = convertToGlmMat(projMat);
+			ubo.proj[1][1] *= -1;
+
+			mMaterial_->beginUpdateUniformBuffer(currentImage);
+			mMaterial_->updateUniformBuffer(ubo, ulbo);
+			mMaterial_->endUpdateUniformBuffer(ubo, ulbo);
+		}
+
 		// TODO: should be optimized, less pipeline change
 		void draw(VkCommandBuffer commandBuffer, size_t currImage)
 		{

@@ -11,11 +11,26 @@ namespace zyh
 	class IMesh
 	{
 	public:
-		IMesh(const std::string& InMeshFileName) 
+		IMesh(EPrimitiveType primType, const std::string& InMeshFileName)
 		{
-			std::string primFileName = InMeshFileName;
-			AddPrimitive(new IPrimitive(primFileName));
+			switch (primType)
+			{
+			case zyh::MESH:
+				HYBRID_CHECK(!InMeshFileName.empty());
+				AddPrimitive(new IPrimitive(InMeshFileName));
+				break;
+			case zyh::BOX:
+				Unimplement(0);
+				break;
+			case zyh::SPHERE:
+				AddPrimitive(new SpherePrimitive());
+				break;
+			default:
+				Unimplement(0);
+				break;
+			}
 		}
+
 		virtual ~IMesh() 
 		{
 			for (auto prim : mPrimitives_)
@@ -45,9 +60,20 @@ namespace zyh
 			outMatrix = mPrimitivesTransform_[index];
 		}
 
+		void UpdateEntityTransform(Matrix4x3& mat) 
+		{ 
+			EntityTransform_ = mat;
+			for (size_t index =0; index < mPrimitives_.size(); ++index)
+			{
+				IPrimitive* prim = mPrimitives_[index];
+				prim->SetTransform(EntityTransform_); // *PrimitivesTransform_[index]);
+			}
+		}
+
 	public:
 		std::vector<IPrimitive*> mPrimitives_;
 		std::vector<Matrix4x3> mPrimitivesTransform_;
+		Matrix4x3 EntityTransform_;
 		std::string mName_;
 	};
 }

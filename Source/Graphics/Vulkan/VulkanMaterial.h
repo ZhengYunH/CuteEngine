@@ -41,7 +41,9 @@ namespace zyh
 		virtual void cleanup() override;
 
 	public:
-		virtual void updateUniformBuffer(size_t currentImage);
+		void beginUpdateUniformBuffer(size_t currentImage) { mCurrentUpdateImage_ = currentImage; }
+		virtual void updateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo);
+		void endUpdateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo);
 		VkDescriptorSet getDescriptorSet(size_t currentImage) { return mDescriptorSets_[currentImage]; }
 		VkPipelineLayout getPipelineLayout();
 
@@ -49,6 +51,7 @@ namespace zyh
 		VulkanLogicalDevice* mLogicalDevice_;
 		VulkanPhysicalDevice* mPhysicalDevice_;
 		uint32_t			mLayoutCount_;
+		size_t				mCurrentUpdateImage_;
 
 	public:
 		VulkanGraphicsPipeline* mGraphicsPipeline_;

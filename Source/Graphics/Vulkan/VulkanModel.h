@@ -12,7 +12,13 @@ namespace zyh
 	public:
 		VulkanModel(const std::string& InModelFileName)
 		{
-			GenerateModel(InModelFileName);
+			GenerateModel(EPrimitiveType::MESH, InModelFileName);
+			GenerateRenderElements();
+		}
+
+		VulkanModel(EPrimitiveType meshType, const std::string& InModelFileName = "")
+		{
+			GenerateModel(meshType, InModelFileName);
 			GenerateRenderElements();
 		}
 
@@ -30,11 +36,15 @@ namespace zyh
 			}
 		}
 
+		void UpdateTransform(Matrix4x3& mat) 
+		{ 
+			mModel_->UpdateTransform(mat); 
+		}
+
 	protected:
-		virtual void GenerateModel(const std::string& InModelFileName)
+		virtual void GenerateModel(EPrimitiveType meshType, const std::string InModelFileName="")
 		{
-			HYBRID_CHECK(!InModelFileName.empty());
-			mModel_ = new IModel(InModelFileName);
+			mModel_ = new IModel(meshType, InModelFileName);
 		}
 
 	protected:
