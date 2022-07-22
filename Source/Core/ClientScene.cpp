@@ -73,8 +73,10 @@ namespace zyh
 
 	void ClientScene::LoadScene()
 	{
+		ArchiveTest::test();
+
 		SceneXmlParser parser("Resource/files/scene.xml");
-		parser.load();
+		parser.Load();
 		for (auto* entity : parser.GetEntities())
 		{
 			AddEntity(entity);

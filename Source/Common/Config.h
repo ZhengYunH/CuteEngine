@@ -61,3 +61,17 @@ auto Bind(RetType(T::* f)(Args...), T* t)
 
 #define BIND_EVENT(Event, Object, Func) Event.Bind(Bind(&Func, &Object));
 
+
+template<size_t N> struct unroll
+{
+	template<typename F, typename... Args> static void call(F const& f, Args... args)
+	{
+		f(args...);
+		unroll<N - 1>::call(f, std::forward<Args>(args)...);
+	}
+};
+
+template<> struct unroll<0>
+{
+	template<typename F, typename... Args> static void call(F const& f, Args... args) {}
+};

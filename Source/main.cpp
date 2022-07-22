@@ -4,7 +4,6 @@
 #include "Core/EventHelper.h"
 
 
-
 int main()
 {
 	try {

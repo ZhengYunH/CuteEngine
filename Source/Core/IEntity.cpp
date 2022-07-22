@@ -21,4 +21,14 @@ namespace zyh
 		}
 	}
 
+	void IEntity::Serialize(Archive* ar)
+	{
+		//ar->BeginSection("Entity");
+		//for (IComponent* comp : mComponents_)
+		//{
+		//	// comp->Serialize(ar);
+		//}
+		//ar->BeginSection("End");
+	}
+
 }

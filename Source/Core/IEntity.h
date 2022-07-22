@@ -1,12 +1,13 @@
 #pragma once
 #include "Common/Config.h"
+#include "IObject.h"
 #include "Math/Matrix4x3.h"
 
 namespace zyh
 {
 	class IComponent;
 
-	class IEntity
+	class IEntity : virtual IObject
 	{
 	public:
 		void Tick();
@@ -31,6 +32,9 @@ namespace zyh
 		{
 			mUpdateTransformList_.push_back(comp);
 		}
+
+		virtual void Serialize(Archive* ar) override;
+		
 
 	protected:
 		std::vector<IComponent*> mComponents_;
