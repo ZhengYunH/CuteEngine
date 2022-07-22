@@ -18,10 +18,14 @@ namespace zyh
 		IEntity* GetParent() { return mParent_; }
 		virtual void UpdateTransform(Matrix4x3& mat) {}
 
-		virtual void Serialize(Archive* Ar) override {}
+		virtual void Serialize(Archive* ar) override;
+
+	public:
+		const std::string& GetName() { return mName_; }
 
 	protected:
 		bool mTickable_{ true };
 		IEntity* mParent_;
+		std::string mName_{ "" };
 	};
 }

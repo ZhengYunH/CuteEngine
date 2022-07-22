@@ -1,6 +1,9 @@
 #include "FileSystem.h"
 #include "Core/IEntity.h"
 #include "Core/IPrimitivesComponent.h"
+#include "Math/Matrix4x3.h"
+
+#include <iostream>
 
 // reference: https://www.boost.org/doc/libs/1_79_0/doc/html/property_tree.html
 
@@ -61,48 +64,76 @@ namespace zyh
 
 	void Archive::BeginSection(const std::string& sectionName)
 	{
-		if (!mCurrentTreeNode_)
+		_BeginSection(sectionName);
+	}
+
+	void Archive::_BeginSection(const std::string& sectionName)
+	{
+		if (mUsage_ == ARCHIVE_USAGE::SAVE)
 		{
-			_BeforeSave();
-			mDebugCurrentSection_ = sectionName;
+			if (!mCurrentTreeNode_)
+			{
+				_BeforeSave();
+				mDebugCurrentSection_ = sectionName;
+			}
+			else
+			{
+				mDebugCurrentSection_ = mDebugCurrentSection_ + "." + sectionName;
+			}
+			ArchiveTreeNode* newTreeNode = new ArchiveTreeNode(sectionName);
+			if (mCurrentTreeNode_)
+			{
+				mCurrentTreeNode_->InsertChild(newTreeNode);
+			}
+			mCurrentTreeNode_ = newTreeNode;
+		}
+		else if (mUsage_ == ARCHIVE_USAGE::LOAD)
+		{
+			Unimplement();
 		}
 		else
 		{
-			mDebugCurrentSection_ = mDebugCurrentSection_ + "." + sectionName;
+			Unimplement();
 		}
-		ArchiveTreeNode* newTreeNode = new ArchiveTreeNode(sectionName);
-		if (mCurrentTreeNode_)
-		{
-			mCurrentTreeNode_->InsertChild(newTreeNode);
-		}
-		mCurrentTreeNode_ = newTreeNode;
+
 	}
 
 	void Archive::EndSection()
 	{
-		HYBRID_CHECK(mCurrentTreeNode_);
-		mCurrentTreeNode_ = mCurrentTreeNode_->mParent_;
-		if (!mCurrentTreeNode_->mParent_) // Root Node
+		if (mUsage_ == SAVE)
 		{
-			mRootTreeNode_->Consolidate();
-			Save();
-			_AfterSave();
-			return;
-		}
+			HYBRID_CHECK(mCurrentTreeNode_);
+			mCurrentTreeNode_ = mCurrentTreeNode_->mParent_;
+			if (!mCurrentTreeNode_->mParent_) // Root Node
+			{
+				mRootTreeNode_->Consolidate();
+				Save();
+				_AfterSave();
+				return;
+			}
 
+			{
+				size_t splitIdx = mDebugCurrentSection_.rfind('.');
+				if (splitIdx != std::string::npos)
+					mDebugCurrentSection_.erase(splitIdx);
+				else
+					mDebugCurrentSection_ = "";
+			}
+		}
+		else if (mUsage_ == LOAD)
 		{
-			size_t splitIdx = mDebugCurrentSection_.rfind('.');
-			if (splitIdx != std::string::npos)
-				mDebugCurrentSection_.erase(splitIdx);
-			else
-				mDebugCurrentSection_ = "";
+			Unimplement();
+		}
+		else
+		{
+			Unimplement();
 		}
 	}
 
 	void Archive::_BeforeSave()
 	{
 		HYBRID_CHECK(mState_ == ARCHIVE_STATE::None);
-		
+
 		mState_ = Saving;
 		mDebugCurrentSection_.clear();
 		mCurrentTreeNode_ = mRootTreeNode_;
@@ -115,35 +146,78 @@ namespace zyh
 		mCurrentTreeNode_ = nullptr;
 	}
 
-	namespace ArchiveTest
+	void Archive::_BeforeLoad()
 	{
-		void test()
+		mState_ = Loading;
+	}
+
+	void Archive::_AfterLoad()
+	{
+		mState_ = Loaded;
+	}
+
+	void Archive::_TryEndSection(const std::string& sectionName)
+	{
+		// this may cause error check when two subtree has same name, 
+		// but i ignore this situation
+		if (mCurrentTreeNode_ && mCurrentTreeNode_->mKey_ == sectionName)
 		{
+			EndSection();
+		}
+	}
+
+	class ArchiveTest
+	{
+	public:
+		Matrix4x3 testMat;
+		int i;
+		float f;
+		std::string str;
+		std::string filename;
+
+		ArchiveTest()
+		{
+			testMat.SetTranslation(Vector3(3, 4, 5));
+			i = 1;
+			f = 2.f;
+			str = "abed";
 			std::string filename = "Resource/files/test.xml";
-			XmlParser ar(filename);
+		}
+
+		void commonOp(XmlParser& ar)
+		{
 			ar.BeginSection("file");
 			{
 				ar.BeginSection("section1");
 				{
-					ar.AddItem("itemInt", 1);
-					ar.AddItem("itemInt", 2);
-					ar.AddItem("itemInt", 3);
-					ar.AddItem("itemFloat", 1.0f);
-					ar.AddItem("itemString", "abed");
+					ar.AddItem("itemInt", i);
+					ar.AddItem("itemInt", i);
+					ar.AddItem("itemInt", i);
+					ar.AddItem("itemFloat", f);
+					ar.AddItem("itemString", str);
+					ar.AddItem("mat", testMat);
 				}
 				ar.EndSection();
 
 				ar.BeginSection("section1");
 				{
-					ar.AddItem("itemInt", 1);
-					ar.AddItem("itemFloat2", 1.0f);
-					ar.AddItem("itemString2", "abed");
+					ar.AddItem("itemInt", i);
+					ar.AddItem("itemFloat2", f);
 				}
 				ar.EndSection();
 			}
 			ar.EndSection();
 		}
-	}
-}
 
+		void testSave()
+		{
+			XmlParser ar(filename);
+			commonOp(ar);
+		}
+
+		void testLoad()
+		{
+		}
+	};
+}
 

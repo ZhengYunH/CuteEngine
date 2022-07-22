@@ -30,6 +30,12 @@ namespace zyh
 		Saved = 4,
 	};
 
+	enum ARCHIVE_USAGE
+	{
+		LOAD = 1,
+		SAVE = 2,
+	};
+
 	struct ArchiveTreeNode
 	{
 		ArchiveTreeNode()
@@ -103,9 +109,11 @@ namespace zyh
 		bool	mModified{ false };
 	};
 
+	struct ArchiveSection;
 	class Archive
 	{
 		friend struct ArchiveTreeNode;
+		friend struct ArchiveSection;
 		using TArchivePair = std::pair<std::string, std::string>;
 
 	public:
@@ -121,38 +129,74 @@ namespace zyh
 		virtual void Save() = 0;
 
 		void BeginSection(const std::string& sectionName);
+		void _BeginSection(const std::string& sectionName);
 		
 		template <typename Type> void AddItem(std::string key, Type value)
 		{
-			mCurrentTreeNode_->AddItem<Type>(key, value);
+			if (mState_ == Saving)
+			{
+				mCurrentTreeNode_->AddItem<Type>(key, value);
+			}
+			else if (mState_ == Loading)
+			{
+
+			}
+			else
+			{
+				Unimplement();
+			}
 		}
 
 		void EndSection();
-
+		
 		const std::string& GetCurrentSection() const
 		{
 			return mDebugCurrentSection_;
 		}
 
 		pt::ptree& GetPTree() { return mRootTreeNode_->mTree_; }
+	
 	protected:
 		void _BeforeSave();
 		void _AfterSave();
+		void _BeforeLoad();
+		void _AfterLoad();
+		void _TryEndSection(const std::string& sectionName);
 
 	protected:
 		ARCHIVE_STATE mState_;
+		ARCHIVE_USAGE mUsage_;
 		std::string mFileName_;
 		std::string mDebugCurrentSection_;
 		ArchiveTreeNode* mCurrentTreeNode_;
 		ArchiveTreeNode* mRootTreeNode_;
 	};
 
+	struct ArchiveSection
+	{
+		ArchiveSection(const std::string& sectionName, Archive* archive) :
+			mSectionName_{ sectionName },
+			mArchive_{ archive }
+		{
+			mArchive_->BeginSection(mSectionName_);
+		}
+
+		~ArchiveSection()
+		{
+			mArchive_->_TryEndSection(mSectionName_);
+		}
+
+		Archive* mArchive_;
+		std::string mSectionName_;
+	};
+
 	class XmlParser : public virtual Archive
 	{
 	public:
-		XmlParser(const std::string& filename)
+		XmlParser(const std::string& filename, ARCHIVE_USAGE usage=SAVE)
 		{
 			mFileName_ = filename;
+			mUsage_ = usage;
 		}
 
 	// implement Archive
@@ -184,7 +228,7 @@ namespace zyh
 	class SceneXmlParser : public XmlParser
 	{
 	public:
-		SceneXmlParser(const std::string& filename) : XmlParser(filename)
+		SceneXmlParser(const std::string& filename, ARCHIVE_USAGE usage=SAVE) : XmlParser(filename, usage)
 		{
 		}
 
@@ -206,10 +250,5 @@ namespace zyh
 	{
 
 	};
-
-	namespace ArchiveTest
-	{
-		void test();
-	}
 }
 

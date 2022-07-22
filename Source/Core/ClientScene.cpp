@@ -73,8 +73,6 @@ namespace zyh
 
 	void ClientScene::LoadScene()
 	{
-		ArchiveTest::test();
-
 		SceneXmlParser parser("Resource/files/scene.xml");
 		parser.Load();
 		for (auto* entity : parser.GetEntities())
@@ -95,8 +93,23 @@ namespace zyh
 			modelMat.SetScale(Vector3(0.1f, 0.1f, 0.1f));
 			mEntitys_[1]->SetTransform(modelMat);
 		}
-
 		CollectAllRenderElements();
+
+		SceneXmlParser ar("Resource/files/test_save.xml");
+		ar.BeginSection("Scene");
+		{
+			ar.BeginSection("Entities");
+			for (auto pEntity : mEntitys_)
+			{
+				ar.BeginSection("Entity");
+				{
+					pEntity->Serialize(&ar);
+				}
+				ar.EndSection();
+			}
+			ar.EndSection();
+		}
+		ar.EndSection();
 	}
 
 	void ClientScene::DispatchTickEvent()

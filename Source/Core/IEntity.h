@@ -39,5 +39,6 @@ namespace zyh
 	protected:
 		std::vector<IComponent*> mComponents_;
 		std::vector<IComponent*> mUpdateTransformList_;
+		Matrix4x3 mTransform_;
 	};
 }

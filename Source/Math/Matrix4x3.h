@@ -328,4 +328,6 @@ namespace zyh
 			return memcmp(this, &m, sizeof(*this)) != 0;
 		}
 	};
+	std::ostream& operator<<(std::ostream& stream, const Matrix4x3& m);
+	std::istream& operator>>(std::istream& stream, Matrix4x3& m);
 }
