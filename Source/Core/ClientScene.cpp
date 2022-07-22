@@ -79,37 +79,7 @@ namespace zyh
 		{
 			AddEntity(entity);
 		}
-
-		{
-			Matrix4x3 modelMat;
-			modelMat.SetRotationX(DegreeToRadian(-90.f), Vector3::GetZero());
-			mEntitys_[0]->SetTransform(modelMat);
-		}
-
-		// Test Box
-		{
-			Matrix4x3 modelMat;
-			modelMat.SetTranslation(Vector3(1, 0, 0));
-			modelMat.SetScale(Vector3(0.1f, 0.1f, 0.1f));
-			mEntitys_[1]->SetTransform(modelMat);
-		}
 		CollectAllRenderElements();
-
-		SceneXmlParser ar("Resource/files/test_save.xml");
-		ar.BeginSection("Scene");
-		{
-			ar.BeginSection("Entities");
-			for (auto pEntity : mEntitys_)
-			{
-				ar.BeginSection("Entity");
-				{
-					pEntity->Serialize(&ar);
-				}
-				ar.EndSection();
-			}
-			ar.EndSection();
-		}
-		ar.EndSection();
 	}
 
 	void ClientScene::DispatchTickEvent()

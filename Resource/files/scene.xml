@@ -1,19 +1,29 @@
 <World>
-    <Filename>scene</Filename>
-    <Entities>
+	<Filename>scene</Filename>
+	<Entities>
 		<Entity>
 			<Name>Test1</Name>
+			<Transform>1 0 0 0 -4.37114e-08 -1 0 1 -4.37114e-08 0 0 0</Transform>
 			<IPrimitivesComponent>
 				<EPrimitiveType>1</EPrimitiveType>
 				<ResourcePath>Resource/models/viking_room.obj</ResourcePath>
 			</IPrimitivesComponent>
 		</Entity>
-		
+
 		<Entity>
+			<Transform>0.1 0 0 0 0.1 0 0 0 0.1 1 0 0</Transform>
 			<Name>Test2</Name>
 			<IPrimitivesComponent>
 				<EPrimitiveType>3</EPrimitiveType>
 			</IPrimitivesComponent>
 		</Entity>
-    </Entities>
+
+		<Entity>
+			<Transform>0.1 0 0 0 0.1 0 0 0 0.1 1 0 1</Transform>
+			<Name>Test2</Name>
+			<IPrimitivesComponent>
+				<EPrimitiveType>3</EPrimitiveType>
+			</IPrimitivesComponent>
+		</Entity>
+	</Entities>
 </World>

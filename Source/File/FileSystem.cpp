@@ -45,6 +45,7 @@ namespace zyh
 			auto entityElement = v.second;
 			IEntity* entity = new IEntity();
 			auto primitiveComponentElement = entityElement.get_child("IPrimitivesComponent");
+			
 			EPrimitiveType primitiveType = EPrimitiveType(primitiveComponentElement.get<int>("EPrimitiveType", int(EPrimitiveType::NONE)));
 			std::string primitiveResource = primitiveComponentElement.get<std::string>("ResourcePath", "");
 
@@ -52,6 +53,9 @@ namespace zyh
 
 			IComponent* comp = entity->AddComponent<IPrimitivesComponent>(primitiveType, primitiveResource);
 			entity->AddUpdateTransformList(comp);
+
+			Matrix4x3 mat = entityElement.get<Matrix4x3>("Transform");
+			entity->SetTransform(mat);
 			mEntities_.push_back(entity);
 		}
 		return true;
