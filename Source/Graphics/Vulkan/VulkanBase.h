@@ -119,6 +119,7 @@ namespace zyh
 
 		std::vector<std::vector<VulkanCommand*>> mCommandBuffers_;
 		void createCommandBuffers();
+		VulkanCommand* createCommandBuffer(VkCommandBufferAllocateInfo* pAllocInfo = nullptr);
 		void bindCommandBuffer();
 
 		size_t mEncodeImage_ = 0;

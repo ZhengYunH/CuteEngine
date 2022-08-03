@@ -15,14 +15,14 @@ namespace zyh
 		{
 			switch (primType)
 			{
-			case zyh::MESH:
+			case EPrimitiveType::MESH:
 				HYBRID_CHECK(!InMeshFileName.empty());
 				AddPrimitive(new IPrimitive(InMeshFileName));
 				break;
-			case zyh::BOX:
+			case EPrimitiveType::BOX:
 				Unimplement(0);
 				break;
-			case zyh::SPHERE:
+			case EPrimitiveType::SPHERE:
 				AddPrimitive(new SpherePrimitive());
 				break;
 			default:

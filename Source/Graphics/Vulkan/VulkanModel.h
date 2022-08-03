@@ -52,8 +52,8 @@ namespace zyh
 		{
 			for (IPrimitive* prim : mModel_->mMesh_->mPrimitives_)
 			{
-				const IMaterial& material = prim->GetMaterial();
-				for (RenderSet renderSet : material.GetSupportRenderSet())
+				const IMaterial* material = prim->GetMaterial();
+				for (RenderSet renderSet : material->GetSupportRenderSet())
 				{
 					if (mRenderElements_.find(renderSet) == mRenderElements_.end())
 					{

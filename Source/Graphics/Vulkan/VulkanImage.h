@@ -6,6 +6,8 @@ namespace zyh
 	class VulkanPhysicalDevice;
 	class VulkanLogicalDevice;
 	class VulkanCommandPool;
+	class VulkanBuffer;
+	class VulkanImageBuffer;
 
 	struct VkImageCollection
 	{
@@ -37,7 +39,7 @@ namespace zyh
 		VkFormat mFormat_;
 
 	protected:
-		void _setupImage(
+		virtual void _setupImage(
 			uint32_t width, uint32_t height, uint32_t mipLevels,
 			VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
 			VkImageUsageFlags usage, VkMemoryPropertyFlags properties
@@ -50,31 +52,77 @@ namespace zyh
 		void _generateMipmaps();
 	};
 
-	class VulkanTextureImage : public VulkanImage
+
+	class VulkanTexture : public VulkanImage
+	{
+	public:
+		virtual const VkSampler& getTextureSampler() = 0;
+	protected:
+		virtual VulkanBuffer* _getImageBuffer() = 0;
+	};
+
+	class VulkanTextureImage : public VulkanTexture
 	{
 	public:
 		VulkanTextureImage(const std::string& texturePath)
-			: VulkanImage(), mTexturePath_(texturePath)
+			: VulkanTexture(), mTexturePath_(texturePath)
 		{
 		}
 
+		void setup(
+			VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
+			VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags
+		);
+	protected:
+		VkSampler mTextureSampler_ {VK_NULL_HANDLE};
+		void _setupImage(
+			VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
+			VkImageUsageFlags usage, VkMemoryPropertyFlags properties
+		);
+		void _setupSampler();
+		virtual VulkanBuffer* _getImageBuffer() override;
+
+	public:
+		virtual const VkSampler& getTextureSampler() override { return mTextureSampler_; }
+
+	private:
+		std::string mTexturePath_;
+		int mTexChannels_{ -1 };
+	};
+
+	class VulkanRawlImage : public VulkanTexture
+	{
+	public:
+		VulkanRawlImage(unsigned char* data) 
+			: VulkanTexture()
+			, mData_(data)
+		{
+		}
 		virtual void setup(
+			uint32_t width, uint32_t height, uint32_t mipLevels,
 			VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
 			VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags
 		);
 
 	protected:
-		VkSampler mTextureSampler_;
-		void _setupImage(VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
-			VkImageUsageFlags usage, VkMemoryPropertyFlags properties);
 		void _setupSampler();
+		virtual void _setupImage(
+			uint32_t width, uint32_t height, uint32_t channel,
+			VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
+			VkImageUsageFlags usage, VkMemoryPropertyFlags properties
+		) override;
+		virtual VulkanBuffer* _getImageBuffer() override;
 
 	public:
-		const VkSampler& getTextureSampler() { return mTextureSampler_; }
+		virtual const VkSampler& getTextureSampler() override { return mTextureSampler_; }
 
-	private:
-		std::string mTexturePath_;
-		int mTexChannels_{ -1 };
+	protected:
+		VkSampler mTextureSampler_{ VK_NULL_HANDLE };
+
+		unsigned char* mData_;
+		uint32_t mWidth_;
+		uint32_t mHeight_; 
+		uint32_t mChannels_;
 
 	};
 }

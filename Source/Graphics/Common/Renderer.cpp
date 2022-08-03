@@ -72,23 +72,15 @@ namespace zyh
 				GVulkanInstance->mRenderPass_
 			)
 		);*/
-		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize.x = GVulkanInstance->mSwapchain_->getExtend().width;
-		io.DisplaySize.y = GVulkanInstance->mSwapchain_->getExtend().height;
-
-		int width, height;
-		unsigned char* pixels = NULL;
-		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 	}
 
 	void Renderer::Draw()
 	{
-		/*
 		// GUI Test
 		ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 		bool show_another_window = true;
 		
+		/*
 		ImGui::NewFrame();
 		// Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
 		{
@@ -126,7 +118,6 @@ namespace zyh
 		ImGui::Render();
 		static_cast<ImGuiRenderPass*>(mRenderPasses_[1])->mDrawData_ = ImGui::GetDrawData();
 		*/
-
 		RenderSet renderSet = RenderSet::SCENE;
 
 		mPlatform_->DrawFrameBegin(mCurrentImage_);

@@ -86,6 +86,7 @@ namespace zyh
 
 	void VulkanBuffer::_createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
 	{
+		mBufferSize_ = size;
 		createBuffer(mVulkanPhysicalDevice_, mVulkanLogicalDevice_, size, usage, properties, mVkImpl_.buffer, mVkImpl_.mem);
 	}
 

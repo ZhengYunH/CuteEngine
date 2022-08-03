@@ -54,7 +54,10 @@ namespace zyh
 		
 		void Prepare(VkFramebuffer framebuffer);
 
+		virtual void InitResource() {}
+
 		void Draw(RenderSet renderSet);
+
 	
 	protected:
 		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet);
@@ -82,20 +85,20 @@ namespace zyh
 			const std::string& renderPassName,
 			const TRenderSets& renderSets,
 			VulkanRenderPassBase* renderPass
-		) : IRenderPass(renderPassName, renderSets, renderPass)
-		{
-		}
+		);
 
 		ImGuiRenderPass(
 			const std::string& renderPassName,
 			const TRenderSets& renderSets,
 			VkRenderPass renderPass
-		) : IRenderPass(renderPassName, renderSets, renderPass)
-		{
-		}
+		);
+
+		virtual void InitResource() override;
 
 	public:
 		ImDrawData* mDrawData_;
+		class VulkanMaterial* mMaterial_;
+		bool mIsResourceDirty_{ true };
 
 	protected:
 		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet) override;

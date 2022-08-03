@@ -206,12 +206,30 @@ namespace zyh
 
 			for (size_t j = 0; j < 1; ++j)
 			{
-				lastBuffers.push_back(new VulkanCommand());
-				auto buffer = lastBuffers[j];
-				buffer->connect(mLogicalDevice_, mGraphicsCommandPool_);
-				buffer->setup(allocInfo);
+				VulkanCommand* buffer = createCommandBuffer();
+				lastBuffers.push_back(buffer);
 			}
 		}
+	}
+
+	VulkanCommand* VulkanBase::createCommandBuffer(VkCommandBufferAllocateInfo* pAllocInfo /*= nullptr*/)
+	{
+		VkCommandBufferAllocateInfo allocInfo{};
+		if (pAllocInfo)
+		{
+			allocInfo = *pAllocInfo;
+		}
+		else // default allocate info
+		{
+			allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+			allocInfo.commandPool = mGraphicsCommandPool_->Get();
+			allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+			allocInfo.commandBufferCount = 1;
+		}
+		VulkanCommand* buffer = new VulkanCommand();
+		buffer->connect(mLogicalDevice_, mGraphicsCommandPool_);
+		buffer->setup(allocInfo);
+		return buffer;
 	}
 
 	void VulkanBase::drawFrame()
@@ -222,22 +240,30 @@ namespace zyh
 		VkResult result;
 
 		// Submitting the command buffer
+		std::vector<VkCommandBuffer> commandList = {};
+		for (size_t i = 0; i < mCommandBuffers_[mCurrentImage_].size(); ++i)
+		{
+			commandList.push_back(mCommandBuffers_[mCurrentImage_][i]->Get());
+		}
+
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submitInfo.commandBufferCount = static_cast<uint32_t>(commandList.size());
+		submitInfo.pCommandBuffers = commandList.data();
+
 		VkSemaphore waitSemaphores[] = { mImageAvailableSemaphores_[mCurrentFrame_] };
 		VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
 		submitInfo.waitSemaphoreCount = 1;
 		submitInfo.pWaitSemaphores = waitSemaphores;
 		submitInfo.pWaitDstStageMask = waitStages;
-		submitInfo.commandBufferCount = static_cast<uint32_t>(mCommandBuffers_[mCurrentImage_].size());
-		submitInfo.pCommandBuffers = &mCommandBuffers_[mCurrentImage_][0]->Get();
-
+		
 		VkSemaphore signalSemaphores[] = { mRenderFinishedSemaphores_[mCurrentFrame_] };
 		submitInfo.signalSemaphoreCount = 1;
 		submitInfo.pSignalSemaphores = signalSemaphores;
 
 		vkResetFences(mLogicalDevice_->Get(), 1, &mInFlightFences_[mCurrentFrame_]);
 		VK_CHECK_RESULT(vkQueueSubmit(mLogicalDevice_->graphicsQueue(), 1, &submitInfo, mInFlightFences_[mCurrentFrame_]), "failed to submit draw command buffer!");
+
 		mImagesInFights_[mCurrentImage_] = mInFlightFences_[mCurrentFrame_];
 
 		// Presentation
@@ -285,8 +311,6 @@ namespace zyh
 		mSwapchain_->setupFrameBuffer(*mRenderPass_, attachments);
 		
 		createCommandBuffers();
-
-
 	}
 
 	void VulkanBase::_cleanupSwapchain()
@@ -307,6 +331,10 @@ namespace zyh
 
 	VulkanCommand* VulkanBase::GetCommandBuffer()
 	{
+		if (mFreeCommandBufferIdx_ >= mCommandBuffers_[mCurrentImage_].size())
+		{
+			mCommandBuffers_[mCurrentImage_].push_back(createCommandBuffer());
+		}
 		VulkanCommand* cmd = mCommandBuffers_[mCurrentImage_][mFreeCommandBufferIdx_];
 		mFreeCommandBufferIdx_++;
 		HYBRID_CHECK(mFreeCommandBufferIdx_ <= mCommandBuffers_[mCurrentImage_].size());
@@ -315,7 +343,7 @@ namespace zyh
 
 	VkFramebuffer VulkanBase::GetSwapchainFrameBuffer()
 	{
-		return mSwapchain_->getFrameBuffer(mCurrentImage_);
+		return mSwapchain_->getFrameBuffer(static_cast<uint32_t>(mCurrentImage_));
 	}
 
 	void VulkanBase::DrawFrameBegin(size_t& OutCurrentImage)

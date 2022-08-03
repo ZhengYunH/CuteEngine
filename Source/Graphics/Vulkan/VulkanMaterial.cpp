@@ -11,12 +11,18 @@
 #include "VulkanImage.h"
 #include "Math/Matrix4x4.h"
 #include "VulkanRenderPass.h"
+#include "Graphics/Vulkan/VulkanSwapchain.h"
+
+#include "Graphics/Imgui/imgui.h"
+#include "Graphics/Imgui/imgui_impl_vulkan.h"
+#include "Graphics/Imgui/imgui_impl_win32.h"
+
 
 namespace zyh
 {
-	VulkanMaterial::VulkanMaterial()
+	VulkanMaterial::VulkanMaterial(IMaterial* material)
 	{
-		mRenderPass_ = new VulkanRenderPassBase("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
+		mRenderPass_ = new VulkanRenderPassBase(material->GetShaderFilePath(EShaderType::VS), material->GetShaderFilePath(EShaderType::PS));
 		mGraphicsPipeline_ = new VulkanGraphicsPipeline();
 	}
 
@@ -34,7 +40,7 @@ namespace zyh
 		mRenderPass_->setup(*GInstance->mColorFormat_, *GInstance->mMsaaSamples_, *GInstance->mDepthFormat_);
 		createGraphicsPipeline();
 		createUniformBuffers();
-		createTextureImage();
+		createTextureImages();
 		createDesciptorPool();
 		createDescriptorSets();
 	}
@@ -46,23 +52,31 @@ namespace zyh
 
 	void VulkanMaterial::createUniformBuffers()
 	{
-		mUniformBuffers_.resize(mLayoutCount_);
-		mUniformLightBuffers_.resize(mLayoutCount_);
+		std::vector<VulkanUniformBuffer*> uniformBuffers;
+		uniformBuffers.resize(mLayoutCount_);
+
+		std::vector<VulkanUniformBuffer*> lightBuffers;
+		lightBuffers.resize(mLayoutCount_);
+
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-		for (auto& uniformBuffer : mUniformBuffers_)
+		for (auto& uniformBuffer : uniformBuffers)
 		{
-			uniformBuffer = new VulkanBuffer();
+			uniformBuffer = new VulkanUniformBuffer(EUniformType::BATCH);
+			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
+			uniformBuffer->setup(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		}
+		
+		bufferSize = sizeof(UniformLightingBufferObject);
+		for (auto& uniformBuffer : lightBuffers)
+		{
+			uniformBuffer = new VulkanUniformBuffer(EUniformType::LIGHT);
 			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
 			uniformBuffer->setup(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		}
 
-		bufferSize = sizeof(UniformLightingBufferObject);
-		for (auto& uniformBuffer : mUniformLightBuffers_)
-		{
-			uniformBuffer = new VulkanBuffer();
-			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
-			uniformBuffer->setup(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		}
+		mUniformBuffers_[0] = std::move(uniformBuffers);
+		mUniformBuffers_[2] = std::move(lightBuffers);
+
 	}
 
 	void VulkanMaterial::createDesciptorPool()
@@ -100,59 +114,71 @@ namespace zyh
 		VK_CHECK_RESULT(vkAllocateDescriptorSets(mLogicalDevice_->Get(), &allocInfo, mDescriptorSets_.data()), "failed to allocate descriptor sets!");
 
 		for (size_t i = 0; i < mDescriptorSets_.size(); i++) {
-			VkDescriptorBufferInfo bufferInfo{};
-			bufferInfo.buffer = mUniformBuffers_[i]->Get().buffer;
-			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
+			DEBUG_RUN(std::set<uint32_t> debugBindingSet;)
+			std::vector<VkWriteDescriptorSet> descriptorWrites;
+			descriptorWrites.resize(mUniformBuffers_.size() + mTextureImages_.size());
+			VkWriteDescriptorSet writeInfo{};
+			for (auto& uniformPair : mUniformBuffers_)
+			{
+				uint32_t binding = uniformPair.first;
+				VulkanBuffer* vulkanBuffer = uniformPair.second[i];
+				DEBUG_RUN(HYBRID_CHECK(debugBindingSet.find(binding) == debugBindingSet.end());)
 
-			VkDescriptorImageInfo imageInfo{};
-			imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-			imageInfo.imageView = mTextureImage_->Get().view;
-			imageInfo.sampler = mTextureImage_->getTextureSampler();
+				// VkWriteDescriptorSet& writeInfo = descriptorWrites[binding];
 
-			VkDescriptorBufferInfo lightingbufferInfo{};
-			lightingbufferInfo.buffer = mUniformLightBuffers_[i]->Get().buffer;
-			lightingbufferInfo.offset = 0;
-			lightingbufferInfo.range = sizeof(UniformLightingBufferObject);
+				VkDescriptorBufferInfo bufferInfo{};
+				bufferInfo.buffer = vulkanBuffer->Get().buffer;
+				bufferInfo.offset = 0;
+				bufferInfo.range = vulkanBuffer->GetBufferSize();
 
-			std::array<VkWriteDescriptorSet, 3> descriptorWrites{};
+				writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				writeInfo.dstSet = mDescriptorSets_[i];
+				writeInfo.dstBinding = binding;
+				writeInfo.dstArrayElement = 0;
+				writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+				writeInfo.descriptorCount = 1;
+				writeInfo.pBufferInfo = &bufferInfo;
+				vkUpdateDescriptorSets(mLogicalDevice_->Get(), 1, &writeInfo, 0, nullptr);
+				DEBUG_RUN(debugBindingSet.insert(binding);)
+			}
 
-			descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[0].dstSet = mDescriptorSets_[i];
-			descriptorWrites[0].dstBinding = 0;
-			descriptorWrites[0].dstArrayElement = 0;
-			descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[0].descriptorCount = 1;
-			descriptorWrites[0].pBufferInfo = &bufferInfo;
+			for (auto& texturePair : mTextureImages_)
+			{
+				uint32_t binding = texturePair.first;
+				VulkanTextureImage* image = static_cast<VulkanTextureImage*>(texturePair.second);
+				DEBUG_RUN(HYBRID_CHECK(debugBindingSet.find(binding) == debugBindingSet.end());)
 
-			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[1].dstSet = mDescriptorSets_[i];
-			descriptorWrites[1].dstBinding = 1;
-			descriptorWrites[1].dstArrayElement = 0;
-			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pImageInfo = &imageInfo;
+				// VkWriteDescriptorSet& writeInfo = descriptorWrites[binding];
 
-			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-			descriptorWrites[2].dstSet = mDescriptorSets_[i];
-			descriptorWrites[2].dstBinding = 2;
-			descriptorWrites[2].dstArrayElement = 0;
-			descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			descriptorWrites[2].descriptorCount = 1;
-			descriptorWrites[2].pBufferInfo = &lightingbufferInfo;
+				VkDescriptorImageInfo imageInfo{};
+				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+				imageInfo.imageView = image->Get().view;
+				imageInfo.sampler = image->getTextureSampler();
 
-			vkUpdateDescriptorSets(mLogicalDevice_->Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+				writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				writeInfo.dstSet = mDescriptorSets_[i];
+				writeInfo.dstBinding = binding;
+				writeInfo.dstArrayElement = 0;
+				writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+				writeInfo.descriptorCount = 1;
+				writeInfo.pImageInfo = &imageInfo;
+				vkUpdateDescriptorSets(mLogicalDevice_->Get(), 1, &writeInfo, 0, nullptr);
+				DEBUG_RUN(debugBindingSet.insert(binding);)
+			}
+			// vkUpdateDescriptorSets(mLogicalDevice_->Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
 	}
 
-	void VulkanMaterial::createTextureImage()
+	void VulkanMaterial::createTextureImages()
 	{
-		mTextureImage_ = new VulkanTextureImage("Resource/textures/viking_room.png");
-		mTextureImage_->connect(mPhysicalDevice_, mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
-		mTextureImage_->setup(VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+		VulkanTextureImage* baseTextureImage_ = new VulkanTextureImage("Resource/textures/viking_room.png");
+		baseTextureImage_->connect(mPhysicalDevice_, mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
+		baseTextureImage_->setup(VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT
 		);
+
+		mTextureImages_[1] = baseTextureImage_;
 	}
 
 	void VulkanMaterial::cleanup()
@@ -166,36 +192,15 @@ namespace zyh
 
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-		ulbo.directionalLight = DirectionLight
-		(
-			Vector3(0.5, 0.5, 1.0),
-			Vector3(0.1, 0.1, 0.1),
-			Vector3(0.5, 0.5, 0.5),
-			Vector3(0.2, 0.2, 0.2)
-		);
-		ulbo.numOfPointLights = 1;
-		ulbo.pointLights[0] = PointLight
-		(
-			Vector3(-0.5, -0.5, 1.0),
-			Vector3(0.1, 0.1, 0.1),
-			Vector3(0.3, 0.3, 0.3),
-			Vector3(0.3, 0.3, 0.3)
-		);
-		ulbo.spotLight = SpotLight
-		(
-			Vector3(0.5, 0.5, 1.0),
-			Vector3(-0.5, -0.5, -1.0),
-			Vector3(0.3, 0.3, 0.3),
-			Vector3(0.5, 0.5, 0.5),
-			Vector3(0.3, 0.3, 0.3)
-		);
 	}
 
 	void VulkanMaterial::endUpdateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo)
 	{
-		mUniformBuffers_[mCurrentUpdateImage_]->setupData(&ubo, sizeof(ubo));
-		mUniformLightBuffers_[mCurrentUpdateImage_]->setupData(&ulbo, sizeof(ulbo));
+		for (auto& uniformPair : mUniformBuffers_)
+		{
+			uniformPair.second[mCurrentUpdateImage_]->setupData(EUniformType::BATCH, &ubo, sizeof(ubo));
+			uniformPair.second[mCurrentUpdateImage_]->setupData(EUniformType::LIGHT, &ulbo, sizeof(ulbo));
+		}
 	}
 
 	VkPipelineLayout VulkanMaterial::getPipelineLayout()
@@ -203,5 +208,26 @@ namespace zyh
 		return mGraphicsPipeline_->getPipelineLayout();
 	}
 
+	void ImGuiMaterial::createTextureImages()
+	{
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO();
+		io.DisplaySize.x = (float)GVulkanInstance->mSwapchain_->getExtend().width;
+		io.DisplaySize.y = (float)GVulkanInstance->mSwapchain_->getExtend().height;
+
+		int width, height, channel;
+		unsigned char* pixels = NULL;
+		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &channel);
+
+		VulkanRawlImage* baseTextureImage_ = new VulkanRawlImage(pixels);
+		baseTextureImage_->connect(mPhysicalDevice_, mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
+		baseTextureImage_->setup(width, height, channel,
+			VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT
+		);
+
+		mTextureImages_[0] = baseTextureImage_;
+	}
 
 }

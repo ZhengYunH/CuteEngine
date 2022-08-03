@@ -301,30 +301,36 @@ namespace zyh
 	}
 
 	
-	void VulkanTextureImage::_setupImage(VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
-		VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
+	void VulkanTextureImage::_setupImage(
+		VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling,
+		VkImageUsageFlags usage, VkMemoryPropertyFlags properties
+	)
 	{
-		int width, height, channels, mipLevel;
-
-		stbi_uc* pixels = stbi_load(mTexturePath_.c_str(), &width, &height, &channels, STBI_rgb_alpha);
-		VkDeviceSize imageSize = width * height * 4;
-		mipLevel = static_cast<uint32_t>(std::floor(std::log2(max(width, height)))) + 1;
-		HYBRID_CHECK(pixels);
-
-		VulkanBuffer buffer;
-		buffer.connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
-		buffer.setup(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-		buffer.setupData(pixels, imageSize);
-		stbi_image_free(pixels);
-
+		VulkanImageBuffer* buffer = static_cast<VulkanImageBuffer*>(_getImageBuffer());
 		VulkanImage::_setupImage(
-			static_cast<uint32_t>(width), static_cast<uint32_t>(height), static_cast<uint32_t>(mipLevel),
+			buffer->GetWidth(), buffer->GetHeight(), buffer->GetMipLevel(),
 			numSamples, format, tiling, usage, properties
 		);
 
 		_transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-		_copyBufferToImage(buffer.Get().buffer);
+		_copyBufferToImage(buffer->Get().buffer);
 		_generateMipmaps();
+	}
+
+	VulkanBuffer* VulkanTextureImage::_getImageBuffer()
+	{
+		int width, height, channels;
+
+		stbi_uc* pixels = stbi_load(mTexturePath_.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+		HYBRID_CHECK(pixels);
+
+		VulkanImageBuffer* buffer = new VulkanImageBuffer(width, height, STBI_rgb_alpha);
+		buffer->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
+		buffer->setup(buffer->GetImageSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		buffer->setupData(pixels, buffer->GetImageSize());
+		stbi_image_free(pixels);
+
+		return buffer;
 	}
 
 	void VulkanTextureImage::_setupSampler()
@@ -355,6 +361,68 @@ namespace zyh
 		samplerInfo.maxLod = static_cast<float>(mMipLevels_);
 
 		VK_CHECK_RESULT(vkCreateSampler(mVulkanLogicalDevice_->Get(), &samplerInfo, nullptr, &mTextureSampler_), "failed to create texture sampler!");
+	}
+
+	void VulkanRawlImage::setup(uint32_t width, uint32_t height, uint32_t mipLevels, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags)
+	{
+		VulkanImage::setup(width, height, mipLevels, numSamples, format, tiling, usage, properties, aspectFlags);
+		_setupSampler();
+	}
+
+	void VulkanRawlImage::_setupSampler()
+	{
+		VkSamplerCreateInfo samplerInfo{};
+		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		samplerInfo.magFilter = VK_FILTER_LINEAR;
+		samplerInfo.minFilter = VK_FILTER_LINEAR;
+
+		samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+		samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+
+		VkPhysicalDeviceProperties properties{};
+		vkGetPhysicalDeviceProperties(mVulkanPhysicalDevice_->Get(), &properties);
+
+		samplerInfo.anisotropyEnable = VK_TRUE;
+		samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+		samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+		samplerInfo.unnormalizedCoordinates = VK_FALSE;
+
+		samplerInfo.compareEnable = VK_FALSE;
+		samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+
+		samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+		samplerInfo.mipLodBias = 0.0f;
+		samplerInfo.minLod = 0.0f;
+		samplerInfo.maxLod = static_cast<float>(mMipLevels_);
+
+		VK_CHECK_RESULT(vkCreateSampler(mVulkanLogicalDevice_->Get(), &samplerInfo, nullptr, &mTextureSampler_), "failed to create texture sampler!");
+	}
+
+	void VulkanRawlImage::_setupImage(uint32_t width, uint32_t height, uint32_t channel, VkSampleCountFlagBits numSamples, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
+	{
+		mWidth_ = width;
+		mHeight_ = height;
+		mChannels_ = channel;
+
+		VulkanImageBuffer* buffer = static_cast<VulkanImageBuffer*>(_getImageBuffer());
+		VulkanImage::_setupImage(
+			buffer->GetWidth(), buffer->GetHeight(), buffer->GetMipLevel(),
+			numSamples, format, tiling, usage, properties
+		);
+
+		_transitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		_copyBufferToImage(buffer->Get().buffer);
+		_generateMipmaps();
+	}
+
+	VulkanBuffer* VulkanRawlImage::_getImageBuffer()
+	{
+		VulkanImageBuffer* buffer = new VulkanImageBuffer(mWidth_, mHeight_, mChannels_);
+		buffer->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
+		buffer->setup(buffer->GetImageSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		buffer->setupData(mData_, buffer->GetImageSize());
+		return buffer;
 	}
 
 }

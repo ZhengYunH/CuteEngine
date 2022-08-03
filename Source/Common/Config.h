@@ -9,8 +9,10 @@
 #ifdef ZYH_DEBUG
 #include <assert.h>
 #define HYBRID_CHECK(X, ...) assert((X))
+#define DEBUG_RUN(X) X
 #else
 #define HYBRID_CHECK(X, ...)
+#define DEBUG_RUN(X)
 #endif
 
 #define Unimplement(...) HYBRID_CHECK(0, ##__VA_ARGS__)

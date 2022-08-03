@@ -7,25 +7,29 @@
 
 namespace zyh
 {
-	enum EPrimitiveType
+	namespace PrimitiveType
 	{
-		NONE = 0,
-		MESH = 1,
-		BOX = 2,
-		SPHERE = 3
-	};
+		enum EPrimitiveType
+		{
+			NONE = 0,
+			MESH = 1,
+			BOX = 2,
+			SPHERE = 3
+		};
+	}
+	using EPrimitiveType = PrimitiveType::EPrimitiveType;
 
 	class IPrimitive
 	{
 	public:
 		IPrimitive() : mType_(EPrimitiveType::MESH)
 		{
-			mMaterial_ = new IMaterial();
+			mMaterial_ = new IMaterial("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
 		}
 
 		IPrimitive(const std::string& InPrimFileName) : mType_(EPrimitiveType::MESH)
 		{
-			mMaterial_ = new IMaterial();
+			mMaterial_ = new IMaterial("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
 			ResourceLoader::loadModel(InPrimFileName, mVertices_, mIndices_);
 		}
 
@@ -35,9 +39,9 @@ namespace zyh
 		}
 
 	public:
-		const IMaterial& GetMaterial() 
+		IMaterial* GetMaterial() 
 		{ 
-			return *mMaterial_; 
+			return mMaterial_; 
 		}
 
 		void AddVertex(Vertex point)

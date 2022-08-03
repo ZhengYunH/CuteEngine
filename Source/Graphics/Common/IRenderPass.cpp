@@ -5,6 +5,7 @@
 #include "Graphics/Vulkan/VulkanBase.h"
 #include "Graphics/Vulkan/VulkanInstance.h"
 
+
 namespace zyh
 {
 
@@ -71,9 +72,30 @@ namespace zyh
 
 	}
 
+	ImGuiRenderPass::ImGuiRenderPass(const std::string& renderPassName, const TRenderSets& renderSets, VulkanRenderPassBase* renderPass)
+		: IRenderPass(renderPassName, renderSets, renderPass)
+	{
+		mMaterial_ = new VulkanMaterial(new IMaterial("Resource/shaders/ui.vert.spv", "Resource/shaders/ui.frag.spv"));
+		mMaterial_->connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, *GInstance->mImageCount_);;
+		mMaterial_->setup();
+	}
+
+	ImGuiRenderPass::ImGuiRenderPass(const std::string& renderPassName, const TRenderSets& renderSets, VkRenderPass renderPass)
+		: IRenderPass(renderPassName, renderSets, renderPass)
+	{
+		mMaterial_ = new VulkanMaterial(new IMaterial("Resource/shaders/ui.vert.spv", "Resource/shaders/ui.frag.spv"));
+		mMaterial_->connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, *GInstance->mImageCount_);;
+		mMaterial_->setup();
+	}
+
+	void ImGuiRenderPass::InitResource()
+	{
+
+	}
+
 	void ImGuiRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet)
 	{
-		ImGui_ImplVulkan_RenderDrawData(mDrawData_, vkCommandBuffer);
+		ImGui_ImplVulkan_RenderDrawData(mDrawData_, vkCommandBuffer, mMaterial_->mGraphicsPipeline_->Get());
 	}
 
 }

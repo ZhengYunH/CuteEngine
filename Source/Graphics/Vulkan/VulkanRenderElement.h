@@ -23,7 +23,7 @@ namespace zyh
 	public:
 		VulkanRenderElement(IPrimitive* InPrimtives) : IRenderElement(InPrimtives)
 		{
-			mMaterial_ = new VulkanMaterial();
+			mMaterial_ = new VulkanMaterial(InPrimtives->GetMaterial());
 			connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
 			setup();
 		}
@@ -106,6 +106,30 @@ namespace zyh
 			ubo.view = convertToGlmMat(viewMat);
 			ubo.proj = convertToGlmMat(projMat);
 			ubo.proj[1][1] *= -1;
+
+			ulbo.directionalLight = DirectionLight
+			(
+				Vector3(0.5f, 0.5f, 1.0f),
+				Vector3(0.1f, 0.1f, 0.1f),
+				Vector3(0.5f, 0.5f, 0.5f),
+				Vector3(0.2f, 0.2f, 0.2f)
+			);
+			ulbo.numOfPointLights = 1;
+			ulbo.pointLights[0] = PointLight
+			(
+				Vector3(-0.5f, -0.5f, 1.0f),
+				Vector3(0.1f, 0.1f, 0.1f),
+				Vector3(0.3f, 0.3f, 0.3f),
+				Vector3(0.3f, 0.3f, 0.3f)
+			);
+			ulbo.spotLight = SpotLight
+			(
+				Vector3(0.5f, 0.5f, 1.0f),
+				Vector3(-0.5f, -0.5f, -1.0f),
+				Vector3(0.3f, 0.3f, 0.3f),
+				Vector3(0.5f, 0.5f, 0.5f),
+				Vector3(0.3f, 0.3f, 0.3f)
+			);
 
 			mMaterial_->beginUpdateUniformBuffer(currentImage);
 			mMaterial_->updateUniformBuffer(ubo, ulbo);

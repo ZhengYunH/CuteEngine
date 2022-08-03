@@ -11,7 +11,7 @@ namespace zyh
 	class VulkanLogicalDevice;
 	class VulkanPhysicalDevice;
 	class VulkanGraphicsPipeline;
-	class VulkanBuffer;
+	class VulkanUniformBuffer;
 	class VulkanTextureImage;
 
 	struct UniformBufferObject {
@@ -29,10 +29,10 @@ namespace zyh
 		SpotLight spotLight;
 	};
 
-	class VulkanMaterial : public IMaterial, public IVulkanObject
+	class VulkanMaterial : public IVulkanObject
 	{
 	public:
-		VulkanMaterial();
+		VulkanMaterial(IMaterial* material);
 
 		virtual void connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, uint32_t layoutCount);
 
@@ -57,9 +57,6 @@ namespace zyh
 		VulkanGraphicsPipeline* mGraphicsPipeline_;
 		virtual void createGraphicsPipeline();
 
-		std::vector<VulkanBuffer*> mUniformBuffers_;
-		std::vector<VulkanBuffer*> mUniformLightBuffers_;
-		virtual void createUniformBuffers();
 
 		VkDescriptorPool mDescriptorPool_;
 		virtual void createDesciptorPool();
@@ -67,9 +64,21 @@ namespace zyh
 		std::vector<VkDescriptorSet> mDescriptorSets_;
 		virtual void createDescriptorSets();
 
-		VulkanTextureImage* mTextureImage_;
-		void createTextureImage();
+		std::unordered_map<uint32_t, std::vector<VulkanUniformBuffer*>> mUniformBuffers_;
+		virtual void createUniformBuffers();
+
+		std::unordered_map<uint32_t, class VulkanTexture*> mTextureImages_;
+		virtual void createTextureImages();
 
 		class VulkanRenderPassBase* mRenderPass_{ nullptr };
+	};
+
+	class ImGuiMaterial : public VulkanMaterial
+	{
+	public:
+		ImGuiMaterial(IMaterial* material) : VulkanMaterial(material) {}
+
+	public:
+		virtual void createTextureImages() override;
 	};
 }
