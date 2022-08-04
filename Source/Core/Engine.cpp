@@ -40,9 +40,9 @@ namespace zyh
 	void Engine::Tick()
 	{
 		// Update Timer First
-		mLastFrameTime_ = mCurrFrameTime_;
 		mCurrFrameTime_ = std::chrono::high_resolution_clock::now();
 		mDeltaTime_ = std::chrono::duration<float, std::chrono::seconds::period>(mCurrFrameTime_ - mLastFrameTime_).count();
+		mLastFrameTime_ = mCurrFrameTime_;
 
 		// Tick Logic Scene
 		Scene->Tick();

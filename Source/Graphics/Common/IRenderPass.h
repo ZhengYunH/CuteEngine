@@ -88,7 +88,7 @@ namespace zyh
 		bool animateLight = false;
 		float lightSpeed = 0.25f;
 		std::array<float, 50> frameTimes{};
-		float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
+		float frameTimeMax = 9999.0f, frameTimeMin = 0.0f;
 		float lightTimer = 0.0f;
 	};
 

@@ -37,6 +37,7 @@ namespace zyh
 
 	public:
 		inline bool IsFirstFrame() const { return mCurrFrame_ == 0; }
+		uint64_t GetCurrFrame() { return mCurrFrame_; }
 
 	protected:
 #if defined(_WIN32)

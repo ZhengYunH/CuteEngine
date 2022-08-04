@@ -198,6 +198,7 @@ namespace zyh
 		IRenderPass::Prepare(framebuffer);
 		NewFrame();
 		UpdateBuffers();
+		uiSettings.frameTimes[GEngine->GetCurrFrame() % uiSettings.frameTimes.size()] = GEngine->GetDeltaTime() * 1000 * (uiSettings.frameTimeMax - uiSettings.frameTimeMin) / 10.f;
 	}
 
 	void ImGuiRenderPass::InitResource()
