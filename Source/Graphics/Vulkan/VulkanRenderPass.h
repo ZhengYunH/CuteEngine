@@ -9,8 +9,15 @@ namespace zyh
 	class VulkanRenderPassBase : public TVulkanObject<VkRenderPass>
 	{
 	public:
-		VulkanRenderPassBase(const std::string& vertShaderFile, const std::string& fragShaderFile) 
-			: mVertShaderFile_(vertShaderFile), mFragShaderFile_(fragShaderFile)
+		enum class OpType
+		{
+			LOADCLEAR_AND_STORE,
+			LOAD_AND_STORE,
+		};
+
+	public:
+		VulkanRenderPassBase(OpType opType)
+			: mOpType_(opType)
 		{}
 
 		void connect(VulkanLogicalDevice* logicalDevice);
@@ -25,14 +32,9 @@ namespace zyh
 
 		virtual void Draw(VkCommandBuffer commandBuffer);
 
-	public:
-		const std::string& getVertShaderFile() { return mVertShaderFile_; }
-		const std::string& getFragShaderFile() { return mFragShaderFile_; }
-
 	protected:
 		VulkanLogicalDevice* mVulkanLogicalDevice_;
-		std::string mVertShaderFile_;
-		std::string mFragShaderFile_;
+		OpType mOpType_;
 
 		std::vector<VulkanRenderElement*> mElements_;
 	};

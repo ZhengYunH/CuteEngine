@@ -61,11 +61,12 @@ namespace zyh
 		_createBuffer(size, usage, properties);
 	}
 
-	void VulkanBuffer::setupData(void* data, VkDeviceSize size)
+	void VulkanBuffer::setupData(void* data, VkDeviceSize size, size_t offset)
 	{
 		void* memData;
-		vkMapMemory(mVulkanLogicalDevice_->Get(), mVkImpl_.mem, 0, size, 0, &memData);
-		memcpy(memData, data, static_cast<size_t>(size));
+		vkMapMemory(mVulkanLogicalDevice_->Get(), mVkImpl_.mem, 0, GetBufferSize(), 0, &memData);
+		void* memDataStart = (void*)((char*)memData + offset);
+		memcpy(memDataStart, data, static_cast<size_t>(size));
 		vkUnmapMemory(mVulkanLogicalDevice_->Get(), mVkImpl_.mem);
 	}
 

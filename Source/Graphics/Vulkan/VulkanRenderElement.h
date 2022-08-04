@@ -27,6 +27,7 @@ namespace zyh
 			connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
 			setup();
 		}
+
 		virtual ~VulkanRenderElement() 
 		{ 
 			cleanup(); 
@@ -43,7 +44,6 @@ namespace zyh
 			mVulkanPhysicalDevice_ = physicalDevice;
 			mVulkanLogicalDevice_ = logicalDevice;
 			mVulkanCommandPool_ = commandPool;
-
 		}
 
 		virtual void setup() override
@@ -139,14 +139,31 @@ namespace zyh
 		// TODO: should be optimized, less pipeline change
 		void draw(VkCommandBuffer commandBuffer, size_t currImage)
 		{
+			size_t width = GVulkanInstance->GetScreenWidth();
+			size_t height = GVulkanInstance->GetScreenHeigth();
+			
+			VkViewport viewport{};
+			viewport.x = 0.0f;
+			viewport.y = 0.0f;
+			viewport.width = (float)GInstance->mExtend_->width;
+			viewport.height = (float)GInstance->mExtend_->height;
+			viewport.minDepth = 0.0f;
+			viewport.maxDepth = 1.0f;
+			vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+			VkRect2D scissor{};
+			scissor.offset = { 0, 0 };
+			scissor.extent = *(GInstance->mExtend_);
+			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->mGraphicsPipeline_->Get());
+			VkDescriptorSet set = mMaterial_->getDescriptorSet(currImage);
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipelineLayout(), 0, 1, &set, 0, nullptr);
 
 			VkBuffer vertexBuffers[] = { mVertexBuffer_->Get().buffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 			vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer_->Get().buffer, 0, VK_INDEX_TYPE_UINT32);
-			VkDescriptorSet set = mMaterial_->getDescriptorSet(currImage);
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipelineLayout(), 0, 1, &set, 0, nullptr);
 			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mPrimitives_->mIndices_.size()), 1, 0, 0, 0);
 		}
 

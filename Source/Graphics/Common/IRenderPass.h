@@ -10,6 +10,9 @@
 //	any pipeline satisfies specific struct can use it) 
 
 #include "Common/Config.h"
+#include "Common/KeyCodes.h"
+
+#include "Graphics/Vulkan/VulkanHeader.h"
 #include "Graphics/Vulkan/VulkanRenderPass.h"
 #include "Graphics/Vulkan/VulkanCommandPool.h"
 
@@ -52,7 +55,7 @@ namespace zyh
 		}
 
 		
-		void Prepare(VkFramebuffer framebuffer);
+		virtual void Prepare(VkFramebuffer framebuffer);
 
 		virtual void InitResource() {}
 
@@ -78,8 +81,28 @@ namespace zyh
 		VkCommandBufferBeginInfo mVKBufferBeginInfo_{};
 	};
 
+	struct UISettings {
+		bool displayModels = true;
+		bool displayLogos = true;
+		bool displayBackground = true;
+		bool animateLight = false;
+		float lightSpeed = 0.25f;
+		std::array<float, 50> frameTimes{};
+		float frameTimeMin = 9999.0f, frameTimeMax = 0.0f;
+		float lightTimer = 0.0f;
+	};
+
+	struct PushConstBlock {
+		glm::vec2 scale;
+		glm::vec2 translate;
+	};
+
 	class ImGuiRenderPass : public IRenderPass
 	{
+	private:
+		PushConstBlock pushConstBlock;
+		UISettings uiSettings;
+
 	public:
 		ImGuiRenderPass(
 			const std::string& renderPassName,
@@ -93,14 +116,32 @@ namespace zyh
 			VkRenderPass renderPass
 		);
 
+		virtual void Prepare(VkFramebuffer framebuffer) override;
 		virtual void InitResource() override;
 
+		~ImGuiRenderPass();
+
+		void NewFrame();
+		void UpdateBuffers();
+
 	public:
-		ImDrawData* mDrawData_;
 		class VulkanMaterial* mMaterial_;
+		class VulkanBuffer* mVertexBuffer_;
+		class VulkanBuffer* mIndexBuffer_;
 		bool mIsResourceDirty_{ true };
 
 	protected:
 		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet) override;
+		void InitInputBinding();
+
+	protected: // Event Binding
+		void EventLeftMouseDown(KEY_TYPE x, KEY_TYPE y);
+		void EventRightMouseDown(KEY_TYPE x, KEY_TYPE y);
+		void EventLeftMouseUp(KEY_TYPE x, KEY_TYPE y);
+		void EventRightMouseUp(KEY_TYPE x, KEY_TYPE y);
+		void EventMouseMove(KEY_TYPE x, KEY_TYPE y);
+
+	private:
+		void Init();
 	};
 }

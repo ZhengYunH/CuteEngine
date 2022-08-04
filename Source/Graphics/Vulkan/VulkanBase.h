@@ -72,6 +72,8 @@ namespace zyh
 
 		VulkanRenderPassBase* mRenderPass_{ nullptr };
 
+		VulkanRenderPassBase* mUIRenderPass_{ nullptr };
+
 		std::vector<IRenderPass*> mRenderPasses_;
 
 		VulkanImage* mDepthStencil_{ nullptr };
@@ -137,5 +139,7 @@ namespace zyh
 		VulkanCommand* GetCommandBuffer();
 		VkFramebuffer GetSwapchainFrameBuffer();
 		size_t mFreeCommandBufferIdx_{ 0 };
+		uint32_t GetScreenHeigth() { return mHeight_; }
+		uint32_t GetScreenWidth() { return mWidth_; }
 	};
 }

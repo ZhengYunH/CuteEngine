@@ -83,6 +83,7 @@ namespace zyh
 	public:
 		Matrix4x3 getViewMatrix() const { return mTransform_.GetInverse(); }
 		const Matrix4x4& getProjMatrix() const { return mProjMatrix_; }
+		const float getFov() { return mFov_; }
 
 	public:
 		void updateProjMatrix();

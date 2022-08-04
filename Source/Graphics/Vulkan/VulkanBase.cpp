@@ -46,7 +46,8 @@ namespace zyh
 		mLogicalDevice_ = new VulkanLogicalDevice();
 		mSwapchain_ = new VulkanSwapchain();
 		mGraphicsCommandPool_ = new VulkanCommandPool(GRAPHICS);
-		mRenderPass_ = new VulkanRenderPassBase("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
+		mRenderPass_ = new VulkanRenderPassBase(VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
+		mUIRenderPass_ = new VulkanRenderPassBase(VulkanRenderPassBase::OpType::LOAD_AND_STORE);
 
 		// connect
 		mSurface_->connect(mInstance_);
@@ -55,6 +56,7 @@ namespace zyh
 		mSwapchain_->connect(mInstance_, mPhysicalDevice_, mLogicalDevice_, mSurface_);
 		mGraphicsCommandPool_->connect(mPhysicalDevice_, mLogicalDevice_, mSwapchain_);
 		mRenderPass_->connect(mLogicalDevice_);
+		mUIRenderPass_->connect(mLogicalDevice_);
 	}
 
 	void VulkanBase::setupVulkan()
@@ -77,6 +79,7 @@ namespace zyh
 		mGraphicsCommandPool_->setup();
 
 		mRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
+		mUIRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
 	}
 
 	void VulkanBase::createSyncObjects()

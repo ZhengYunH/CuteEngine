@@ -20,10 +20,11 @@
 
 namespace zyh
 {
-	VulkanMaterial::VulkanMaterial(IMaterial* material)
+	VulkanMaterial::VulkanMaterial(IMaterial* material, VulkanRenderPassBase::OpType opType)
 	{
-		mRenderPass_ = new VulkanRenderPassBase(material->GetShaderFilePath(EShaderType::VS), material->GetShaderFilePath(EShaderType::PS));
-		mGraphicsPipeline_ = new VulkanGraphicsPipeline();
+		mMaterial_ = material;
+		mRenderPass_ = new VulkanRenderPassBase(opType);
+		mGraphicsPipeline_ = new VulkanGraphicsPipeline(this);
 	}
 
 	void VulkanMaterial::connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, uint32_t layoutCount)
@@ -38,9 +39,9 @@ namespace zyh
 	void VulkanMaterial::setup()
 	{
 		mRenderPass_->setup(*GInstance->mColorFormat_, *GInstance->mMsaaSamples_, *GInstance->mDepthFormat_);
-		createGraphicsPipeline();
 		createUniformBuffers();
 		createTextureImages();
+		createGraphicsPipeline();
 		createDesciptorPool();
 		createDescriptorSets();
 	}
@@ -53,7 +54,7 @@ namespace zyh
 	void VulkanMaterial::createUniformBuffers()
 	{
 		std::vector<VulkanUniformBuffer*> uniformBuffers;
-		uniformBuffers.resize(mLayoutCount_);
+		uniformBuffers.resize(mLayoutCount_); 
 
 		std::vector<VulkanUniformBuffer*> lightBuffers;
 		lightBuffers.resize(mLayoutCount_);
@@ -61,7 +62,7 @@ namespace zyh
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 		for (auto& uniformBuffer : uniformBuffers)
 		{
-			uniformBuffer = new VulkanUniformBuffer(EUniformType::BATCH);
+			uniformBuffer = new VulkanUniformBuffer(EUniformType::BATCH, VK_SHADER_STAGE_VERTEX_BIT);
 			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
 			uniformBuffer->setup(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		}
@@ -69,7 +70,7 @@ namespace zyh
 		bufferSize = sizeof(UniformLightingBufferObject);
 		for (auto& uniformBuffer : lightBuffers)
 		{
-			uniformBuffer = new VulkanUniformBuffer(EUniformType::LIGHT);
+			uniformBuffer = new VulkanUniformBuffer(EUniformType::LIGHT, VK_SHADER_STAGE_FRAGMENT_BIT);
 			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
 			uniformBuffer->setup(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		}
@@ -208,6 +209,11 @@ namespace zyh
 		return mGraphicsPipeline_->getPipelineLayout();
 	}
 
+	VkPipeline VulkanMaterial::getPipeline()
+	{
+		return mGraphicsPipeline_->Get();
+	}
+
 	void ImGuiMaterial::createTextureImages()
 	{
 		ImGui::CreateContext();
@@ -230,4 +236,49 @@ namespace zyh
 		mTextureImages_[0] = baseTextureImage_;
 	}
 
+	void ImGuiMaterial::getBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions)
+	{
+		VkVertexInputBindingDescription bindingDescription{};
+		bindingDescription.binding = 0;
+		bindingDescription.stride = sizeof(ImDrawVert);
+		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+		descriptions.push_back(std::move(bindingDescription));
+	}
+
+	void ImGuiMaterial::getAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions)
+	{
+		auto generateDesc = [](
+			uint32_t binding,
+			uint32_t location,
+			VkFormat format,
+			uint32_t offset)->VkVertexInputAttributeDescription
+		{
+			VkVertexInputAttributeDescription vInputAttribDescription{};
+			vInputAttribDescription.location = location;
+			vInputAttribDescription.binding = binding;
+			vInputAttribDescription.format = format;
+			vInputAttribDescription.offset = offset;
+			return vInputAttribDescription;
+		};
+
+		descriptions = {
+			generateDesc(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, pos)),	// Location 0: Position
+			generateDesc(0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, uv)),	// Location 1: UV
+			generateDesc(0, 2, VK_FORMAT_R8G8B8A8_UNORM, offsetof(ImDrawVert, col)),	// Location 0: Color
+		};
+	}
+
+	struct PushConstBlock {
+		glm::vec2 scale;
+		glm::vec2 translate;
+	};
+
+	void ImGuiMaterial::getPushConstantRange(std::vector<VkPushConstantRange>& pushConstantRanges)
+	{
+		pushConstantRanges.resize(1);
+		VkPushConstantRange& pushConstantRange = pushConstantRanges[0];
+		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		pushConstantRange.offset = 0;
+		pushConstantRange.size = sizeof(PushConstBlock);
+	}
 }

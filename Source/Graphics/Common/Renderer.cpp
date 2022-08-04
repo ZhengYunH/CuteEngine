@@ -65,13 +65,12 @@ namespace zyh
 			)
 		);
 
-		/*mRenderPasses_.push_back(
-			new ImGuiRenderPass(
-				"GUI",
-				{ RenderSet::SCENE },
-				GVulkanInstance->mRenderPass_
-			)
-		);*/
+		ImGuiRenderPass* uiPass = new ImGuiRenderPass(
+			"GUI",
+			{ RenderSet::SCENE },
+			GVulkanInstance->mUIRenderPass_
+		);
+		mRenderPasses_.push_back(uiPass);
 	}
 
 	void Renderer::Draw()

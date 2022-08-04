@@ -4,7 +4,8 @@
 #include "VulkanTools.h"
 #include "IVulkanObject.h"
 #include "Graphics/Light/LightBase.h"
-
+#include "Graphics/Vulkan/VulkanRenderPass.h"
+#include "Graphics/Common/Geometry.h"
 
 namespace zyh
 {
@@ -31,8 +32,9 @@ namespace zyh
 
 	class VulkanMaterial : public IVulkanObject
 	{
+		friend class VulkanGraphicsPipeline;
 	public:
-		VulkanMaterial(IMaterial* material);
+		VulkanMaterial(IMaterial* material, VulkanRenderPassBase::OpType opType = VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
 
 		virtual void connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, uint32_t layoutCount);
 
@@ -46,12 +48,31 @@ namespace zyh
 		void endUpdateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo);
 		VkDescriptorSet getDescriptorSet(size_t currentImage) { return mDescriptorSets_[currentImage]; }
 		VkPipelineLayout getPipelineLayout();
+		VkPipeline getPipeline();
+
+		// TODO
+		virtual void getBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) { descriptions.push_back(std::move(Vertex::getBindingDescription())); }
+		virtual void getAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions)
+		{ 
+			auto descs = Vertex::getAttributeDescriptions();
+			descriptions = std::vector<VkVertexInputAttributeDescription>(descs.begin(), descs.end());
+		}
+		virtual void getPushConstantRange(std::vector<VkPushConstantRange>& pushConstantRanges)
+		{
+		}
+		virtual void getDepthTestInfo(bool& depthTestEnable, bool& depthWriteEnable, VkCompareOp& depthCompareOp)
+		{
+			depthTestEnable = true;
+			depthWriteEnable = true;
+			depthCompareOp = VK_COMPARE_OP_LESS;
+		}
 
 	protected:
 		VulkanLogicalDevice* mLogicalDevice_;
 		VulkanPhysicalDevice* mPhysicalDevice_;
 		uint32_t			mLayoutCount_;
 		size_t				mCurrentUpdateImage_;
+		IMaterial*			mMaterial_;
 
 	public:
 		VulkanGraphicsPipeline* mGraphicsPipeline_;
@@ -76,9 +97,19 @@ namespace zyh
 	class ImGuiMaterial : public VulkanMaterial
 	{
 	public:
-		ImGuiMaterial(IMaterial* material) : VulkanMaterial(material) {}
+		ImGuiMaterial(IMaterial* material) : VulkanMaterial(material, VulkanRenderPassBase::OpType::LOAD_AND_STORE) {}
 
 	public:
+		virtual void createUniformBuffers() override {};
 		virtual void createTextureImages() override;
+		virtual void getBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) override;
+		virtual void getAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions) override;
+		virtual void getPushConstantRange(std::vector<VkPushConstantRange>& pushConstantRanges) override;
+		virtual void getDepthTestInfo(bool& depthTestEnable, bool& depthWriteEnable, VkCompareOp& depthCompareOp)
+		{
+			depthTestEnable = false;
+			depthWriteEnable = false;
+			depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+		}
 	};
 }

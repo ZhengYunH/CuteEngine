@@ -29,7 +29,7 @@ namespace zyh
 
 		void connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice);
 		void setup(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-		void setupData(void* data, VkDeviceSize size);
+		void setupData(void* data, VkDeviceSize size, size_t offset=0);
 		void cleanup();
 
 		VkDeviceSize GetBufferSize() { return mBufferSize_; }
@@ -59,14 +59,16 @@ namespace zyh
 	class VulkanUniformBuffer : public VulkanBuffer
 	{
 	public:
-		VulkanUniformBuffer(EUniformType type) 
+		VulkanUniformBuffer(EUniformType type, VkShaderStageFlagBits usageState)
 			: VulkanBuffer()
 			, mType_(type)
+			, mUseState_(usageState)
 		{
 		}
 
 	public:
 		EUniformType GetType() { return mType_; }
+		VkShaderStageFlagBits GetState() { return mUseState_; }
 		void setupData(EUniformType dataType, void* data, VkDeviceSize size)
 		{
 			if (dataType == mType_)
@@ -75,6 +77,8 @@ namespace zyh
 
 	protected:
 		EUniformType mType_;
+		VkShaderStageFlagBits mUseState_; // TODO: support multi-state
+
 	};
 
 	class VulkanImageBuffer : public VulkanBuffer

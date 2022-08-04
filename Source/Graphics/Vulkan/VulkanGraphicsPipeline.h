@@ -24,6 +24,11 @@ namespace zyh
 	class VulkanGraphicsPipeline : public VulkanGraphicsPipelineBase
 	{
 	public:
+		VulkanGraphicsPipeline(class VulkanMaterial* owner) : mOwner_(owner)
+		{
+		}
+
+	public:
 		virtual void connect(VulkanLogicalDevice* logicalDevice, VulkanRenderPassBase* renderPass);
 		virtual void setup();
 		virtual void cleanup() override;
@@ -40,5 +45,8 @@ namespace zyh
 	public:
 		const VkPipelineLayout& getPipelineLayout() { return mVkPipelineLayout_; }
 		const VkDescriptorSetLayout& getDescriptorSetLayout() { return mVkDescriptorSetLayout_; }
+
+	protected:
+		class VulkanMaterial* mOwner_;
 	};
 }

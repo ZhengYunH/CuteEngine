@@ -32,6 +32,7 @@ namespace zyh
 	private:
 		VkQueue				mVkGraphicsQueue_{ VK_NULL_HANDLE };
 		VkQueue				mVkPresentQueue_{ VK_NULL_HANDLE };
+	public:
 		QueueFamilyIndices	mFamilyIndices_;
 	};
 }
