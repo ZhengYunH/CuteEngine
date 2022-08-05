@@ -88,15 +88,22 @@ namespace zyh
 
 	void VulkanMaterial::createDesciptorPool()
 	{
-		std::array<VkDescriptorPoolSize, 3> poolSizes{};
-		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[0].descriptorCount = static_cast<uint32_t>(mLayoutCount_);
+		std::vector<VkDescriptorPoolSize> poolSizes;
+		poolSizes.resize(mUniformBuffers_.size() + mTextureImages_.size());
 
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(mLayoutCount_);
+		for (auto& uniformPair : mUniformBuffers_)
+		{
+			VkDescriptorPoolSize& poolSize = poolSizes[uniformPair.first];
+			poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+			poolSize.descriptorCount = static_cast<uint32_t>(mLayoutCount_);
+		}
 
-		poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[2].descriptorCount = static_cast<uint32_t>(mLayoutCount_);
+		for (auto& texturePair : mTextureImages_)
+		{
+			VkDescriptorPoolSize& poolSize = poolSizes[texturePair.first];
+			poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			poolSize.descriptorCount = static_cast<uint32_t>(mLayoutCount_);
+		}
 
 		VkDescriptorPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
