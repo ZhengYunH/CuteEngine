@@ -3,6 +3,7 @@
 #include "ClientScene.h"
 #include "Graphics/Common/Renderer.h"
 #include "InputSystem.h"
+#include "Graphics/Imgui/imgui_impl_win32.h"
 
 
 namespace zyh
@@ -58,6 +59,24 @@ namespace zyh
 #if defined(_WIN32)
 	LRESULT Engine::WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
+		if (ImGui::GetCurrentContext())
+		{
+			ImGuiIO& io = ImGui::GetIO();
+			io.MousePos = ImVec2(LOWORD(lParam), HIWORD(lParam));
+			if (io.WantCaptureMouse && (uMsg == WM_LBUTTONDOWN || uMsg == WM_LBUTTONUP || uMsg == WM_RBUTTONDOWN || uMsg == WM_RBUTTONUP || uMsg == WM_MBUTTONDOWN || uMsg == WM_MBUTTONUP || uMsg == WM_MOUSEWHEEL || uMsg == WM_MOUSEMOVE)) {
+				if (uMsg == WM_LBUTTONUP)
+					io.MouseDown[0] = false;
+				if (uMsg == WM_LBUTTONDOWN)
+					io.MouseDown[0] = true;
+				if (uMsg == WM_RBUTTONUP)
+					io.MouseDown[1] = false;
+				if (uMsg == WM_RBUTTONDOWN)
+					io.MouseDown[1] = true;
+
+				return ERROR_SUCCESS;
+			}
+		}
+		
 		if (GInputSystem)
 			GInputSystem->HandleMessage(hWnd, uMsg, wParam, lParam);
 		return (DefWindowProc(hWnd, uMsg, wParam, lParam));

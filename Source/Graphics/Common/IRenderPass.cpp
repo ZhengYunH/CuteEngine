@@ -270,11 +270,11 @@ namespace zyh
 
 	void ImGuiRenderPass::InitInputBinding()
 	{
-		BindInputEvent(LeftMouseDown, *this, ImGuiRenderPass::EventLeftMouseDown);
+		/*BindInputEvent(LeftMouseDown, *this, ImGuiRenderPass::EventLeftMouseDown);
 		BindInputEvent(RightMouseDown, *this, ImGuiRenderPass::EventRightMouseDown);
 		BindInputEvent(LeftMouseUp, *this, ImGuiRenderPass::EventLeftMouseUp);
 		BindInputEvent(RightMouseUp, *this, ImGuiRenderPass::EventRightMouseUp);
-		BindInputEvent(MouseMove, *this, ImGuiRenderPass::EventMouseMove);
+		BindInputEvent(MouseMove, *this, ImGuiRenderPass::EventMouseMove);*/
 	}
 
 	void ImGuiRenderPass::EventLeftMouseDown(KEY_TYPE x, KEY_TYPE y)
