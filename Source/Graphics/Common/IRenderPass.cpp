@@ -16,6 +16,8 @@
 
 #include "Math/MathUtil.h"
 
+#include "Core/TerrainComponent.h"
+
 
 namespace zyh
 {
@@ -126,7 +128,13 @@ namespace zyh
 		ImGui::SetNextWindowSize(ImVec2(200, 200), ImGuiCond_FirstUseEver);
 
 		ImGui::Begin("Example settings");
-		ImGui::Checkbox("Render models", &uiSettings.displayModels);
+		HeightMapManipulator* heightMapManipulator = HeightMapManipulator::getInstance();
+		ImGui::Checkbox("Modify terrain", &heightMapManipulator->mEnable_);
+		if (heightMapManipulator->mEnable_)
+		{
+			ImGui::SliderFloat("Modify Offset", &heightMapManipulator->modifyTerrainOffset, -10.f, 100.f);
+			ImGui::SliderFloat("Modify Range", &heightMapManipulator->modifyTerrainRange, 1.f, 100.f);
+		}
 		ImGui::Checkbox("Display logos", &uiSettings.displayLogos);
 		ImGui::Checkbox("Display background", &uiSettings.displayBackground);
 		ImGui::Checkbox("Animate light", &uiSettings.animateLight);

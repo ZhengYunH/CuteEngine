@@ -21,7 +21,6 @@
 #include "Graphics/Imgui/imgui_impl_win32.h"
 
 
-
 namespace zyh
 {
 	class IRenderPass
@@ -82,7 +81,6 @@ namespace zyh
 	};
 
 	struct UISettings {
-		bool displayModels = true;
 		bool displayLogos = true;
 		bool displayBackground = true;
 		bool animateLight = false;

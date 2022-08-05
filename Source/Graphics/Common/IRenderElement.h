@@ -15,7 +15,7 @@ namespace zyh
 		{
 		}
 
-	protected:
+	public:
 		IPrimitive* mPrimitives_;
 	};
 }

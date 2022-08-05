@@ -123,7 +123,7 @@ namespace zyh
 			mRenderElements_.clear();
 		}
 
-	private:
+	public:
 		void getAllRenderElements(std::vector<VulkanRenderElement*>& OutElements)
 		{
 			OutElements.clear();
