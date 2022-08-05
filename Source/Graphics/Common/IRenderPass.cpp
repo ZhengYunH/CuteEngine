@@ -268,49 +268,6 @@ namespace zyh
 		}
 	}
 
-	void ImGuiRenderPass::InitInputBinding()
-	{
-		/*BindInputEvent(LeftMouseDown, *this, ImGuiRenderPass::EventLeftMouseDown);
-		BindInputEvent(RightMouseDown, *this, ImGuiRenderPass::EventRightMouseDown);
-		BindInputEvent(LeftMouseUp, *this, ImGuiRenderPass::EventLeftMouseUp);
-		BindInputEvent(RightMouseUp, *this, ImGuiRenderPass::EventRightMouseUp);
-		BindInputEvent(MouseMove, *this, ImGuiRenderPass::EventMouseMove);*/
-	}
-
-	void ImGuiRenderPass::EventLeftMouseDown(KEY_TYPE x, KEY_TYPE y)
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		io.MousePos = ImVec2(x, y);
-		io.MouseDown[0] = true;
-	}
-
-	void ImGuiRenderPass::EventRightMouseDown(KEY_TYPE x, KEY_TYPE y)
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		io.MousePos = ImVec2(x, y);
-		io.MouseDown[1] = true;
-	}
-
-	void ImGuiRenderPass::EventLeftMouseUp(KEY_TYPE x, KEY_TYPE y)
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		io.MousePos = ImVec2(x, y);
-		io.MouseDown[0] = false;
-	}
-
-	void ImGuiRenderPass::EventRightMouseUp(KEY_TYPE x, KEY_TYPE y)
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		io.MousePos = ImVec2(x, y);
-		io.MouseDown[1] = false;
-	}
-
-	void ImGuiRenderPass::EventMouseMove(KEY_TYPE x, KEY_TYPE y)
-	{
-		ImGuiIO& io = ImGui::GetIO();
-		io.MousePos = ImVec2(x, y);
-	}
-
 	void ImGuiRenderPass::Init()
 	{
 		IMaterial* material = new IMaterial("Resource/shaders/ui.vert.spv", "Resource/shaders/ui.frag.spv");
@@ -345,8 +302,6 @@ namespace zyh
 		ImGuiIO& io = ImGui::GetIO();
 		io.DisplaySize = ImVec2((float)GVulkanInstance->GetScreenWidth(), (float)GVulkanInstance->GetScreenHeigth());
 		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
-
-		InitInputBinding();
 	}
 
 }
