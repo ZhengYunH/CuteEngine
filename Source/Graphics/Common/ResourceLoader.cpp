@@ -13,6 +13,7 @@ namespace zyh
 			std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
 			if (!file.is_open()) {
+				HYBRID_CHECK(0);
 				throw std::runtime_error("failed to open file!");
 			}
 

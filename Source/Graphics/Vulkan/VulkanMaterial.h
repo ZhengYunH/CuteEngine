@@ -6,6 +6,9 @@
 #include "Graphics/Light/LightBase.h"
 #include "Graphics/Vulkan/VulkanRenderPass.h"
 #include "Graphics/Common/Geometry.h"
+#include "Graphics/Common/RenderStage.h"
+#include "Graphics/Common/IPrimitive.h"
+
 
 namespace zyh
 {
@@ -35,6 +38,10 @@ namespace zyh
 		friend class VulkanGraphicsPipeline;
 	public:
 		VulkanMaterial(IMaterial* material, VulkanRenderPassBase::OpType opType = VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
+		
+		// Temp: Clean after VertexFactory Implementation
+		VulkanMaterial(IPrimitive* prim, VulkanRenderPassBase::OpType opType = VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
+		IPrimitive* mPrim_ { nullptr };
 
 		virtual void connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, uint32_t layoutCount);
 
@@ -51,21 +58,23 @@ namespace zyh
 		VkPipeline getPipeline();
 
 		// TODO
-		virtual void getBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) { descriptions.push_back(std::move(Vertex::getBindingDescription())); }
+		virtual void getBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) 
+		{
+			HYBRID_CHECK(mPrim_);
+			mPrim_->GetBindingDescriptions(descriptions);
+		}
+		
 		virtual void getAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions)
 		{ 
-			auto descs = Vertex::getAttributeDescriptions();
-			descriptions = std::vector<VkVertexInputAttributeDescription>(descs.begin(), descs.end());
+			HYBRID_CHECK(mPrim_);
+			mPrim_->GetAttributeDescriptions(descriptions);
 		}
-		virtual void getPushConstantRange(std::vector<VkPushConstantRange>& pushConstantRanges)
-		{
-		}
-		virtual void getDepthTestInfo(bool& depthTestEnable, bool& depthWriteEnable, VkCompareOp& depthCompareOp)
-		{
-			depthTestEnable = true;
-			depthWriteEnable = true;
-			depthCompareOp = VK_COMPARE_OP_LESS;
-		}
+		virtual void getPushConstantRange(std::vector<VkPushConstantRange>& pushConstantRanges) {}
+		virtual void PushConstant(std::string semantic, void* data){}
+		virtual void BindPushConstant(VkCommandBuffer vkCommandBuffer) {}
+
+		virtual DepthStencilState GetDepthStencilState() { return mMaterial_->DepthStencil; }
+		virtual RasterizationState GetRasterizationState() { return mMaterial_->Rasterization; }
 
 	protected:
 		VulkanLogicalDevice* mLogicalDevice_;
@@ -94,8 +103,14 @@ namespace zyh
 		class VulkanRenderPassBase* mRenderPass_{ nullptr };
 	};
 
+
 	class ImGuiMaterial : public VulkanMaterial
 	{
+		struct PushConstBlock {
+			glm::vec2 scale;
+			glm::vec2 translate;
+		} pushConstBlock;
+
 	public:
 		ImGuiMaterial(IMaterial* material) : VulkanMaterial(material, VulkanRenderPassBase::OpType::LOAD_AND_STORE) {}
 
@@ -105,11 +120,23 @@ namespace zyh
 		virtual void getBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) override;
 		virtual void getAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions) override;
 		virtual void getPushConstantRange(std::vector<VkPushConstantRange>& pushConstantRanges) override;
-		virtual void getDepthTestInfo(bool& depthTestEnable, bool& depthWriteEnable, VkCompareOp& depthCompareOp)
+		virtual void PushConstant(std::string semantic, void* data) override;
+		virtual void BindPushConstant(VkCommandBuffer vkCommandBuffer);
+	};
+
+	class TerrainMaterial : public VulkanMaterial
+	{
+		struct TerrainVert
 		{
-			depthTestEnable = false;
-			depthWriteEnable = false;
-			depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-		}
+			glm::vec3 pos;
+			glm::vec2 uv;
+		};
+
+	public:
+		TerrainMaterial(IMaterial* material) : VulkanMaterial(material, VulkanRenderPassBase::OpType::LOAD_AND_STORE) {}
+
+	public:
+		virtual void createUniformBuffers() override;
+		virtual void createTextureImages() override;
 	};
 }

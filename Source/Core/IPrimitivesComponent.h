@@ -15,12 +15,25 @@ namespace zyh
 	{
 		using Super = IComponent;
 	public:
-		IPrimitivesComponent(IEntity* Parent) : IComponent(Parent) { mName_ = "IPrimitivesComponent"; }
-		IPrimitivesComponent(IEntity* Parent, EPrimitiveType meshType, const std::string& meshFileName) : IComponent(Parent)
+		IPrimitivesComponent(IEntity* Parent) : IComponent(Parent) 
 		{
-			mName_ = "IPrimitivesComponent";
+			mName_ = "IPrimitivesComponent"; 
 			GEngine->Scene->AddPrimitive(this);
-			mModel_ = new VulkanModel(meshType, meshFileName);
+			mModel_ = new VulkanModel();
+
+		}
+		IPrimitivesComponent(IEntity* Parent, EPrimitiveType meshType, const std::string& meshFileName) : IPrimitivesComponent(Parent)
+		{
+			switch (meshType)
+			{
+			case EPrimitiveType::MESH:
+				HYBRID_CHECK(!meshFileName.empty());
+				mModel_->LoadResourceFile(meshFileName);
+				break;
+			default:
+				mModel_->AddPrimitive(meshType);
+				break;
+			};
 		}
 		virtual ~IPrimitivesComponent()
 		{

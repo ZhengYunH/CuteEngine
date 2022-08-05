@@ -92,15 +92,9 @@ namespace zyh
 		float lightTimer = 0.0f;
 	};
 
-	struct PushConstBlock {
-		glm::vec2 scale;
-		glm::vec2 translate;
-	};
-
 	class ImGuiRenderPass : public IRenderPass
 	{
 	private:
-		PushConstBlock pushConstBlock;
 		UISettings uiSettings;
 
 	public:

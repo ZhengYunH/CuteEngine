@@ -1,5 +1,7 @@
 #pragma once
 #include "Common/Config.h"
+#include "Graphics/Common/RenderStage.h"
+
 
 namespace zyh
 {
@@ -35,6 +37,8 @@ namespace zyh
 
 	public:
 		TRenderSets mRenderSets_{ SCENE };
+		DepthStencilState DepthStencil{};
+		RasterizationState Rasterization{};
 
 	protected:
 		std::map<EShaderType, std::string> mShaderMap_;

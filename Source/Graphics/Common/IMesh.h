@@ -11,24 +11,9 @@ namespace zyh
 	class IMesh
 	{
 	public:
-		IMesh(EPrimitiveType primType, const std::string& InMeshFileName)
+		IMesh()
 		{
-			switch (primType)
-			{
-			case EPrimitiveType::MESH:
-				HYBRID_CHECK(!InMeshFileName.empty());
-				AddPrimitive(new IPrimitive(InMeshFileName));
-				break;
-			case EPrimitiveType::BOX:
-				Unimplement(0);
-				break;
-			case EPrimitiveType::SPHERE:
-				AddPrimitive(new SpherePrimitive());
-				break;
-			default:
-				Unimplement(0);
-				break;
-			}
+			
 		}
 
 		virtual ~IMesh() 
@@ -44,6 +29,34 @@ namespace zyh
 			return mName_; 
 		}
 
+		IPrimitive* LoadResourceFile(const std::string& InFileName)
+		{
+			IPrimitive* prim = new Primitive();
+			prim->LoadResourceFile(InFileName);
+			return prim;
+		}
+
+		virtual size_t AddPrimitive(EPrimitiveType primType, Matrix4x3* localTransform = nullptr)
+		{
+			size_t index = -1;
+			switch (primType)
+			{
+			case EPrimitiveType::MESH:
+				index = AddPrimitive(new Primitive(), localTransform);
+				break;
+			case EPrimitiveType::BOX:
+				Unimplement(0);
+				break;
+			case EPrimitiveType::SPHERE:
+				index = AddPrimitive(new SpherePrimitive(), localTransform);
+				break;
+			default:
+				Unimplement(0);
+				break;
+			}
+			return index;
+		}
+
 		virtual size_t AddPrimitive(IPrimitive* prim, Matrix4x3* localTransform=nullptr) 
 		{ 
 			mPrimitives_.push_back(prim); 
@@ -52,6 +65,12 @@ namespace zyh
 			else
 				mPrimitivesTransform_.push_back(Matrix4x3());
 			return mPrimitives_.size() - 1;
+		}
+
+		virtual IPrimitive* GetPrimitive(size_t index)
+		{
+			HYBRID_CHECK(index < mPrimitives_.size());
+			return mPrimitives_[index];
 		}
 
 		void GetPrimLocalTransform(size_t index, Matrix4x3& outMatrix)

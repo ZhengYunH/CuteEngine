@@ -7,20 +7,35 @@
 
 namespace zyh
 {
-	class VulkanModel : public IVulkanObject
+	class VulkanModel : public IVulkanObject, public IModel
 	{
 	public:
-		VulkanModel(const std::string& InModelFileName)
+		VulkanModel() : IModel()
 		{
-			GenerateModel(EPrimitiveType::MESH, InModelFileName);
-			GenerateRenderElements();
 		}
 
-		VulkanModel(EPrimitiveType meshType, const std::string& InModelFileName = "")
+	public: // override
+		virtual size_t AddPrimitive(IPrimitive* prim, Matrix4x3* localTransform = nullptr) override
 		{
-			GenerateModel(meshType, InModelFileName);
-			GenerateRenderElements();
+			size_t index = IModel::AddPrimitive(prim, localTransform);
+			if (prim->IsStatic())
+			{
+				GenerateRenderElement(prim);
+			}
+			return index;
 		}
+
+		virtual size_t AddPrimitive(EPrimitiveType primType, Matrix4x3* localTransform = nullptr) override
+		{
+			size_t index = IModel::AddPrimitive(primType, localTransform);
+			IPrimitive* prim = mMesh_->GetPrimitive(index);
+			if (prim->IsStatic())
+			{
+				GenerateRenderElement(prim);
+			}
+			return index;
+		}
+
 
 	public:
 		void EmitRenderElements(RenderSet renderSet, IRenderScene& renderScene)
@@ -35,32 +50,36 @@ namespace zyh
 				}
 			}
 		}
-
-		void UpdateTransform(Matrix4x3& mat) 
-		{ 
-			mModel_->UpdateTransform(mat); 
-		}
-
+		
 	protected:
-		virtual void GenerateModel(EPrimitiveType meshType, const std::string InModelFileName="")
+		void GenerateRenderElement(IPrimitive* prim)
 		{
-			mModel_ = new IModel(meshType, InModelFileName);
+			const IMaterial* material = prim->GetMaterial();
+			for (RenderSet renderSet : material->GetSupportRenderSet())
+			{
+				if (mRenderElements_.find(renderSet) == mRenderElements_.end())
+				{
+					mRenderElements_[renderSet] = *(new std::vector<IRenderElement*>());
+				}
+				mRenderElements_[renderSet].push_back(new VulkanRenderElement(prim));
+			}
 		}
 
-	protected:
 		void GenerateRenderElements()
 		{
+			for (auto& pair : mRenderElements_)
+			{
+				for (auto element : pair.second)
+				{
+					delete element;
+				}
+				pair.second.clear();
+			}
+			mRenderElements_.clear();
+
 			for (IPrimitive* prim : mModel_->mMesh_->mPrimitives_)
 			{
-				const IMaterial* material = prim->GetMaterial();
-				for (RenderSet renderSet : material->GetSupportRenderSet())
-				{
-					if (mRenderElements_.find(renderSet) == mRenderElements_.end())
-					{
-						mRenderElements_[renderSet] = *(new std::vector<IRenderElement*>());
-					}
-					mRenderElements_[renderSet].push_back(new VulkanRenderElement(prim));
-				}
+				GenerateRenderElement(prim);
 			}
 		}
 

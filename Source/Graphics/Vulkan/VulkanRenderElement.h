@@ -23,7 +23,7 @@ namespace zyh
 	public:
 		VulkanRenderElement(IPrimitive* InPrimtives) : IRenderElement(InPrimtives)
 		{
-			mMaterial_ = new VulkanMaterial(InPrimtives->GetMaterial());
+			mMaterial_ = new VulkanMaterial(InPrimtives);
 			connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
 			setup();
 		}
@@ -54,24 +54,25 @@ namespace zyh
 			VulkanBuffer stagingBuffer;
 			stagingBuffer.connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
 
-			mVertexBuffer_ = new VulkanBuffer();
 			// create Vertex Buffer
-			VkDeviceSize bufferSize = sizeof(mPrimitives_->mVertices_[0]) * mPrimitives_->mVertices_.size();
+			void* vertexData{ nullptr }; size_t vertexSize;
+			void* indexData{ nullptr };	size_t indexSize;
+			mPrimitives_->GetVerticesData(&vertexData, vertexSize);
+			mPrimitives_->GetIndicesData(&indexData, indexSize);
+
 			mVertexBuffer_ = new VulkanBuffer();
 			mVertexBuffer_->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
-			mVertexBuffer_->setup(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			stagingBuffer.setup(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			stagingBuffer.setupData(mPrimitives_->mVertices_.data(), bufferSize);
-			VulkanBuffer::copyBuffer(mVulkanCommandPool_, stagingBuffer.Get().buffer, mVertexBuffer_->Get().buffer, bufferSize);
+			mVertexBuffer_->setup(vertexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			stagingBuffer.setup(vertexSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			stagingBuffer.setupData(vertexData, vertexSize);
+			VulkanBuffer::copyBuffer(mVulkanCommandPool_, stagingBuffer.Get().buffer, mVertexBuffer_->Get().buffer, vertexSize);
 
 			mIndexBuffer_ = new VulkanBuffer();
-			bufferSize = sizeof(mPrimitives_->mIndices_[0]) * mPrimitives_->mIndices_.size();
-			mIndexBuffer_ = new VulkanBuffer();
 			mIndexBuffer_->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
-			mIndexBuffer_->setup(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-			stagingBuffer.setup(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-			stagingBuffer.setupData(mPrimitives_->mIndices_.data(), bufferSize);
-			VulkanBuffer::copyBuffer(mVulkanCommandPool_, stagingBuffer.Get().buffer, mIndexBuffer_->Get().buffer, bufferSize);
+			mIndexBuffer_->setup(indexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			stagingBuffer.setup(indexSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			stagingBuffer.setupData(indexData, indexSize);
+			VulkanBuffer::copyBuffer(mVulkanCommandPool_, stagingBuffer.Get().buffer, mIndexBuffer_->Get().buffer, indexSize);
 		}
 
 		virtual void cleanup() override
@@ -160,11 +161,13 @@ namespace zyh
 			VkDescriptorSet set = mMaterial_->getDescriptorSet(currImage);
 			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipelineLayout(), 0, 1, &set, 0, nullptr);
 
+			uint32_t indexSize = mPrimitives_->GetIndicesCount();
+
 			VkBuffer vertexBuffers[] = { mVertexBuffer_->Get().buffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 			vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer_->Get().buffer, 0, VK_INDEX_TYPE_UINT32);
-			vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(mPrimitives_->mIndices_.size()), 1, 0, 0, 0);
+			vkCmdDrawIndexed(commandBuffer, indexSize, 1, 0, 0, 0);
 		}
 
 	protected:

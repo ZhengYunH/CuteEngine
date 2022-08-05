@@ -6,8 +6,10 @@
 
 int main()
 {
+	zyh::GEngine->Run();
+
 	try {
-		zyh::GEngine->Run();
+		// zyh::GEngine->Run();
 	}
 	catch (const std::exception& e) {
 		std::cerr << e.what() << std::endl;

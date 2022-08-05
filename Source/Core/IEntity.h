@@ -14,9 +14,9 @@ namespace zyh
 		void SetTransform(Matrix4x3& mat);
 		
 		template<typename T, typename... ArgsType>
-		IComponent* AddComponent(ArgsType&&... args) 
+		T* AddComponent(ArgsType&&... args) 
 		{ 
-			IComponent* comp = new T(this, std::forward<ArgsType>(args)...);
+			T* comp = new T(this, std::forward<ArgsType>(args)...);
 			mComponents_.push_back(comp);
 			return comp;
 		}

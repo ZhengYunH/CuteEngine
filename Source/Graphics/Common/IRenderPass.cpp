@@ -223,9 +223,11 @@ namespace zyh
 		vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
 
 		// UI scale and translate via push constants
-		pushConstBlock.scale = glm::vec2(2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y);
-		pushConstBlock.translate = glm::vec2(-1.0f);
-		vkCmdPushConstants(vkCommandBuffer, mMaterial_->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+		float constantScale[2] = { 2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y };
+		float constantTranslate[2] = { -1.0f, -1.0f };
+		mMaterial_->PushConstant("scale", &constantScale);
+		mMaterial_->PushConstant("translate", &constantTranslate);
+		mMaterial_->BindPushConstant(vkCommandBuffer);
 
 		// Render commands
 		ImDrawData* imDrawData = ImGui::GetDrawData();
@@ -303,7 +305,11 @@ namespace zyh
 
 	void ImGuiRenderPass::Init()
 	{
-		mMaterial_ = new ImGuiMaterial(new IMaterial("Resource/shaders/ui.vert.spv", "Resource/shaders/ui.frag.spv"));
+		IMaterial* material = new IMaterial("Resource/shaders/ui.vert.spv", "Resource/shaders/ui.frag.spv");
+		material->DepthStencil = DepthStencilState{ false, false };
+		material->Rasterization = RasterizationState{ ERasterizationCullMode::NONE };
+
+		mMaterial_ = new ImGuiMaterial(material);
 		mMaterial_->connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, *GInstance->mImageCount_);;
 		mMaterial_->setup();
 

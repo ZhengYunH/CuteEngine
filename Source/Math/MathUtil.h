@@ -126,6 +126,14 @@ namespace zyh
 			return _type(i);
 		return _type(i + 1);
 	}
+	template<typename _type>
+	static constexpr inline std::enable_if_t<std::is_floating_point_v<_type>, int> Ceil(const _type& a) noexcept
+	{
+		int i = static_cast<int>(a);
+		if (a > i)
+			return i + 1;
+		return i;
+	}
 
 	template<typename _type, typename _scalar> 
 	static constexpr inline _type Lerp(const _type& a, const _type& b, const _scalar& x) noexcept

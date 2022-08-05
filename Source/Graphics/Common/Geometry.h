@@ -2,7 +2,7 @@
 #include "Graphics/Vulkan/VulkanHeader.h"
 
 /// <summary>
-/// Define Basic Geometry Data Struct
+/// Define Basic Geometry Data
 /// </summary>
 
 struct Vertex {
@@ -18,36 +18,20 @@ struct Vertex {
 	{}
 
 
-	static VkVertexInputBindingDescription getBindingDescription() {
-		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(Vertex);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-		return bindingDescription;
+	static void GetBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) {
+		descriptions = {
+			initInputBindingDesc(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX)
+		};
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions{};
-		attributeDescriptions[0].binding = 0;
-		attributeDescriptions[0].location = 0;
-		attributeDescriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[0].offset = offsetof(Vertex, pos);
-
-		attributeDescriptions[1].binding = 0;
-		attributeDescriptions[1].location = 1;
-		attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[1].offset = offsetof(Vertex, color);
-
-		attributeDescriptions[2].binding = 0;
-		attributeDescriptions[2].location = 2;
-		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[2].offset = offsetof(Vertex, normal);
-
-		attributeDescriptions[3].binding = 0;
-		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(Vertex, texCoord);
-		return attributeDescriptions;
+	static void GetAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions)
+	{
+		descriptions = {
+			initInputAttrDesc(0, 0, VK_FORMAT_R32G32B32_SFLOAT,  offsetof(Vertex, pos)), // pos
+			initInputAttrDesc(0, 1, VK_FORMAT_R32G32B32_SFLOAT,  offsetof(Vertex, color)), // color
+			initInputAttrDesc(0, 2, VK_FORMAT_R32G32B32_SFLOAT,  offsetof(Vertex, normal)), // normal
+			initInputAttrDesc(0, 3, VK_FORMAT_R32G32_SFLOAT,  offsetof(Vertex, texCoord)), // texCoord
+		};
 	}
 
 	bool operator==(const Vertex& other) const {

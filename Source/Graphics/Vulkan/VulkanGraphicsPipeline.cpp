@@ -141,13 +141,34 @@ namespace zyh
 		viewportState.pScissors = &scissor;
 
 		// rasterizer
+		RasterizationState rasterizationState = mOwner_->GetRasterizationState();
+		VkCullModeFlags cullmode = VK_CULL_MODE_NONE;
+		switch (rasterizationState.CullMode)
+		{
+		case ERasterizationCullMode::NONE:
+			cullmode = VK_CULL_MODE_NONE;
+			break;
+		case ERasterizationCullMode::FRONT:
+			cullmode = VK_CULL_MODE_FRONT_BIT;
+			break;
+		case ERasterizationCullMode::BACK:
+			cullmode = VK_CULL_MODE_BACK_BIT;
+			break;
+		case ERasterizationCullMode::FRONT_AND_BACK:
+			cullmode = VK_CULL_MODE_FRONT_AND_BACK;
+			break;
+		default:
+			Unimplement(0);
+			break;
+		}
+
 		VkPipelineRasterizationStateCreateInfo rasterizer{};
 		rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		rasterizer.depthClampEnable = VK_FALSE;
 		rasterizer.rasterizerDiscardEnable = VK_FALSE;
 		rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
 		rasterizer.lineWidth = 1.0f;
-		rasterizer.cullMode = VK_CULL_MODE_NONE;
+		rasterizer.cullMode = cullmode;
 		rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 		rasterizer.depthBiasEnable = VK_FALSE;
 		rasterizer.depthBiasConstantFactor = 0.0f; // Optional
@@ -213,14 +234,41 @@ namespace zyh
 			throw std::runtime_error("failed to create pipeline layout!");
 		}
 
-		bool depthTestEnable, depthWriteEnable;
-		VkCompareOp depthCompareOp;
-		mOwner_->getDepthTestInfo(depthTestEnable, depthWriteEnable, depthCompareOp);
+		DepthStencilState depthStencilState = mOwner_->GetDepthStencilState();
+		VkCompareOp depthCompareOp = VK_COMPARE_OP_NEVER;
+		switch (depthStencilState.DepthCompareOp)
+		{
+		case ECompareOP::NEVER:
+			depthCompareOp = VK_COMPARE_OP_NEVER;
+			break;
+		case ECompareOP::EQUAL:
+			depthCompareOp = VK_COMPARE_OP_EQUAL;
+			break;
+		case ECompareOP::GREATER:
+			depthCompareOp = VK_COMPARE_OP_GREATER;
+			break;
+		case ECompareOP::LESS_OR_EQUAL:
+			depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+			break;
+		case ECompareOP::NOT_EQUAL:
+			depthCompareOp = VK_COMPARE_OP_NOT_EQUAL;
+			break;
+		case ECompareOP::GREATER_OR_EQUAL:
+			depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
+			break;
+		case ECompareOP::ALWAYS:
+			depthCompareOp = VK_COMPARE_OP_ALWAYS;
+			break;
+		default:
+			Unimplement();
+			break;
+		}
+
 		// Depth and stencil state
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		depthStencil.depthTestEnable = depthTestEnable;
-		depthStencil.depthWriteEnable = depthWriteEnable;
+		depthStencil.depthTestEnable = depthStencilState.DepthTestEnable;
+		depthStencil.depthWriteEnable = depthStencilState.DepthWriteEnable;
 		depthStencil.depthCompareOp = depthCompareOp;
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.minDepthBounds = 0.0f; // Optional

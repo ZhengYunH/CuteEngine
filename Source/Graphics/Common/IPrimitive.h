@@ -22,15 +22,14 @@ namespace zyh
 	class IPrimitive
 	{
 	public:
-		IPrimitive() : mType_(EPrimitiveType::MESH)
+		IPrimitive()
 		{
 			mMaterial_ = new IMaterial("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
 		}
 
-		IPrimitive(const std::string& InPrimFileName) : mType_(EPrimitiveType::MESH)
+		IPrimitive(IMaterial* material)
 		{
-			mMaterial_ = new IMaterial("Resource/shaders/vert.spv", "Resource/shaders/frag.spv");
-			ResourceLoader::loadModel(InPrimFileName, mVertices_, mIndices_);
+			mMaterial_ = material;
 		}
 
 		virtual ~IPrimitive() 
@@ -44,16 +43,6 @@ namespace zyh
 			return mMaterial_; 
 		}
 
-		void AddVertex(Vertex point)
-		{
-			mVertices_.push_back(point);
-		}
-
-		void AddIndex(uint32_t index)
-		{
-			mIndices_.push_back(index);
-		}
-
 		void SetTransform(Matrix4x3& mat)
 		{
 			mTransform_ = mat;
@@ -64,21 +53,99 @@ namespace zyh
 			return mTransform_;
 		}
 
+		bool IsStatic() { return mIsStatic_; }
+
+		virtual void LoadResourceFile(const std::string& InFileName) = 0;
+
+		virtual void GetBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) = 0;
+		virtual void GetAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions) = 0;
+
+		virtual void GetVerticesData(void** data, size_t& size) = 0;
+		virtual void GetIndicesData(void** data, size_t& size) = 0;
+
+		virtual uint32_t GetVerticeCount() = 0;
+		virtual uint32_t GetIndicesCount() = 0;
+
 	protected:
 		IMaterial* mMaterial_;
-		EPrimitiveType mType_;
+		EPrimitiveType mType_ { EPrimitiveType::MESH };
 		Matrix4x3 mTransform_;
+		bool	mIsStatic_{ true };
+	};
+	
+	template<typename TVertexStruct = Vertex>
+	class TPrimitive : public IPrimitive
+	{
+	public:
+		TPrimitive() : IPrimitive() {}
+		TPrimitive(IMaterial* material) : IPrimitive(material) {}
 
 	public:
-		std::vector<Vertex> mVertices_;
+		virtual void LoadResourceFile(const std::string& InFileName)
+		{
+		}
+
+		void AddVertex(TVertexStruct point)
+		{
+			mVertices_.push_back(point);
+		}
+
+		void AddIndex(uint32_t index)
+		{
+			mIndices_.push_back(index);
+		}
+
+		virtual void GetVerticesData(void** data, size_t& size) override
+		{
+			*data = mVertices_.data();
+			size = mVertices_.size() * sizeof(TVertexStruct);
+		}
+
+		virtual void GetIndicesData(void** data, size_t& size) override
+		{
+			*data = mIndices_.data();
+			size = mIndices_.size() * sizeof(uint32_t);
+		}
+
+		virtual uint32_t GetVerticeCount() override
+		{
+			return static_cast<uint32_t>(mVertices_.size());
+		}
+
+		virtual uint32_t GetIndicesCount() override
+		{
+			return static_cast<uint32_t>(mIndices_.size());
+		}
+
+		virtual void GetBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) override
+		{
+			TVertexStruct::GetBindingDescriptions(descriptions);
+		}
+
+		virtual void GetAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions) override
+		{
+			TVertexStruct::GetAttributeDescriptions(descriptions);
+		}
+
+	protected:
+		std::vector<TVertexStruct> mVertices_;
 		std::vector<uint32_t> mIndices_;
 	};
 
-	class SpherePrimitive : public IPrimitive
+	class Primitive : public TPrimitive<Vertex>
+	{
+	public:
+		virtual void LoadResourceFile(const std::string& InFileName)
+		{
+			ResourceLoader::loadModel(InFileName, mVertices_, mIndices_);
+		}
+	};
+
+	class SpherePrimitive : public Primitive
 	{
 	public:
 		SpherePrimitive() 
-			: IPrimitive()
+			: Primitive()
 		{
 			mType_ = EPrimitiveType::SPHERE;
 

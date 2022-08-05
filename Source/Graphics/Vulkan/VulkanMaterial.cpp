@@ -27,6 +27,12 @@ namespace zyh
 		mGraphicsPipeline_ = new VulkanGraphicsPipeline(this);
 	}
 
+	VulkanMaterial::VulkanMaterial(IPrimitive* prim, VulkanRenderPassBase::OpType opType /*= VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE*/)
+		: VulkanMaterial(prim->GetMaterial(), opType)
+	{
+		mPrim_ = prim;
+	}
+
 	void VulkanMaterial::connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, uint32_t layoutCount)
 	{
 		mPhysicalDevice_ = physicalDevice;
@@ -189,10 +195,6 @@ namespace zyh
 
 	void VulkanMaterial::updateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo)
 	{
-		static auto startTime = std::chrono::high_resolution_clock::now();
-
-		auto currentTime = std::chrono::high_resolution_clock::now();
-		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 	}
 
 	void VulkanMaterial::endUpdateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo)
@@ -238,40 +240,21 @@ namespace zyh
 
 	void ImGuiMaterial::getBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions)
 	{
-		VkVertexInputBindingDescription bindingDescription{};
-		bindingDescription.binding = 0;
-		bindingDescription.stride = sizeof(ImDrawVert);
-		bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-		descriptions.push_back(std::move(bindingDescription));
+		descriptions =
+		{
+			std::move(initInputBindingDesc(0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX))
+		};
 	}
 
 	void ImGuiMaterial::getAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions)
 	{
-		auto generateDesc = [](
-			uint32_t binding,
-			uint32_t location,
-			VkFormat format,
-			uint32_t offset)->VkVertexInputAttributeDescription
+		descriptions = 
 		{
-			VkVertexInputAttributeDescription vInputAttribDescription{};
-			vInputAttribDescription.location = location;
-			vInputAttribDescription.binding = binding;
-			vInputAttribDescription.format = format;
-			vInputAttribDescription.offset = offset;
-			return vInputAttribDescription;
-		};
-
-		descriptions = {
-			generateDesc(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, pos)),	// Location 0: Position
-			generateDesc(0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, uv)),	// Location 1: UV
-			generateDesc(0, 2, VK_FORMAT_R8G8B8A8_UNORM, offsetof(ImDrawVert, col)),	// Location 0: Color
+			initInputAttrDesc(0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, pos)),	// Location 0: Position
+			initInputAttrDesc(0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, uv)),	// Location 1: UV
+			initInputAttrDesc(0, 2, VK_FORMAT_R8G8B8A8_UNORM, offsetof(ImDrawVert, col)),	// Location 0: Color
 		};
 	}
-
-	struct PushConstBlock {
-		glm::vec2 scale;
-		glm::vec2 translate;
-	};
 
 	void ImGuiMaterial::getPushConstantRange(std::vector<VkPushConstantRange>& pushConstantRanges)
 	{
@@ -280,5 +263,35 @@ namespace zyh
 		pushConstantRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 		pushConstantRange.offset = 0;
 		pushConstantRange.size = sizeof(PushConstBlock);
+	}
+
+	void ImGuiMaterial::PushConstant(std::string semantic, void* data)
+	{
+		if (semantic == "scale")
+		{
+			float* fdata = (float*)data;
+			pushConstBlock.scale = glm::vec2(fdata[0], fdata[1]);
+		}
+
+		else if (semantic == "translate")
+		{
+			float* fdata = (float*)data;
+			pushConstBlock.translate = glm::vec2(fdata[0], fdata[1]);
+		}
+	}
+
+	void ImGuiMaterial::BindPushConstant(VkCommandBuffer vkCommandBuffer)
+	{
+		vkCmdPushConstants(vkCommandBuffer, getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
+	}
+
+	void TerrainMaterial::createUniformBuffers()
+	{
+
+	}
+
+	void TerrainMaterial::createTextureImages()
+	{
+
 	}
 }

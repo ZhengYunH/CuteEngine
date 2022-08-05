@@ -2,6 +2,7 @@
 #include "IEntity.h"
 #include "Graphics/Common/IRenderScene.h"
 #include "IPrimitivesComponent.h"
+#include "TerrainComponent.h"
 #include "Camera/Camera.h"
 #include "Graphics/Common/Renderer.h"
 
@@ -79,6 +80,17 @@ namespace zyh
 		{
 			AddEntity(entity);
 		}
+		{
+			IEntity* entity = new IEntity();
+			TerrainComponent* comp = entity->AddComponent<TerrainComponent>();
+			entity->AddUpdateTransformList(comp);
+			Matrix4x3 mat;
+			mat.SetIdentity();
+			mat.SetTranslation(Vector3(0, 0, 0));
+			entity->SetTransform(mat);
+			AddEntity(entity);
+		}
+
 		CollectAllRenderElements();
 	}
 
