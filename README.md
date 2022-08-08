@@ -4,8 +4,6 @@
 
 ## Enviroment
 
-
-
 OS: Window10
 
 
@@ -28,16 +26,32 @@ C++:  (/std:c++17)
 
 
 
-
-
 ### TODO List
 
-+ Support FBX format file
-+ Support MultiModel Render(IPrimitive Component)
-+ Create And Load Scene File
-+ Debug Log And File System
++ FileSystem
+  + ~~Support FBX format file~~
+  + ~~Create And Load Scene File~~
+  + ~~Debug Log~~
+  + Resource Module
++ Basement Architecture
+  + ~~InputSystem~~
+  + ~~Event Binding~~
+  + ~~Shader Factory~~
+  + Vertex Factory
+  + Culling
++ Rendering
+  + ~~Support MultiModel Render(IPrimitive Component)~~
+  + ~~ImGUI RenderPass~~
+  + Shader Reflection: Generate Desciptor and Input Attribute Automatically 
+  + Deferred Shading ( Multi-Render Target and Subpass)
+  + Shadow
+  + Compute Shader
+  + Fancy Rendering Effect
+    + TSAA
+    + Hi-Z
++ Multi-Threading
++ Terrain
 + Physx
 + Animation
 + Navigation
 + Audio
-+ Fancy Rendering Effect
