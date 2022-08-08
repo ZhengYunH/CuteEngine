@@ -24,6 +24,8 @@ namespace zyh
 		}
 		IPrimitivesComponent(IEntity* Parent, EPrimitiveType meshType, const std::string& meshFileName) : IPrimitivesComponent(Parent)
 		{
+			mMeshType_ = meshType;
+			mMeshFileName_ = meshFileName;
 			switch (meshType)
 			{
 			case EPrimitiveType::MESH:
@@ -53,5 +55,8 @@ namespace zyh
 
 	protected:
 		VulkanModel* mModel_;
+
+		EPrimitiveType mMeshType_{ EPrimitiveType::MESH };
+		std::string mMeshFileName_;
 	};
 }

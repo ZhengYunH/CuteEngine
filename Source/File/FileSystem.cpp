@@ -1,6 +1,7 @@
 #include "FileSystem.h"
 #include "Core/IEntity.h"
 #include "Core/IPrimitivesComponent.h"
+#include "Core/TerrainComponent.h"
 #include "Math/Matrix4x3.h"
 
 #include <iostream>
@@ -44,16 +45,28 @@ namespace zyh
 		{
 			auto entityElement = v.second;
 			IEntity* entity = new IEntity();
-			auto primitiveComponentElement = entityElement.get_child("IPrimitivesComponent");
+			auto componentsElement = entityElement.get_child("Components");
+			auto primitiveComponentOptional = componentsElement.get_child_optional("IPrimitivesComponent");
+			if (primitiveComponentOptional.has_value())
+			{
+				auto primitiveComponentElement = primitiveComponentOptional.get();
+
+				EPrimitiveType primitiveType = EPrimitiveType(primitiveComponentElement.get<int>("EPrimitiveType", int(EPrimitiveType::NONE)));
+				std::string primitiveResource = primitiveComponentElement.get<std::string>("ResourcePath", "");
+
+				HYBRID_CHECK(primitiveType != EPrimitiveType::NONE);
+
+				IComponent* comp = entity->AddComponent<IPrimitivesComponent>(primitiveType, primitiveResource);
+				entity->AddUpdateTransformList(comp);
+			}
+			auto terrainComponentOptional = componentsElement.get_child_optional("TerrainComponent");
+			if (terrainComponentOptional.has_value())
+			{
+				auto terrainComponentElement = terrainComponentOptional.get();
+				IComponent* comp = entity->AddComponent<TerrainComponent>();
+				entity->AddUpdateTransformList(comp);
+			}
 			
-			EPrimitiveType primitiveType = EPrimitiveType(primitiveComponentElement.get<int>("EPrimitiveType", int(EPrimitiveType::NONE)));
-			std::string primitiveResource = primitiveComponentElement.get<std::string>("ResourcePath", "");
-
-			HYBRID_CHECK(primitiveType != EPrimitiveType::NONE);
-
-			IComponent* comp = entity->AddComponent<IPrimitivesComponent>(primitiveType, primitiveResource);
-			entity->AddUpdateTransformList(comp);
-
 			Matrix4x3 mat = entityElement.get<Matrix4x3>("Transform");
 			entity->SetTransform(mat);
 			mEntities_.push_back(entity);

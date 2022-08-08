@@ -80,19 +80,14 @@ namespace zyh
 		{
 			AddEntity(entity);
 		}
-		{
-			IEntity* entity = new IEntity();
-			TerrainComponent* comp = entity->AddComponent<TerrainComponent>();
-			entity->AddUpdateTransformList(comp);
-			Matrix4x3 mat;
-			mat.SetIdentity();
-			mat.SetScale(Vector3(0.01f, 0.01f, 0.01f));
-			mat.SetTranslation(Vector3(0, 0, 0));
-			entity->SetTransform(mat);
-			AddEntity(entity);
-		}
-
 		CollectAllRenderElements();
+	}
+
+	void ClientScene::SaveScene()
+	{
+		SceneXmlParser parser("Resource/files/scene.xml");
+		Serialize(&parser);
+		parser.Save();
 	}
 
 	void ClientScene::DispatchTickEvent()
@@ -107,6 +102,22 @@ namespace zyh
 	void ClientScene::CollectAllRenderElements()
 	{
 		CollectRenderElements(RenderSet::SCENE);
+	}
+
+	void ClientScene::Serialize(Archive* ar)
+	{
+		ar->BeginSection("World");
+		{
+			ar->BeginSection("Entities");
+			for (IEntity* entity : mEntitys_)
+			{
+				ar->BeginSection("Entity");
+					entity->Serialize(ar);
+				ar->EndSection();
+			}
+			ar->EndSection();
+		}
+		ar->EndSection();
 	}
 
 	void ClientScene::CollectRenderElements(RenderSet renderSet)

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<World>
+	<Entities>
+		<Entity>
+			<Transform>1 0 0 0 -4.37114e-08 -1 0 1 -4.37114e-08 0 0 0</Transform>
+			<Components>
+				<IPrimitivesComponent>
+					<EPrimitiveType>1</EPrimitiveType>
+					<ResourcePath>Resource/models/viking_room.obj</ResourcePath>
+				</IPrimitivesComponent>
+			</Components>
+		</Entity>
+		<Entity>
+			<Transform>0.1 0 0 0 0.1 0 0 0 0.1 1 0 0</Transform>
+			<Components>
+				<IPrimitivesComponent>
+					<EPrimitiveType>3</EPrimitiveType>
+				</IPrimitivesComponent>
+			</Components>
+		</Entity>
+		<Entity>
+			<Transform>0.1 0 0 0 0.1 0 0 0 0.1 1 0 1</Transform>
+			<Components>
+				<IPrimitivesComponent>
+					<EPrimitiveType>3</EPrimitiveType>
+				</IPrimitivesComponent>
+			</Components>
+		</Entity>
+		<Entity>
+			<Transform>0.01 0 0 0 0.01 0 0 0 0.01 0 0 0</Transform>
+			<Components>
+				<TerrainComponent>
+					<Tickable>true</Tickable>
+					<IPrimitiveTestAttr>IPrimitiveTestValue</IPrimitiveTestAttr>
+				</TerrainComponent>
+			</Components>
+		</Entity>
+	</Entities>
+</World>

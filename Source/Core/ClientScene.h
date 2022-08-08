@@ -1,6 +1,8 @@
 #pragma once
 #include "Common/Config.h"
 #include "Core/Engine.h"
+#include "Core/IObject.h"
+
 
 namespace zyh
 {
@@ -12,7 +14,7 @@ namespace zyh
 	class IRenderElement;
 	class IRenderScene;
 
-	class ClientScene
+	class ClientScene : virtual IObject
 	{
 	public:
 		void Initialize();
@@ -31,8 +33,12 @@ namespace zyh
 
 		void CollectAllRenderElements();
 
+	public:
+		virtual void Serialize(class Archive* ar) override;
+
 	protected:
 		void LoadScene();
+		void SaveScene();
 
 	protected:
 		void DispatchTickEvent();
