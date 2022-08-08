@@ -3,22 +3,34 @@
 
 namespace zyh
 {
+	enum class SShaderInputNumericType
+	{
+		SCALER = 0,
+		VECTOR = 1,
+		MATRIX = 2,
+	};
+
 	struct SShaderNumericTraits
 	{
 		struct Scalar {
 			uint32_t                        width;
 			uint32_t                        signedness;
-		} scalar;
+		} Scalar;
 
-		struct Vector {
-			uint32_t                        component_count;
-		} vector;
+		union
+		{
+			struct Vector {
+				uint32_t                        component_count;
+			} Vector;
 
-		struct Matrix {
-			uint32_t                        column_count;
-			uint32_t                        row_count;
-			uint32_t                        stride; // Measured in bytes
-		} matrix;
+			struct Matrix {
+				uint32_t                        column_count;
+				uint32_t                        row_count;
+				uint32_t                        stride; // Measured in bytes
+			} Matrix;
+		} Block;
+
+		SShaderInputNumericType Type;
 	};
 
 	struct SShaderInputVariableData

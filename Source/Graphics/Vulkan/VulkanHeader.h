@@ -15,9 +15,11 @@
 #include <fstream>
 #include <chrono>
 
+#define VK_USE_PLATFORM_WIN32_KHR
 #include <vulkan/vulkan.h>
 
 #define GLFW_INCLUDE_VULKAN
+#pragma warning (disable : 4005)
 #include <GLFW/glfw3.h>
 
 #define GLM_FORCE_RADIANS

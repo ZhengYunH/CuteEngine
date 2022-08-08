@@ -79,7 +79,7 @@ namespace zyh
 		{
 			if (mHeightmap_ && mEnable_ && mTouching_)
 			{
-				mHeightmap_->ModifyHeight(x, y, modifyTerrainOffset * GEngine->GetDeltaTime());
+				mHeightmap_->ModifyHeight((float)x, (float)y, modifyTerrainOffset * GEngine->GetDeltaTime());
 			}
 		}
 

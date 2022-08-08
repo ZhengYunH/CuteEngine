@@ -9,11 +9,6 @@
 #include <wtypes.h>
 #endif
 
-#define VK_USE_PLATFORM_WIN32_KHR
-#include <vulkan/vulkan.h>
-#define GLFW_INCLUDE_VULKAN
-#include <GLFW/glfw3.h>
-
 #include <iostream>
 #include <vector>
 #include <unordered_map>
@@ -26,6 +21,8 @@
 #include <functional>
 
 #include "Common/Config.h"
+#include "VulkanHeader.h"
+
 
 #ifdef ZYH_DEBUG
 #define VK_CHECK_RESULT(R, ...) if(VkResult res = (R); res != VK_SUCCESS) { zyh::tools::exitFatal(res, ##__VA_ARGS__); }
