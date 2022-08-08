@@ -5,6 +5,7 @@
 #include "VulkanRenderPass.h"
 #include "VulkanMaterial.h"
 #include "VulkanBuffer.h"
+#include "VulkanShader.h"
 
 
 namespace zyh
@@ -80,8 +81,8 @@ namespace zyh
 
 	void VulkanGraphicsPipeline::_setupGraphicsPipeline()
 	{
-		VkShaderModule vertShaderModule = mVulkanLogicalDevice->createShaderModule(mOwner_->mMaterial_->GetShaderFilePath(EShaderType::VS));
-		VkShaderModule fragShaderModule = mVulkanLogicalDevice->createShaderModule(mOwner_->mMaterial_->GetShaderFilePath(EShaderType::PS));
+		VkShaderModule vertShaderModule = static_cast<VulkanShader*>(mOwner_->mMaterial_->GetShader(EShaderType::VS))->GetShaderModule();
+		VkShaderModule fragShaderModule = static_cast<VulkanShader*>(mOwner_->mMaterial_->GetShader(EShaderType::PS))->GetShaderModule();
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -99,7 +100,6 @@ namespace zyh
 
 
 		// Vertex Input
-
 		std::vector<VkVertexInputBindingDescription> bindingDescription;
 		std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 		mOwner_->getBindingDescriptions(bindingDescription);
@@ -311,9 +311,6 @@ namespace zyh
 		if (vkCreateGraphicsPipelines(mVulkanLogicalDevice->Get(), mVkPipelineCache_, 1, &pipelineInfo, nullptr, &mVkImpl_) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline!");
 		}
-
-		mVulkanLogicalDevice->destroyShaderModule(fragShaderModule);
-		mVulkanLogicalDevice->destroyShaderModule(vertShaderModule);
 	}
 
 }

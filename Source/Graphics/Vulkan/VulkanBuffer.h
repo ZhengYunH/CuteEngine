@@ -49,10 +49,11 @@ namespace zyh
 	{
 		enum EUniformType
 		{
-			GLOBAL = 0,
-			SHADER = 1,
-			BATCH = 2,
-			LIGHT = 3,
+			NONE = 0,
+			GLOBAL = 1,
+			SHADER = 2,
+			BATCH = 3,
+			LIGHT = 4,
 		};
 	}
 	using EUniformType = UniformType::EUniformType;
@@ -68,7 +69,8 @@ namespace zyh
 
 	public:
 		EUniformType GetType() { return mType_; }
-		VkShaderStageFlagBits GetState() { return mUseState_; }
+		VkShaderStageFlags GetState() { return mUseState_; }
+		void AddState(VkShaderStageFlagBits bit) { mUseState_ = mUseState_ | bit; }
 		void setupData(EUniformType dataType, void* data, VkDeviceSize size)
 		{
 			if (dataType == mType_)
@@ -77,8 +79,7 @@ namespace zyh
 
 	protected:
 		EUniformType mType_;
-		VkShaderStageFlagBits mUseState_; // TODO: support multi-state
-
+		VkShaderStageFlags mUseState_; // TODO: support multi-state
 	};
 
 	class VulkanImageBuffer : public VulkanBuffer

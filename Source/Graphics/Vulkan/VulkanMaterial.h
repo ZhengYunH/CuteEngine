@@ -95,12 +95,13 @@ namespace zyh
 		virtual void createDescriptorSets();
 
 		std::unordered_map<uint32_t, std::vector<VulkanUniformBuffer*>> mUniformBuffers_;
-		virtual void createUniformBuffers();
+		virtual void createDescriptorSetData();
 
 		std::unordered_map<uint32_t, class VulkanTexture*> mTextureImages_;
-		virtual void createTextureImages();
-
 		class VulkanRenderPassBase* mRenderPass_{ nullptr };
+
+	protected:
+		virtual void _createDescriptorSetData(EShaderType state, IShaderParser* parser);
 	};
 
 
@@ -115,28 +116,12 @@ namespace zyh
 		ImGuiMaterial(IMaterial* material) : VulkanMaterial(material, VulkanRenderPassBase::OpType::LOAD_AND_STORE) {}
 
 	public:
-		virtual void createUniformBuffers() override {};
-		virtual void createTextureImages() override;
+		virtual void createDescriptorSetData() override;
 		virtual void getBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) override;
 		virtual void getAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions) override;
 		virtual void getPushConstantRange(std::vector<VkPushConstantRange>& pushConstantRanges) override;
 		virtual void PushConstant(std::string semantic, void* data) override;
 		virtual void BindPushConstant(VkCommandBuffer vkCommandBuffer);
-	};
 
-	class TerrainMaterial : public VulkanMaterial
-	{
-		struct TerrainVert
-		{
-			glm::vec3 pos;
-			glm::vec2 uv;
-		};
-
-	public:
-		TerrainMaterial(IMaterial* material) : VulkanMaterial(material, VulkanRenderPassBase::OpType::LOAD_AND_STORE) {}
-
-	public:
-		virtual void createUniformBuffers() override;
-		virtual void createTextureImages() override;
 	};
 }

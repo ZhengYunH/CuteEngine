@@ -8,7 +8,7 @@ layout(set=0, binding = 2) uniform LightData {
     int nr_of_point_lights;
     PointLight pointLights[NR_POINT_LIGHTS];
     SpotLight spotLight;
-}lightData;
+}Light;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec3 fragNormal;
@@ -77,10 +77,10 @@ vec3 CalcSpotLight(SpotLight light)
 
 void main() {
     vec3 outputColor = vec3(0, 0, 0);
-    outputColor += CalcDirectionalLight(lightData.dirLight);
-    for(int i = 0; i < lightData.nr_of_point_lights; i++)
-        outputColor += CalcPointLight(lightData.pointLights[i]);
-    outputColor += CalcSpotLight(lightData.spotLight);
+    outputColor += CalcDirectionalLight(Light.dirLight);
+    for(int i = 0; i < Light.nr_of_point_lights; i++)
+        outputColor += CalcPointLight(Light.pointLights[i]);
+    outputColor += CalcSpotLight(Light.spotLight);
 	if(fragTexCoord.x < 0)
 		outColor = vec4(fragColor, 1.0);
 	else

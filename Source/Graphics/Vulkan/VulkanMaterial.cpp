@@ -9,6 +9,7 @@
 #include "VulkanGraphicsPipeline.h"
 #include "VulkanBuffer.h"
 #include "VulkanImage.h"
+#include "VulkanShader.h"
 #include "Math/Matrix4x4.h"
 #include "VulkanRenderPass.h"
 #include "Graphics/Vulkan/VulkanSwapchain.h"
@@ -45,8 +46,7 @@ namespace zyh
 	void VulkanMaterial::setup()
 	{
 		mRenderPass_->setup(*GInstance->mColorFormat_, *GInstance->mMsaaSamples_, *GInstance->mDepthFormat_);
-		createUniformBuffers();
-		createTextureImages();
+		createDescriptorSetData();
 		createGraphicsPipeline();
 		createDesciptorPool();
 		createDescriptorSets();
@@ -57,33 +57,84 @@ namespace zyh
 		mGraphicsPipeline_->setup();
 	}
 
-	void VulkanMaterial::createUniformBuffers()
+	void VulkanMaterial::createDescriptorSetData()
 	{
-		std::vector<VulkanUniformBuffer*> uniformBuffers;
-		uniformBuffers.resize(mLayoutCount_); 
+		IShaderParser* vsParser =  mMaterial_->GetShader(EShaderType::VS)->GetParser();
+		IShaderParser* psParser = mMaterial_->GetShader(EShaderType::PS)->GetParser();
 
-		std::vector<VulkanUniformBuffer*> lightBuffers;
-		lightBuffers.resize(mLayoutCount_);
+		_createDescriptorSetData(EShaderType::VS, vsParser);
+		_createDescriptorSetData(EShaderType::PS, psParser);
+	}
 
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
-		for (auto& uniformBuffer : uniformBuffers)
+	void VulkanMaterial::_createDescriptorSetData(EShaderType shaderType, IShaderParser* parser)
+	{
+		VkShaderStageFlagBits stateBit;
+		switch (shaderType)
 		{
-			uniformBuffer = new VulkanUniformBuffer(EUniformType::BATCH, VK_SHADER_STAGE_VERTEX_BIT);
-			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
-			uniformBuffer->setup(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+		case EShaderType::VS:
+			stateBit = VK_SHADER_STAGE_VERTEX_BIT;
+			break;
+		case EShaderType::PS:
+			stateBit = VK_SHADER_STAGE_FRAGMENT_BIT;
+			break;
+		default:
+			Unimplement(0);
+			break;
 		}
-		
-		bufferSize = sizeof(UniformLightingBufferObject);
-		for (auto& uniformBuffer : lightBuffers)
+
+		auto& descriptors = parser->GetDescriptor();
+		// TODO: support multi-set, now only one
+		for (auto& setPair : descriptors)
 		{
-			uniformBuffer = new VulkanUniformBuffer(EUniformType::LIGHT, VK_SHADER_STAGE_FRAGMENT_BIT);
-			uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
-			uniformBuffer->setup(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+			uint32_t setIdx = setPair.first;
+			for (auto& descPair : setPair.second)
+			{
+				uint32_t binding = descPair.first;
+				const SShaderDescriptorData& desc = descPair.second;
+
+				if (desc.Type == EDescriptorType::UNIFORM_BUFFER)
+				{
+					EUniformType type{ EUniformType::NONE };
+					if (desc.Name == "Batch")
+						type = EUniformType::BATCH;
+					if (desc.Name == "Light")
+						type = EUniformType::LIGHT;
+
+					if (type == EUniformType::NONE)
+						continue;
+
+					if (mUniformBuffers_.find(binding) != mUniformBuffers_.end())
+					{
+						HYBRID_CHECK(mUniformBuffers_.at(binding)[0]->GetBufferSize() == desc.Block.Uniform.Size);
+						for (size_t i = 0; i < mLayoutCount_; ++i)
+						{
+							mUniformBuffers_.at(binding)[i]->AddState(stateBit);
+						}
+					}
+					std::vector<VulkanUniformBuffer*> uniformBuffers;
+					uniformBuffers.resize(mLayoutCount_);
+					for (auto& uniformBuffer : uniformBuffers)
+					{
+						uniformBuffer = new VulkanUniformBuffer(type, stateBit);
+						uniformBuffer->connect(mPhysicalDevice_, mLogicalDevice_);
+						uniformBuffer->setup(desc.Block.Uniform.Size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+					}
+					mUniformBuffers_[binding] = std::move(uniformBuffers);
+				}
+
+				if (desc.Type == EDescriptorType::SAMPLER)
+				{
+					VulkanTextureImage* baseTextureImage_ = new VulkanTextureImage("Resource/textures/viking_room.png");
+					baseTextureImage_->connect(mPhysicalDevice_, mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
+					baseTextureImage_->setup(VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
+						VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+						VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT
+					);
+
+					mTextureImages_[binding] = baseTextureImage_;
+				}
+			}
 		}
-
-		mUniformBuffers_[0] = std::move(uniformBuffers);
-		mUniformBuffers_[2] = std::move(lightBuffers);
-
 	}
 
 	void VulkanMaterial::createDesciptorPool()
@@ -138,8 +189,6 @@ namespace zyh
 				VulkanBuffer* vulkanBuffer = uniformPair.second[i];
 				DEBUG_RUN(HYBRID_CHECK(debugBindingSet.find(binding) == debugBindingSet.end());)
 
-				// VkWriteDescriptorSet& writeInfo = descriptorWrites[binding];
-
 				VkDescriptorBufferInfo bufferInfo{};
 				bufferInfo.buffer = vulkanBuffer->Get().buffer;
 				bufferInfo.offset = 0;
@@ -162,8 +211,6 @@ namespace zyh
 				VulkanTextureImage* image = static_cast<VulkanTextureImage*>(texturePair.second);
 				DEBUG_RUN(HYBRID_CHECK(debugBindingSet.find(binding) == debugBindingSet.end());)
 
-				// VkWriteDescriptorSet& writeInfo = descriptorWrites[binding];
-
 				VkDescriptorImageInfo imageInfo{};
 				imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 				imageInfo.imageView = image->Get().view;
@@ -179,20 +226,7 @@ namespace zyh
 				vkUpdateDescriptorSets(mLogicalDevice_->Get(), 1, &writeInfo, 0, nullptr);
 				DEBUG_RUN(debugBindingSet.insert(binding);)
 			}
-			// vkUpdateDescriptorSets(mLogicalDevice_->Get(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
-	}
-
-	void VulkanMaterial::createTextureImages()
-	{
-		VulkanTextureImage* baseTextureImage_ = new VulkanTextureImage("Resource/textures/viking_room.png");
-		baseTextureImage_->connect(mPhysicalDevice_, mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
-		baseTextureImage_->setup(VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT
-		);
-
-		mTextureImages_[1] = baseTextureImage_;
 	}
 
 	void VulkanMaterial::cleanup()
@@ -223,7 +257,7 @@ namespace zyh
 		return mGraphicsPipeline_->Get();
 	}
 
-	void ImGuiMaterial::createTextureImages()
+	void ImGuiMaterial::createDescriptorSetData()
 	{
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO();
@@ -290,15 +324,5 @@ namespace zyh
 	void ImGuiMaterial::BindPushConstant(VkCommandBuffer vkCommandBuffer)
 	{
 		vkCmdPushConstants(vkCommandBuffer, getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(PushConstBlock), &pushConstBlock);
-	}
-
-	void TerrainMaterial::createUniformBuffers()
-	{
-
-	}
-
-	void TerrainMaterial::createTextureImages()
-	{
-
 	}
 }

@@ -5,7 +5,7 @@ layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
-} ubo;
+} Batch;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
@@ -20,12 +20,12 @@ layout(location = 4) out vec3 fragPos;
 
 
 void main() {
-    mat4 mvp = ubo.proj * ubo.view * ubo.model;
+    mat4 mvp = Batch.proj * Batch.view * Batch.model;
     gl_Position =  mvp * vec4(inPosition, 1.0);
     fragColor = inColor;
-    fragNormal = mat3(transpose(inverse(ubo.model))) * inNormal; // translate to WS
+    fragNormal = mat3(transpose(inverse(Batch.model))) * inNormal; // translate to WS
     fragTexCoord = inTexCoord;
 
-    viewPos = vec3(ubo.view[3]);
+    viewPos = vec3(Batch.view[3]);
     fragPos = inPosition;
 }

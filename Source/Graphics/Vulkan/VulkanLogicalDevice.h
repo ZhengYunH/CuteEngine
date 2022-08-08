@@ -2,10 +2,12 @@
 #include "VulkanObject.h"
 #include "VulkanPhysicalDevice.h"
 
+
 namespace zyh
 {
 	class VulkanInstance;
 	class VulkanPhysicalDevice;
+	class VulkanShader;
 
 	enum E_QUEUE_FAMILY : uint8_t;
 
@@ -25,13 +27,13 @@ namespace zyh
 		VkQueue graphicsQueue();
 		VkQueue presentQueue();
 
-		VkShaderModule createShaderModule(const std::string& shaderFilePath);
-		// TODO may auto destroy, controlled by RTTI
-		void destroyShaderModule(VkShaderModule& shaderModule);
-
+		VulkanShader* getShader(const std::string& shaderFilePath);
+		
 	private:
 		VkQueue				mVkGraphicsQueue_{ VK_NULL_HANDLE };
 		VkQueue				mVkPresentQueue_{ VK_NULL_HANDLE };
+		std::unordered_map<std::string, VulkanShader*> mShaderCache_;
+
 	public:
 		QueueFamilyIndices	mFamilyIndices_;
 	};

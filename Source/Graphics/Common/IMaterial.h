@@ -1,6 +1,7 @@
 #pragma once
 #include "Common/Config.h"
 #include "Graphics/Common/RenderStage.h"
+#include "Graphics/Common/Shader.h"
 
 
 namespace zyh
@@ -22,17 +23,15 @@ namespace zyh
 	public:
 		IMaterial(const std::string& vertShaderFile, const std::string& fragShaderFile)
 		{
-			mShaderMap_[EShaderType::VS] = vertShaderFile;
-			mShaderMap_[EShaderType::PS] = fragShaderFile;
+			mShaderPathMap_[EShaderType::VS] = vertShaderFile;
+			mShaderPathMap_[EShaderType::PS] = fragShaderFile;
 		}
 		virtual ~IMaterial() {}
 		virtual bool IsValid() const { return true; }
 		virtual const TRenderSets& GetSupportRenderSet() const { return mRenderSets_; }
-		
-		std::string GetShaderFilePath(EShaderType _Type) noexcept
+		IShader* GetShader(EShaderType _Type) noexcept
 		{
-			HYBRID_CHECK(mShaderMap_.find(_Type) != mShaderMap_.end());
-			return mShaderMap_[_Type];
+			return GShaderCreator->GetShader(mShaderPathMap_[_Type]);
 		}
 
 	public:
@@ -41,6 +40,7 @@ namespace zyh
 		RasterizationState Rasterization{};
 
 	protected:
-		std::map<EShaderType, std::string> mShaderMap_;
+		std::map<EShaderType, std::string> mShaderPathMap_;
+		std::map<EShaderType, IShader*> mShaderMap_;
 	};
 }

@@ -2,6 +2,8 @@
 #include "VulkanLogicalDevice.h"
 
 #include "Graphics/Common/ResourceLoader.h"
+#include "VulkanShader.h"
+
 
 namespace zyh
 {
@@ -69,24 +71,12 @@ namespace zyh
 		return getQueue(E_QUEUE_FAMILY::PRESENT);
 	}
 
-	VkShaderModule VulkanLogicalDevice::createShaderModule(const std::string& shaderFilePath)
+	VulkanShader* VulkanLogicalDevice::getShader(const std::string& shaderFilePath)
 	{
-		auto code = ResourceLoader::readFile(shaderFilePath);
-		VkShaderModuleCreateInfo createInfo{};
-		createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-		createInfo.codeSize = code.size();
-		createInfo.pCode = reinterpret_cast<const uint32_t*>(code.data());
-
-		VkShaderModule shaderModule;
-		if (vkCreateShaderModule(mVkImpl_, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create shader module!");
+		if (mShaderCache_.find(shaderFilePath) == mShaderCache_.end())
+		{
+			mShaderCache_.insert({ shaderFilePath, new VulkanShader(shaderFilePath) });
 		}
-		return shaderModule;
+		return mShaderCache_.at(shaderFilePath);
 	}
-
-	void VulkanLogicalDevice::destroyShaderModule(VkShaderModule& shaderModule)
-	{
-		vkDestroyShaderModule(mVkImpl_, shaderModule, nullptr);
-	}
-
 }
