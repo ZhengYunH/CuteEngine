@@ -13,7 +13,7 @@ namespace zyh
 		{
 			if (isInit)
 				return;
-			HINSTANCE fbxsdk = LoadLibraryW(L"libfbxsdk.dll");
+			HINSTANCE fbxsdk = LoadLibraryW(L"Libraries/FBX/Lib/libfbxsdk.dll");
 
 			isInit = true;
 		}

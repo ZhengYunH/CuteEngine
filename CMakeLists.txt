@@ -29,23 +29,23 @@ set(
     ADDITIONAL_INCLUDE_DIR
     ${CODE_SOURCE_DIR}
     ${LIBRARY_DIR}/SPIRV-Reflect
-    ${LIBRARY_DIR}/FBX/2020.2.1/include
-    ${LIBRARY_DIR}/tinyobjloader-1.0.6
+    ${LIBRARY_DIR}/FBX/Include
+    ${LIBRARY_DIR}/tinyobjloader
     ${LIBRARY_DIR}/glm
-    ${LIBRARY_DIR}/glfw-3.3.5.bin.WIN64/include
-    ${LIBRARY_DIR}/VulkanSDK/1.2.198.0/Include
+    ${LIBRARY_DIR}/glfw/Include
+    ${LIBRARY_DIR}/VulkanSDK/Include
     ${LIBRARY_DIR}/stb-master
-    ${LIBRARY_DIR}/boost_1_79_0
+    ${LIBRARY_DIR}/boost/Include
 )
 target_include_directories(CuteEngine PUBLIC ${ADDITIONAL_INCLUDE_DIR})
 
 # additional library directories
 set(
     ADDITIONAL_LIB_DIR
-    ${LIBRARY_DIR}/boost_1_79_0/libs
-    ${LIBRARY_DIR}/glfw-3.3.5.bin.WIN64/lib-vc2019
-    ${LIBRARY_DIR}/VulkanSDK/1.2.198.0/Lib
-    ${LIBRARY_DIR}/FBX/2020.2.1/lib/vs2019/x64/release
+    ${LIBRARY_DIR}/boost/Lib
+    ${LIBRARY_DIR}/glfw/Lib
+    ${LIBRARY_DIR}/VulkanSDK/Lib
+    ${LIBRARY_DIR}/FBX/Lib
 )
 target_link_directories(CuteEngine PUBLIC ${ADDITIONAL_LIB_DIR})
 

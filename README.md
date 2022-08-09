@@ -4,25 +4,24 @@
 
 ## Enviroment
 
-OS: Window10
+OS: Window10 - x64
 
+IDE: Visual Studio 2022
 
-
-IDE: Visual Studio 2019
-
-
-
-C++:  (/std:c++17)
-
-
+C++:  (/std:c++20)
 
 ### Setup Visual Studio Project
-
-
 
 1. Download & Install cmake (require version 3.22): [Download | CMake](https://cmake.org/download/)
 
 2. run cmake . 
+
+### Libraries Version
+
++ boost 1.79.0
++ VulkanSDK 1.2.198.0
++ tinyobjloader 1.06
++ glfw 3.3.5
 
 
 
