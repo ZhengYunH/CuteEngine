@@ -183,15 +183,15 @@ namespace zyh
 		}
 
 	protected:
-		VulkanBuffer* mVertexBuffer_;
-		VulkanBuffer* mIndexBuffer_;
+		VulkanBuffer* mVertexBuffer_{ nullptr };
+		VulkanBuffer* mIndexBuffer_{ nullptr };
 	public:
-		VulkanMaterial* mMaterial_;
+		VulkanMaterial* mMaterial_{ nullptr };
 
 	protected:
-		VulkanPhysicalDevice* mVulkanPhysicalDevice_;
-		VulkanLogicalDevice* mVulkanLogicalDevice_;
-		VulkanCommandPool* mVulkanCommandPool_;
+		VulkanPhysicalDevice* mVulkanPhysicalDevice_{ nullptr };
+		VulkanLogicalDevice* mVulkanLogicalDevice_{ nullptr };
+		VulkanCommandPool* mVulkanCommandPool_{ nullptr };
 
 	};
 }

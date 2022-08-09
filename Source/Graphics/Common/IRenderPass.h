@@ -117,9 +117,9 @@ namespace zyh
 		void UpdateBuffers();
 
 	public:
-		class VulkanMaterial* mMaterial_;
-		class VulkanBuffer* mVertexBuffer_;
-		class VulkanBuffer* mIndexBuffer_;
+		class VulkanMaterial* mMaterial_{ nullptr };
+		class VulkanBuffer* mVertexBuffer_{ nullptr };
+		class VulkanBuffer* mIndexBuffer_{ nullptr };
 		bool mIsResourceDirty_{ true };
 
 	protected:

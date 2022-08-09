@@ -10,8 +10,8 @@ namespace zyh
 
 	struct VulkanBufferCollection
 	{
-		VkBuffer buffer;
-		VkDeviceMemory mem;
+		VkBuffer buffer{ VK_NULL_HANDLE };
+		VkDeviceMemory mem{ VK_NULL_HANDLE };
 	};
 
 	class VulkanBuffer : public TVulkanObject<VulkanBufferCollection>
