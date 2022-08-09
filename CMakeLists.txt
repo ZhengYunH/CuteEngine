@@ -5,6 +5,9 @@ cmake_minimum_required(VERSION 3.10)
 # set the project name 
 project(CuteEngine)
 
+# set character set to unicode
+ADD_DEFINITIONS(-DUNICODE)
+
 # preset common directory path
 set(CODE_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Source)
 set(LIBRARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Libraries)
@@ -56,4 +59,4 @@ set(
 target_link_libraries(CuteEngine ${ADDITIONAL_DEP_LIB})
 
 # other feature
-target_compile_features(CuteEngine PRIVATE cxx_std_17)
+target_compile_features(CuteEngine PRIVATE cxx_std_20)
