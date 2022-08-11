@@ -125,11 +125,11 @@ namespace zyh
 					float fy1 = i != depthCount - 1 ? mHeightMap_->mHeightMapData_[(i + 1) * widthCount + j] : 0.f;
 					
 					AddVertex(
-						TerrainVert(
+						TerrainVert{
 							glm::vec3(i, mHeightMap_->mHeightMapData_[i * widthCount + j], j),
 							glm::vec3((fx0 - fx1) / 2* mHeightMap_->mTileAcc_, 1, (fy0 - fy1) / 2*mHeightMap_->mTileAcc_),
 							glm::vec2(u, v)
-						)
+						}
 					);
 				}
 			}

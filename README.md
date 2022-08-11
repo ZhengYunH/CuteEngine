@@ -11,10 +11,11 @@ C++:  (/std:c++20)
 ### Setup
 
 1. Download & Install cmake (require version 3.22): [Download | CMake](https://cmake.org/download/)
-2. run cmake . 
-3. after 2. you will get visual studio project, open it
-4. set "CuteEngine" project as the start up Project
-5. Compile and Run
+2. Download & install [VulkanSDK](https://vulkan.lunarg.com/) (the same version is better :) 1.2.198.0) 
+3. run cmake . 
+4. after 2. you will get visual studio project, open it
+5. set "CuteEngine" project as the start up Project
+6. Compile and Run
 
 ### Libraries Version
 

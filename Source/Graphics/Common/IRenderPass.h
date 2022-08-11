@@ -133,10 +133,10 @@ namespace zyh
 				: Super(material)
 			{
 				AddVertex({
-					QuadVert(glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.f, 0.f)),
-					QuadVert(glm::vec3( 1.0f, -1.0f,  1.0f), glm::vec2(1.f, 0.f)),
-					QuadVert(glm::vec3(-1.0f,  1.0f,  1.0f), glm::vec2(0.f, 1.f)),
-					QuadVert(glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(1.f, 1.f))
+					QuadVert{glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.f, 0.f)},
+					QuadVert{glm::vec3( 1.0f, -1.0f,  1.0f), glm::vec2(1.f, 0.f)},
+					QuadVert{glm::vec3(-1.0f,  1.0f,  1.0f), glm::vec2(0.f, 1.f)},
+					QuadVert{glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(1.f, 1.f)}
 				});
 
 				AddIndex({
