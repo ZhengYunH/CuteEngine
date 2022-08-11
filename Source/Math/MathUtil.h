@@ -1,6 +1,8 @@
 #pragma once
 #include <cmath>
 #include <tuple>
+#include <limits>
+
 
 namespace zyh
 {
@@ -15,6 +17,9 @@ namespace zyh
 	static constexpr float MATH_PI_UNDER_180 = (180.0f / MATH_PI);
 
 	static constexpr float EPISILON = 1e-5f;
+
+	static constexpr float MIN_NUM = std::numeric_limits<float>::min();
+	static constexpr float MAX_NUM = std::numeric_limits<float>::max();
 
 	static float WrapPI(float radians) noexcept; // clamp theta to (-pi, pi]
 	static float SafeACos(float radians) noexcept;

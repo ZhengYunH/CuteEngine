@@ -1,7 +1,6 @@
 #include "FbxResourceLoader.h"
+#include "Common/Config.h"
 
-#include <fbxsdk.h>
-#include <windows.h>
 
 namespace zyh
 {
@@ -80,11 +79,6 @@ namespace zyh
 							outIndices.push_back(indiceArray[polygonCount]);
 							outIndices.push_back(indiceArray[polygonCount + 1]);
 							outIndices.push_back(indiceArray[polygonCount + 2]);
-
-
-							/*outIndices.push_back(indiceArray[polygonCount]);
-							outIndices.push_back(indiceArray[polygonCount + polygonCount % 2 + 1]);
-							outIndices.push_back(indiceArray[polygonCount + 2 - polygonCount % 2]);*/
 						}
 					}
 				}

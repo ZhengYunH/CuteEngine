@@ -5,6 +5,11 @@
 	#define ZYH_DEBUG
 #endif // !NDEBUG
 
+// platform
+#if defined(_WIN32)
+#include "Config/System/Win32.h"
+#endif
+
 
 #ifdef ZYH_DEBUG
 #include <assert.h>

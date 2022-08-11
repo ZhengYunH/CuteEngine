@@ -3,10 +3,6 @@
 #include "Common/KeyCodes.h"
 #include "Core/EventHelper.h"
 
-#if defined(_WIN32)
-#include <windows.h>
-#endif
-
 #define INPUT_SYSTEM_OP_EVENT(OPType) OPType##_Event
 #define DEFINE_OP_EVENT(OPType, ...) Event<void, ##__VA_ARGS__> INPUT_SYSTEM_OP_EVENT(OPType)
 
@@ -40,7 +36,6 @@ namespace zyh
 
 	public:
 		void HandleMessage(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
-
 	};
 
 	extern InputSystem* GInputSystem;

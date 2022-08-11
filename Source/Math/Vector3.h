@@ -35,6 +35,7 @@ namespace zyh
 		constexpr Vector3(const Vector3&) noexcept = default;
 		constexpr Vector3(float nx, float ny, float nz) noexcept : x(nx), y(ny), z(nz) {}
 		constexpr Vector3(float* arr) noexcept : x(arr[0]), y(arr[1]), z(arr[2]) {}
+		constexpr Vector3(float n) noexcept : x(n), y(n), z(n) {}
 
 	public: // method
 		void SetZero() { x = y = z = 0.0f; }

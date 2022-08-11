@@ -1,9 +1,11 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <fbxsdk.h>
 
 #include "Common/Config.h"
 #include "Geometry.h"
+
 
 namespace zyh
 {
