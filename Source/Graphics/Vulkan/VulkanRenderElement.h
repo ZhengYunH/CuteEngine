@@ -49,13 +49,22 @@ namespace zyh
 		virtual void setup() override
 		{
 			mMaterial_->setup();
+
+			size_t maxBufferSize = *GInstance->mImageCount_;
+			mVertexBuffers_.resize(maxBufferSize, nullptr);
+			mIndexBuffers_.resize(maxBufferSize, nullptr);
+
 			updatePrimitiveData();
 		}
 
 		virtual void cleanup() override
 		{
-			SafeDestroy(mVertexBuffer_);
-			SafeDestroy(mIndexBuffer_);
+			for (auto buffer : mVertexBuffers_)
+				SafeDestroy(buffer);
+			mVertexBuffers_.clear();
+			for (auto buffer : mIndexBuffers_)
+				SafeDestroy(buffer);
+			mIndexBuffers_.clear();
 			SafeDestroy(mMaterial_);
 		}
 
@@ -143,10 +152,10 @@ namespace zyh
 
 			uint32_t indexSize = mPrimitives_->GetIndicesCount();
 
-			VkBuffer vertexBuffers[] = { mVertexBuffer_->Get().buffer };
+			VkBuffer vertexBuffers[] = { GetActiveVertexBuffer()->Get().buffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(commandBuffer, mIndexBuffer_->Get().buffer, 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindIndexBuffer(commandBuffer, GetActiveIndexBuffer()->Get().buffer, 0, VK_INDEX_TYPE_UINT32);
 			vkCmdDrawIndexed(commandBuffer, indexSize, 1, 0, 0, 0);
 		}
 
@@ -161,33 +170,58 @@ namespace zyh
 			mPrimitives_->GetVerticesData(&vertexData, vertexSize);
 			mPrimitives_->GetIndicesData(&indexData, indexSize);
 
-			if (!mVertexBuffer_ || mVertexBuffer_->GetBufferSize() != vertexSize)
+			uint32_t maxBufferSize = *GInstance->mImageCount_;
+			bool needCreateInitBuffer = mActiveVertexBufferIndex_ < 0;
+			mActiveVertexBufferIndex_ = (mActiveVertexBufferIndex_ + 1) % maxBufferSize;
+			bool needRecreateVertexBuffer = needCreateInitBuffer || !GetActiveVertexBuffer() || GetActiveVertexBuffer()->GetBufferSize() != vertexSize;
+
+			if (needRecreateVertexBuffer || !GetActiveVertexBuffer())
 			{
-				SafeDestroy(mVertexBuffer_);
-				mVertexBuffer_ = new VulkanBuffer();
-				mVertexBuffer_->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
-				mVertexBuffer_->setup(vertexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				SafeDestroy(mVertexBuffers_[mActiveVertexBufferIndex_]);
+				mVertexBuffers_[mActiveVertexBufferIndex_] = new VulkanBuffer();
+				GetActiveVertexBuffer()->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
+				GetActiveVertexBuffer()->setup(vertexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 			}
 
 			stagingBuffer.setup(vertexSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			stagingBuffer.setupData(vertexData, vertexSize);
-			VulkanBuffer::copyBuffer(mVulkanCommandPool_, stagingBuffer.Get().buffer, mVertexBuffer_->Get().buffer, vertexSize);
+			VulkanBuffer::copyBuffer(mVulkanCommandPool_, stagingBuffer.Get().buffer, GetActiveVertexBuffer()->Get().buffer, vertexSize);
 
-			if (!mIndexBuffer_ || mIndexBuffer_->GetBufferSize() != indexSize)
+			needCreateInitBuffer = mActiveIndexBufferIndex_ < 0;
+			mActiveIndexBufferIndex_ = (mActiveIndexBufferIndex_ + 1) % maxBufferSize;
+			bool needRecreateIndexBuffer = needCreateInitBuffer || !GetActiveIndexBuffer() || GetActiveIndexBuffer()->GetBufferSize() != indexSize;
+			if (needRecreateIndexBuffer)
 			{
-				SafeDestroy(mIndexBuffer_);
-				mIndexBuffer_ = new VulkanBuffer();
-				mIndexBuffer_->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
-				mIndexBuffer_->setup(indexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				SafeDestroy(mIndexBuffers_[mActiveIndexBufferIndex_]);
+				mIndexBuffers_[mActiveIndexBufferIndex_] = new VulkanBuffer();
+				GetActiveIndexBuffer()->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
+				GetActiveIndexBuffer()->setup(indexSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 			}
 			stagingBuffer.setup(indexSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			stagingBuffer.setupData(indexData, indexSize);
-			VulkanBuffer::copyBuffer(mVulkanCommandPool_, stagingBuffer.Get().buffer, mIndexBuffer_->Get().buffer, indexSize);
+			VulkanBuffer::copyBuffer(mVulkanCommandPool_, stagingBuffer.Get().buffer, GetActiveIndexBuffer()->Get().buffer, indexSize);
 		}
 
 	protected:
-		VulkanBuffer* mVertexBuffer_{ nullptr };
-		VulkanBuffer* mIndexBuffer_{ nullptr };
+		std::vector<VulkanBuffer*> mVertexBuffers_;
+		std::vector<VulkanBuffer*> mIndexBuffers_;
+
+		int mActiveVertexBufferIndex_{ -1 };
+		int mActiveIndexBufferIndex_{ -1 };
+			
+		VulkanBuffer* GetActiveVertexBuffer()
+		{
+			HYBRID_CHECK(mActiveVertexBufferIndex_ < mVertexBuffers_.size());
+			return mVertexBuffers_[mActiveVertexBufferIndex_];
+		}
+
+		VulkanBuffer* GetActiveIndexBuffer()
+		{
+			HYBRID_CHECK(mActiveIndexBufferIndex_ < mIndexBuffers_.size());
+			return mIndexBuffers_[mActiveIndexBufferIndex_];
+		}
+
+
 	public:
 		VulkanMaterial* mMaterial_{ nullptr };
 

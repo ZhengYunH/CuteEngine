@@ -134,7 +134,6 @@ namespace zyh
 			return;
 		}
 
-
 		// Update buffers only if vertex or index count has been changed compared to current buffer size
 		
 		// Vertex buffer
