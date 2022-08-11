@@ -57,7 +57,7 @@ namespace zyh
 				prim->GetMaterial()->GetPipelineState().DepthStencil.StencilTestEnable = true;
 				prim->GetMaterial()->GetPipelineState().DepthStencil.StencilState.CompareOp = ECompareOP::ALWAYS;
 				prim->GetMaterial()->GetPipelineState().DepthStencil.StencilState.PassOp = DepthStencilState::EStencilOp::REPLACE;
-				prim->GetMaterial()->GetPipelineState().DepthStencil.StencilState.Reference = 211;
+				prim->GetMaterial()->GetPipelineState().DepthStencil.StencilState.Reference = 1;
 				break;
 			default:
 				Unimplement(0);

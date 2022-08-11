@@ -188,15 +188,17 @@ namespace zyh
 
 
 		// Color blending
+		const ColorBlendState& colorBlendState = mOwner_->GetColorBlendState();
+
 		VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-		colorBlendAttachment.blendEnable = VK_TRUE;
-		colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-		colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;
-		colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-		colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-		colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD;
+		colorBlendAttachment.blendEnable = colorBlendState.BlendEnable;
+		colorBlendAttachment.srcColorBlendFactor = _convertBlendFactor(colorBlendState.SrcColorBlendFactor);
+		colorBlendAttachment.dstColorBlendFactor = _convertBlendFactor(colorBlendState.DstColorBlendFactor);
+		colorBlendAttachment.colorBlendOp = _convertBlendOp(colorBlendState.ColorBlendOp);
+		colorBlendAttachment.srcAlphaBlendFactor = _convertBlendFactor(colorBlendState.SrcAlphaBlendFactor);;
+		colorBlendAttachment.dstAlphaBlendFactor = _convertBlendFactor(colorBlendState.DstAlphaBlendFactor);;
+		colorBlendAttachment.alphaBlendOp = _convertBlendOp(colorBlendState.AlphaBlendOp);
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{};
 		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -234,7 +236,7 @@ namespace zyh
 			throw std::runtime_error("failed to create pipeline layout!");
 		}
 
-		DepthStencilState depthStencilState = mOwner_->GetDepthStencilState();
+		const DepthStencilState& depthStencilState = mOwner_->GetDepthStencilState();
 		
 		// Depth and stencil state
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
@@ -294,71 +296,115 @@ namespace zyh
 
 	VkCompareOp VulkanGraphicsPipeline::_convertCompareOp(ECompareOP op)
 	{
-		VkCompareOp compareOp = VK_COMPARE_OP_NEVER;
 		switch (op)
 		{
 		case ECompareOP::NEVER:
-			compareOp = VK_COMPARE_OP_NEVER;
-			break;
+			return VK_COMPARE_OP_NEVER;
 		case ECompareOP::EQUAL:
-			compareOp = VK_COMPARE_OP_EQUAL;
-			break;
+			return VK_COMPARE_OP_EQUAL;
 		case ECompareOP::GREATER:
-			compareOp = VK_COMPARE_OP_GREATER;
-			break;
+			return VK_COMPARE_OP_GREATER;
 		case ECompareOP::LESS_OR_EQUAL:
-			compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-			break;
+			return VK_COMPARE_OP_LESS_OR_EQUAL;
 		case ECompareOP::NOT_EQUAL:
-			compareOp = VK_COMPARE_OP_NOT_EQUAL;
-			break;
+			return VK_COMPARE_OP_NOT_EQUAL;
 		case ECompareOP::GREATER_OR_EQUAL:
-			compareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
-			break;
+			return VK_COMPARE_OP_GREATER_OR_EQUAL;
 		case ECompareOP::ALWAYS:
-			compareOp = VK_COMPARE_OP_ALWAYS;
-			break;
+			return VK_COMPARE_OP_ALWAYS;
 		default:
 			Unimplement();
 			break;
 		}
-		return compareOp;
+		return VK_COMPARE_OP_MAX_ENUM;
 	}
 
 	VkStencilOp VulkanGraphicsPipeline::_convertStencilOp(DepthStencilState::EStencilOp op)
 	{
-		VkStencilOp stencilOp = VK_STENCIL_OP_KEEP;
 		switch (op)
 		{
 		case DepthStencilState::EStencilOp::KEEP:
-			stencilOp = VK_STENCIL_OP_KEEP;
-			break;
+			return VK_STENCIL_OP_KEEP;
 		case DepthStencilState::EStencilOp::ZERO:
-			stencilOp = VK_STENCIL_OP_ZERO;
-			break;
+			return VK_STENCIL_OP_ZERO;
 		case DepthStencilState::EStencilOp::REPLACE:
-			stencilOp = VK_STENCIL_OP_REPLACE;
-			break;
+			return VK_STENCIL_OP_REPLACE;
 		case DepthStencilState::EStencilOp::INCREMENT_AND_CLAMP:
-			stencilOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
-			break;
+			return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
 		case DepthStencilState::EStencilOp::DECREMENT_AND_CLAMP:
-			stencilOp = VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+			return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
 			break;
 		case DepthStencilState::EStencilOp::INVERT:
-			stencilOp = VK_STENCIL_OP_INVERT;
-			break;
+			return VK_STENCIL_OP_INVERT;
 		case DepthStencilState::EStencilOp::INCREMENT_AND_WRAP:
-			stencilOp = VK_STENCIL_OP_INCREMENT_AND_WRAP;
-			break;
+			return VK_STENCIL_OP_INCREMENT_AND_WRAP;
 		case DepthStencilState::EStencilOp::DECREMENT_AND_WRAP:
-			stencilOp = VK_STENCIL_OP_DECREMENT_AND_WRAP;
-			break;
+			return VK_STENCIL_OP_DECREMENT_AND_WRAP;
 		default:
 			Unimplement();
 			break;
 		}
-		return stencilOp;
+		return VK_STENCIL_OP_MAX_ENUM;
+	}
+
+	VkBlendOp VulkanGraphicsPipeline::_convertBlendOp(ColorBlendState::EBlendOP op)
+	{
+		switch (op)
+		{
+		case ColorBlendState::EBlendOP::ADD:
+			return VK_BLEND_OP_ADD;
+		case ColorBlendState::EBlendOP::SUBSTRACT:
+			return VK_BLEND_OP_SUBTRACT;
+		case ColorBlendState::EBlendOP::REVERSE_SUBSTRACT:
+			return VK_BLEND_OP_REVERSE_SUBTRACT;
+		case ColorBlendState::EBlendOP::MIN:
+			return VK_BLEND_OP_MIN;
+		case ColorBlendState::EBlendOP::MAX:
+			return VK_BLEND_OP_MAX;
+		default:
+			Unimplement(0);
+			break;
+		}
+		return VK_BLEND_OP_MAX_ENUM;
+	}
+
+	VkBlendFactor VulkanGraphicsPipeline::_convertBlendFactor(ColorBlendState::EBlendFactor factor)
+	{
+		switch (factor)
+		{
+		case ColorBlendState::EBlendFactor::ZERO:
+			return VK_BLEND_FACTOR_ZERO;
+		case ColorBlendState::EBlendFactor::ONE:
+			return VK_BLEND_FACTOR_ONE;
+		case ColorBlendState::EBlendFactor::SRC_COLOR:
+			return VK_BLEND_FACTOR_SRC_COLOR;
+		case ColorBlendState::EBlendFactor::ONE_MINUS_SRC_COLOR:
+			return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+		case ColorBlendState::EBlendFactor::DST_COLOR:
+			return VK_BLEND_FACTOR_DST_COLOR;
+		case ColorBlendState::EBlendFactor::ONE_MINUS_DST_COLOR:
+			return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+		case ColorBlendState::EBlendFactor::SRC_ALPHA:
+			return VK_BLEND_FACTOR_SRC_ALPHA;
+		case ColorBlendState::EBlendFactor::ONE_MINUS_SRC_ALPHA:
+			return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+		case ColorBlendState::EBlendFactor::DST_ALPHA:
+			return VK_BLEND_FACTOR_DST_ALPHA;
+		case ColorBlendState::EBlendFactor::ONE_MINUS_DST_ALPHA:
+			return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+		case ColorBlendState::EBlendFactor::CONSTANT_COLOR:
+			return VK_BLEND_FACTOR_CONSTANT_COLOR;
+		case ColorBlendState::EBlendFactor::ONE_MINUS_CONSTANT_COLOR:
+			return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+		case ColorBlendState::EBlendFactor::CONSTANT_ALPHA:
+			return VK_BLEND_FACTOR_CONSTANT_ALPHA;
+		case ColorBlendState::EBlendFactor::ONE_MINUS_CONSTANT_ALPHA:
+			return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA;
+		default:
+			Unimplement(0);
+			break;
+		}
+		return VK_BLEND_FACTOR_MAX_ENUM;
 	}
 
 }

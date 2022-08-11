@@ -214,7 +214,10 @@ namespace zyh
 		{
 			mMaterial->GetPipelineState().DepthStencil.DepthTestEnable = false;
 			mMaterial->GetPipelineState().DepthStencil.StencilTestEnable = true;
-			mMaterial->GetPipelineState().DepthStencil.StencilState.Reference = 211;
+			mMaterial->GetPipelineState().DepthStencil.StencilState.Reference = 1;
+
+			mMaterial->GetPipelineState().ColorBlend.SrcColorBlendFactor = ColorBlendState::EBlendFactor::ONE;
+			mMaterial->GetPipelineState().ColorBlend.DstColorBlendFactor = ColorBlendState::EBlendFactor::ZERO;
 		}
 	};
 }

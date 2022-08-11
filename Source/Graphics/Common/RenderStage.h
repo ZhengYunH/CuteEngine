@@ -68,12 +68,55 @@ namespace zyh
 	};
 	static DepthStencilState DefaultDepthStencilState{};
 
+	struct ColorBlendState
+	{
+		enum class EBlendFactor
+		{
+			ZERO = 0,
+			ONE = 1,
+			SRC_COLOR = 2,
+			ONE_MINUS_SRC_COLOR = 3,
+			DST_COLOR = 4,
+			ONE_MINUS_DST_COLOR = 5,
+			SRC_ALPHA = 6,
+			ONE_MINUS_SRC_ALPHA = 7,
+			DST_ALPHA = 8,
+			ONE_MINUS_DST_ALPHA = 9,
+			CONSTANT_COLOR = 10,
+			ONE_MINUS_CONSTANT_COLOR = 11,
+			CONSTANT_ALPHA = 12,
+			ONE_MINUS_CONSTANT_ALPHA = 13
+		};
+
+		enum class EBlendOP
+		{
+			ADD = 0,
+			SUBSTRACT = 1,
+			REVERSE_SUBSTRACT = 2,
+			MIN = 3,
+			MAX = 4
+		};
+
+		bool BlendEnable{ true };
+
+		EBlendFactor SrcColorBlendFactor{ EBlendFactor::SRC_ALPHA };
+		EBlendFactor DstColorBlendFactor{ EBlendFactor::ONE_MINUS_SRC_ALPHA };
+		EBlendOP ColorBlendOp{ EBlendOP::ADD };
+
+		EBlendFactor SrcAlphaBlendFactor{ EBlendFactor::ONE_MINUS_SRC_ALPHA };
+		EBlendFactor DstAlphaBlendFactor{ EBlendFactor::ZERO };
+		EBlendOP AlphaBlendOp{ EBlendOP::ADD };
+	};
+	static ColorBlendState DefaultColorBlendState{};
+
+
 	// IPipelineState
 	struct IPipelineState
 	{
 		RasterizationState Rasterization{ DefaultRasterizationState };
 		DepthStencilState DepthStencil{ DefaultDepthStencilState };
+		ColorBlendState ColorBlend{ DefaultColorBlendState };
 	};
 
-	static IPipelineState DefaultPipelineState;
+	static IPipelineState DefaultPipelineState{};
 }

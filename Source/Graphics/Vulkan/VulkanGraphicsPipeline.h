@@ -47,6 +47,8 @@ namespace zyh
 	protected:
 		VkCompareOp _convertCompareOp(ECompareOP op);
 		VkStencilOp _convertStencilOp(DepthStencilState::EStencilOp op);
+		VkBlendOp _convertBlendOp(ColorBlendState::EBlendOP op);
+		VkBlendFactor _convertBlendFactor(ColorBlendState::EBlendFactor factor);
 
 	public:
 		const VkPipelineLayout& getPipelineLayout() { return mVkPipelineLayout_; }

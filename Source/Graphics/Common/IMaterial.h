@@ -53,11 +53,8 @@ namespace zyh
 	protected:
 		TRenderSets mRenderSets_{ SCENE };
 		IPipelineState mPipelineState_{};
-		DepthStencilState DepthStencil{};
-		RasterizationState Rasterization{};
 
 	protected:
-		std::unordered_map<RenderSet, std::map<EShaderType, std::string>> mShaderPathMap_;
-		std::map<EShaderType, IShader*> mShaderMap_;
+		std::unordered_map<RenderSet, std::map<EShaderType, std::string>> mShaderPathMap_{};
 	};
 }
