@@ -53,6 +53,7 @@ namespace zyh
 	{
 		HYBRID_CHECK(std::find(mPrimitives_.begin(), mPrimitives_.end(), prim) == mPrimitives_.end());
 		mPrimitives_.push_back(prim);
+		mPrimitiveTree_.InsertNode(prim);
 	}
 
 	void ClientScene::DelPrimitive(IPrimitivesComponent* prim)

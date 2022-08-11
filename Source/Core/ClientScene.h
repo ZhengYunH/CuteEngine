@@ -2,6 +2,7 @@
 #include "Common/Config.h"
 #include "Core/Engine.h"
 #include "Core/IObject.h"
+#include "Core/DataStructure/Octree.h"
 
 
 namespace zyh
@@ -57,6 +58,8 @@ namespace zyh
 		IRenderScene* mRenderScene_;
 		class Renderer* mRenderer_;
 		Camera* mCamera_;
+
+		Octree<IPrimitivesComponent> mPrimitiveTree_;
 	};
 
 }
