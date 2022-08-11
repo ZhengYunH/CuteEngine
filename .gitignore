@@ -433,4 +433,9 @@ Loading complete
 
 # custom
 imgui.ini
+CMakeCache.txt
+CMakeFiles
+*.sln
+*.cmake
+
 *.vcxproj*
