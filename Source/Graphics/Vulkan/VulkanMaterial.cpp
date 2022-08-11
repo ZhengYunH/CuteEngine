@@ -49,8 +49,11 @@ namespace zyh
 		mRenderPass_->setup(*GInstance->mColorFormat_, *GInstance->mMsaaSamples_, *GInstance->mDepthFormat_);
 		createDescriptorSetData();
 		createGraphicsPipeline();
-		createDesciptorPool();
-		createDescriptorSets();
+		if (mUniformBuffers_.size() + mTextureImages_.size() > 0)
+		{
+			createDesciptorPool();
+			createDescriptorSets();
+		}
 	}
 
 	void VulkanMaterial::createGraphicsPipeline()

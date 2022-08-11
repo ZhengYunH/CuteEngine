@@ -135,8 +135,11 @@ namespace zyh
 			vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 			vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->mGraphicsPipeline_->Get());
-			VkDescriptorSet set = mMaterial_->getDescriptorSet(currImage);
-			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipelineLayout(), 0, 1, &set, 0, nullptr);
+			if (mMaterial_->needUpdateDesciptorSet())
+			{
+				VkDescriptorSet set = mMaterial_->getDescriptorSet(currImage);
+				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipelineLayout(), 0, 1, &set, 0, nullptr);
+			}
 
 			uint32_t indexSize = mPrimitives_->GetIndicesCount();
 

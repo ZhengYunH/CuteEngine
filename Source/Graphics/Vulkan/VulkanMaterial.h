@@ -54,6 +54,7 @@ namespace zyh
 		virtual void updateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo);
 		void endUpdateUniformBuffer(UniformBufferObject& ubo, UniformLightingBufferObject& ulbo);
 		VkDescriptorSet getDescriptorSet(size_t currentImage) { return mDescriptorSets_[currentImage]; }
+		bool needUpdateDesciptorSet() { return mUniformBuffers_.size() + mTextureImages_.size() > 0; }
 		VkPipelineLayout getPipelineLayout();
 		VkPipeline getPipeline();
 
