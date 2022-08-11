@@ -16,6 +16,8 @@
 #include "Graphics/Vulkan/VulkanRenderPass.h"
 #include "Graphics/Vulkan/VulkanCommandPool.h"
 
+#include "Core/IPrimitivesComponent.h"
+
 #include "Graphics/Imgui/imgui.h"
 #include "Graphics/Imgui/imgui_impl_vulkan.h"
 #include "Graphics/Imgui/imgui_impl_win32.h"
@@ -34,40 +36,19 @@ namespace zyh
 			mRenderSets_(renderSets),
 			mRenderPass_(renderPass->Get())
 		{
-			InitRenderPass();
-		}
-
-		IRenderPass(
-			const std::string& renderPassName,
-			const TRenderSets& renderSets,
-			VkRenderPass renderPass
-		) : mName_(renderPassName),
-			mRenderSets_(renderSets),
-			mRenderPass_(renderPass)
-		{
-			InitRenderPass();
 		}
 
 		const bool IsRenderSetSupported(RenderSet renderSet)
 		{
 			return std::find(mRenderSets_.begin(), mRenderSets_.end(), renderSet) != mRenderSets_.end();
 		}
-
 		
 		virtual void Prepare(VkFramebuffer framebuffer);
 
-		virtual void InitResource() {}
-
-		void Draw(RenderSet renderSet);
-
+		void Draw();
 	
 	protected:
-		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet);
-
-	protected:
-		void InitRenderPass();
-		void InitCommandBufferBeginInfo();
-		void InitRenderPassBeginInfo();
+		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer);
 	
 	protected:
 		std::string mName_;
@@ -102,14 +83,7 @@ namespace zyh
 			VulkanRenderPassBase* renderPass
 		);
 
-		ImGuiRenderPass(
-			const std::string& renderPassName,
-			const TRenderSets& renderSets,
-			VkRenderPass renderPass
-		);
-
 		virtual void Prepare(VkFramebuffer framebuffer) override;
-		virtual void InitResource() override;
 
 		~ImGuiRenderPass();
 
@@ -123,9 +97,124 @@ namespace zyh
 		bool mIsResourceDirty_{ true };
 
 	protected:
-		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet) override;
+		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer) override;
 
 	private:
 		void Init();
+	};
+
+	class PostProcessRenderPass : public IRenderPass
+	{
+		struct QuadVert
+		{
+			glm::vec3 pos;
+			glm::vec2 uv;
+
+			static void GetBindingDescriptions(std::vector<VkVertexInputBindingDescription>& descriptions) {
+				descriptions = {
+					initInputBindingDesc(0, sizeof(QuadVert), VK_VERTEX_INPUT_RATE_VERTEX)
+				};
+			}
+
+			static void GetAttributeDescriptions(std::vector<VkVertexInputAttributeDescription>& descriptions)
+			{
+				descriptions = {
+					initInputAttrDesc(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(QuadVert, pos)), // pos
+					initInputAttrDesc(0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(QuadVert, uv))	// uv
+				};
+			}
+		};
+
+		class QuadPrimitives : public TPrimitive<QuadVert>
+		{
+			using Super = TPrimitive<QuadVert>;
+		public:
+			QuadPrimitives(IMaterial* material)
+				: Super(material)
+			{
+				AddVertex({
+					QuadVert(glm::vec3(-1.0f, -1.0f,  1.0f), glm::vec2(0.f, 0.f)),
+					QuadVert(glm::vec3( 1.0f, -1.0f,  1.0f), glm::vec2(1.f, 0.f)),
+					QuadVert(glm::vec3(-1.0f,  1.0f,  1.0f), glm::vec2(0.f, 1.f)),
+					QuadVert(glm::vec3( 1.0f,  1.0f,  1.0f), glm::vec2(1.f, 1.f))
+				});
+
+				AddIndex({
+					0, 1, 2,
+					1, 3, 2
+				});
+			}
+		};
+
+	public:
+		PostProcessRenderPass(
+			const std::string& vertShaderFile, 
+			const std::string& fragShaderFile,
+			const std::string& renderPassName,
+			VulkanRenderPassBase* renderPass
+		) : IRenderPass(renderPassName, {RenderSet::NONE}, renderPass) // Don't care about Render-Set, cause we handle element
+		{
+			mMaterial = new IMaterial(vertShaderFile, fragShaderFile);
+			mMaterial->GetPipelineState().Rasterization.CullMode = ERasterizationCullMode::NONE;
+
+			mPrim_ = new QuadPrimitives(mMaterial);
+		}
+
+		virtual void Prepare(VkFramebuffer framebuffer) override
+		{
+			IRenderPass::Prepare(framebuffer);
+			if (!mElement_)
+			{
+				mElement_ = new VulkanRenderElement(mPrim_, RenderSet::SCENE);
+			}
+		}
+
+		virtual ~PostProcessRenderPass()
+		{
+			SafeDestroy(mElement_);
+			SafeDestroy(mPrim_);
+			SafeDestroy(mMaterial);
+		}
+
+		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer)
+		{
+			mElement_->draw(vkCommandBuffer, GVulkanInstance->GetCurrentImage());
+		}
+
+	protected:
+		IMaterial* mMaterial{ nullptr };
+		QuadPrimitives* mPrim_{ nullptr };
+		VulkanRenderElement* mElement_{ nullptr };
+	};
+
+
+	class XRayStencilWritePass : public IRenderPass
+	{
+		XRayStencilWritePass(
+			const std::string& renderPassName,
+			const TRenderSets& renderSets,
+			VulkanRenderPassBase* renderPass
+		): IRenderPass(renderPassName, renderSets, renderPass)
+		{
+		}
+	};
+
+	class XRayPass : public PostProcessRenderPass
+	{
+	public:
+		XRayPass(
+			const std::string& renderPassName,
+			VulkanRenderPassBase* renderPass
+		) : PostProcessRenderPass(
+			"Resource/shaders/postprocess.vert.spv",
+			"Resource/shaders/postprocess.frag.spv",
+			renderPassName,
+			renderPass
+		)
+		{
+			mMaterial->GetPipelineState().DepthStencil.DepthTestEnable = false;
+			mMaterial->GetPipelineState().DepthStencil.StencilTestEnable = true;
+			mMaterial->GetPipelineState().DepthStencil.StencilState.Reference = 211;
+		}
 	};
 }

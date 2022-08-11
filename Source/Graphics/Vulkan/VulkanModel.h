@@ -61,7 +61,7 @@ namespace zyh
 				{
 					mRenderElements_[renderSet] = *(new std::vector<IRenderElement*>());
 				}
-				mRenderElements_[renderSet].push_back(new VulkanRenderElement(prim));
+				mRenderElements_[renderSet].push_back(new VulkanRenderElement(prim, renderSet));
 			}
 		}
 

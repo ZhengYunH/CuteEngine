@@ -40,7 +40,8 @@ enum RenderSet : uint32_t
 {
 	NONE = 0,
 	SCENE = 1,
-	SHADOW = 2
+	SHADOW = 2,
+	XRAY = 3,
 };
 typedef std::vector<RenderSet> TRenderSets;
 

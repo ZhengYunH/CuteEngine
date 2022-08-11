@@ -38,6 +38,7 @@ namespace zyh
 
 		virtual size_t AddPrimitive(EPrimitiveType primType, Matrix4x3* localTransform = nullptr)
 		{
+			IPrimitive* prim;
 			size_t index = -1;
 			switch (primType)
 			{
@@ -49,6 +50,14 @@ namespace zyh
 				break;
 			case EPrimitiveType::SPHERE:
 				index = AddPrimitive(new SpherePrimitive(), localTransform);
+
+				// Test XRay Stencil
+				prim = GetPrimitive(index);
+				prim->GetMaterial()->AddRenderSet(RenderSet::XRAY, "Resource/shaders/XRayStencilWriter.vert.spv", "Resource/shaders/XRayStencilWriter.frag.spv");
+				prim->GetMaterial()->GetPipelineState().DepthStencil.StencilTestEnable = true;
+				prim->GetMaterial()->GetPipelineState().DepthStencil.StencilState.CompareOp = ECompareOP::ALWAYS;
+				prim->GetMaterial()->GetPipelineState().DepthStencil.StencilState.PassOp = DepthStencilState::EStencilOp::REPLACE;
+				prim->GetMaterial()->GetPipelineState().DepthStencil.StencilState.Reference = 211;
 				break;
 			default:
 				Unimplement(0);

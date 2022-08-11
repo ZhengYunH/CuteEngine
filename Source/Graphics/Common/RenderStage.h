@@ -38,7 +38,7 @@ namespace zyh
 
 	struct DepthStencilState
 	{
-		enum class StencilOp
+		enum class EStencilOp
 		{
 			KEEP = 0,
 			ZERO = 1,
@@ -53,9 +53,11 @@ namespace zyh
 		// how to influence the stencil buffer
 		struct StencialState
 		{
-			StencilOp FailOp{ StencilOp::KEEP };
-			StencilOp PassOp{ StencilOp::KEEP };
-			StencilOp DepthFailOp{ StencilOp::KEEP }; // Depth Fail but Stencil Pass
+			EStencilOp FailOp{ EStencilOp::KEEP };
+			EStencilOp PassOp{ EStencilOp::KEEP };
+			EStencilOp DepthFailOp{ EStencilOp::KEEP }; // Depth Fail but Stencil Pass
+			ECompareOP CompareOp{ ECompareOP::EQUAL };
+			uint32_t Reference{ 1 };
 		};
 
 		bool DepthTestEnable{ true };

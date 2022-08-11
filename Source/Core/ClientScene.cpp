@@ -103,6 +103,7 @@ namespace zyh
 	void ClientScene::CollectAllRenderElements()
 	{
 		CollectRenderElements(RenderSet::SCENE);
+		CollectRenderElements(RenderSet::XRAY);
 	}
 
 	void ClientScene::Serialize(Archive* ar)

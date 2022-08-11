@@ -81,8 +81,8 @@ namespace zyh
 
 	void VulkanGraphicsPipeline::_setupGraphicsPipeline()
 	{
-		VkShaderModule vertShaderModule = static_cast<VulkanShader*>(mOwner_->mMaterial_->GetShader(EShaderType::VS))->GetShaderModule();
-		VkShaderModule fragShaderModule = static_cast<VulkanShader*>(mOwner_->mMaterial_->GetShader(EShaderType::PS))->GetShaderModule();
+		VkShaderModule vertShaderModule = static_cast<VulkanShader*>(mOwner_->mMaterial_->GetShader(EShaderType::VS, mOwner_->mRenderSet_))->GetShaderModule();
+		VkShaderModule fragShaderModule = static_cast<VulkanShader*>(mOwner_->mMaterial_->GetShader(EShaderType::PS, mOwner_->mRenderSet_))->GetShaderModule();
 
 		VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 		vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -235,47 +235,26 @@ namespace zyh
 		}
 
 		DepthStencilState depthStencilState = mOwner_->GetDepthStencilState();
-		VkCompareOp depthCompareOp = VK_COMPARE_OP_NEVER;
-		switch (depthStencilState.DepthCompareOp)
-		{
-		case ECompareOP::NEVER:
-			depthCompareOp = VK_COMPARE_OP_NEVER;
-			break;
-		case ECompareOP::EQUAL:
-			depthCompareOp = VK_COMPARE_OP_EQUAL;
-			break;
-		case ECompareOP::GREATER:
-			depthCompareOp = VK_COMPARE_OP_GREATER;
-			break;
-		case ECompareOP::LESS_OR_EQUAL:
-			depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-			break;
-		case ECompareOP::NOT_EQUAL:
-			depthCompareOp = VK_COMPARE_OP_NOT_EQUAL;
-			break;
-		case ECompareOP::GREATER_OR_EQUAL:
-			depthCompareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
-			break;
-		case ECompareOP::ALWAYS:
-			depthCompareOp = VK_COMPARE_OP_ALWAYS;
-			break;
-		default:
-			Unimplement();
-			break;
-		}
-
+		
 		// Depth and stencil state
 		VkPipelineDepthStencilStateCreateInfo depthStencil{};
 		depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 		depthStencil.depthTestEnable = depthStencilState.DepthTestEnable;
 		depthStencil.depthWriteEnable = depthStencilState.DepthWriteEnable;
-		depthStencil.depthCompareOp = depthCompareOp;
+		depthStencil.depthCompareOp = _convertCompareOp(depthStencilState.DepthCompareOp);
 		depthStencil.depthBoundsTestEnable = VK_FALSE;
 		depthStencil.minDepthBounds = 0.0f; // Optional
 		depthStencil.maxDepthBounds = 1.0f; // Optional
-		depthStencil.stencilTestEnable = VK_FALSE;
-		depthStencil.front = {}; // Optional
-		depthStencil.back = {}; // Optional
+		depthStencil.stencilTestEnable = depthStencilState.StencilTestEnable;
+
+		depthStencil.front.failOp = _convertStencilOp(depthStencilState.StencilState.FailOp);
+		depthStencil.front.passOp = _convertStencilOp(depthStencilState.StencilState.PassOp);
+		depthStencil.front.depthFailOp = _convertStencilOp(depthStencilState.StencilState.DepthFailOp);
+		depthStencil.front.compareOp = _convertCompareOp(depthStencilState.StencilState.CompareOp);
+		depthStencil.front.compareMask = 0xff;
+		depthStencil.front.writeMask = 0xff;
+		depthStencil.front.reference = depthStencilState.StencilState.Reference;
+		depthStencil.back = depthStencil.front;
 
 		// Dynamic State
 		std::vector<VkDynamicState> dynamicStateEnables = {
@@ -311,6 +290,75 @@ namespace zyh
 		if (vkCreateGraphicsPipelines(mVulkanLogicalDevice->Get(), mVkPipelineCache_, 1, &pipelineInfo, nullptr, &mVkImpl_) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline!");
 		}
+	}
+
+	VkCompareOp VulkanGraphicsPipeline::_convertCompareOp(ECompareOP op)
+	{
+		VkCompareOp compareOp = VK_COMPARE_OP_NEVER;
+		switch (op)
+		{
+		case ECompareOP::NEVER:
+			compareOp = VK_COMPARE_OP_NEVER;
+			break;
+		case ECompareOP::EQUAL:
+			compareOp = VK_COMPARE_OP_EQUAL;
+			break;
+		case ECompareOP::GREATER:
+			compareOp = VK_COMPARE_OP_GREATER;
+			break;
+		case ECompareOP::LESS_OR_EQUAL:
+			compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+			break;
+		case ECompareOP::NOT_EQUAL:
+			compareOp = VK_COMPARE_OP_NOT_EQUAL;
+			break;
+		case ECompareOP::GREATER_OR_EQUAL:
+			compareOp = VK_COMPARE_OP_GREATER_OR_EQUAL;
+			break;
+		case ECompareOP::ALWAYS:
+			compareOp = VK_COMPARE_OP_ALWAYS;
+			break;
+		default:
+			Unimplement();
+			break;
+		}
+		return compareOp;
+	}
+
+	VkStencilOp VulkanGraphicsPipeline::_convertStencilOp(DepthStencilState::EStencilOp op)
+	{
+		VkStencilOp stencilOp = VK_STENCIL_OP_KEEP;
+		switch (op)
+		{
+		case DepthStencilState::EStencilOp::KEEP:
+			stencilOp = VK_STENCIL_OP_KEEP;
+			break;
+		case DepthStencilState::EStencilOp::ZERO:
+			stencilOp = VK_STENCIL_OP_ZERO;
+			break;
+		case DepthStencilState::EStencilOp::REPLACE:
+			stencilOp = VK_STENCIL_OP_REPLACE;
+			break;
+		case DepthStencilState::EStencilOp::INCREMENT_AND_CLAMP:
+			stencilOp = VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+			break;
+		case DepthStencilState::EStencilOp::DECREMENT_AND_CLAMP:
+			stencilOp = VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+			break;
+		case DepthStencilState::EStencilOp::INVERT:
+			stencilOp = VK_STENCIL_OP_INVERT;
+			break;
+		case DepthStencilState::EStencilOp::INCREMENT_AND_WRAP:
+			stencilOp = VK_STENCIL_OP_INCREMENT_AND_WRAP;
+			break;
+		case DepthStencilState::EStencilOp::DECREMENT_AND_WRAP:
+			stencilOp = VK_STENCIL_OP_DECREMENT_AND_WRAP;
+			break;
+		default:
+			Unimplement();
+			break;
+		}
+		return stencilOp;
 	}
 
 }

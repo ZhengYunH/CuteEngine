@@ -36,6 +36,16 @@ namespace zyh
 			return mRenderElements_[renderSet];
 		}
 
+		TRenderSets GetExistRenderSets()
+		{
+			TRenderSets RenderSets;
+			for (auto& pair : mRenderElements_)
+			{
+				RenderSets.push_back(pair.first);
+			}
+			return RenderSets;
+		}
+
 		bool IsRenderElementDirty(RenderSet renderSet)
 		{
 			HYBRID_CHECK(mRenderElements_.find(renderSet) != mRenderElements_.end());

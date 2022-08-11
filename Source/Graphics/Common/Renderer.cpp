@@ -29,9 +29,24 @@ namespace zyh
 		mPlatform_->Initialize();
 		mRenderPasses_.push_back(
 			new IRenderPass(
-				"Test",
+				"Scene",
 				{ RenderSet::SCENE },
 				GVulkanInstance->mRenderPass_
+			)
+		);
+
+		mRenderPasses_.push_back(
+			new IRenderPass(
+				"XRayWriter",
+				{ RenderSet::XRAY },
+				GVulkanInstance->mUIRenderPass_
+			)
+		);
+
+		mRenderPasses_.push_back(
+			new XRayPass(
+				"XRayPostProcess",
+				GVulkanInstance->mUIRenderPass_
 			)
 		);
 
@@ -45,19 +60,21 @@ namespace zyh
 
 	void Renderer::Draw()
 	{
-		RenderSet renderSet = RenderSet::SCENE;
 		mPlatform_->DrawFrameBegin(mCurrentImage_);
 		{
-			for (auto& renderElement : mRenderScene_->GetRenderElements(renderSet))
+			for (auto renderSet : mRenderScene_->GetExistRenderSets())
 			{
-				VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-				element->updateUniformBuffer(mCurrentImage_);
+				for (auto& renderElement : mRenderScene_->GetRenderElements(renderSet))
+				{
+					VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+					element->updateUniformBuffer(mCurrentImage_);
+				}
 			}
 
 			for (IRenderPass* pass : mRenderPasses_)
 			{
 				pass->Prepare(GVulkanInstance->GetSwapchainFrameBuffer());
-				pass->Draw(renderSet);
+				pass->Draw();
 			}
 		}
 		mPlatform_->DrawFrameEnd();

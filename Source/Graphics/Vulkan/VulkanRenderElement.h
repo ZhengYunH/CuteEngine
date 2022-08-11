@@ -21,9 +21,9 @@ namespace zyh
 	class VulkanRenderElement : public IRenderElement, public IVulkanObject
 	{
 	public:
-		VulkanRenderElement(IPrimitive* InPrimtives) : IRenderElement(InPrimtives)
+		VulkanRenderElement(IPrimitive* InPrimtives, RenderSet renderSet) : IRenderElement(InPrimtives)
 		{
-			mMaterial_ = new VulkanMaterial(InPrimtives);
+			mMaterial_ = new VulkanMaterial(InPrimtives, renderSet);
 			connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
 			setup();
 		}

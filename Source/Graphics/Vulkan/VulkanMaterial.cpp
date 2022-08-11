@@ -21,15 +21,16 @@
 
 namespace zyh
 {
-	VulkanMaterial::VulkanMaterial(IMaterial* material, VulkanRenderPassBase::OpType opType)
+	VulkanMaterial::VulkanMaterial(IMaterial* material, RenderSet renderSet, VulkanRenderPassBase::OpType opType)
 	{
 		mMaterial_ = material;
+		mRenderSet_ = renderSet;
 		mRenderPass_ = new VulkanRenderPassBase(opType);
 		mGraphicsPipeline_ = new VulkanGraphicsPipeline(this);
 	}
 
-	VulkanMaterial::VulkanMaterial(IPrimitive* prim, VulkanRenderPassBase::OpType opType /*= VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE*/)
-		: VulkanMaterial(prim->GetMaterial(), opType)
+	VulkanMaterial::VulkanMaterial(IPrimitive* prim, RenderSet renderSet, VulkanRenderPassBase::OpType opType /*= VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE*/)
+		: VulkanMaterial(prim->GetMaterial(),  renderSet, opType)
 	{
 		mPrim_ = prim;
 	}
@@ -59,8 +60,8 @@ namespace zyh
 
 	void VulkanMaterial::createDescriptorSetData()
 	{
-		IShaderParser* vsParser =  mMaterial_->GetShader(EShaderType::VS)->GetParser();
-		IShaderParser* psParser = mMaterial_->GetShader(EShaderType::PS)->GetParser();
+		IShaderParser* vsParser =  mMaterial_->GetShader(EShaderType::VS, mRenderSet_)->GetParser();
+		IShaderParser* psParser = mMaterial_->GetShader(EShaderType::PS, mRenderSet_)->GetParser();
 
 		_createDescriptorSetData(EShaderType::VS, vsParser);
 		_createDescriptorSetData(EShaderType::PS, psParser);

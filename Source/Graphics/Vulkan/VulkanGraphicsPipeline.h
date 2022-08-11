@@ -1,5 +1,7 @@
 #pragma once
 #include "VulkanObject.h"
+#include "Graphics/Common/RenderStage.h"
+
 
 namespace zyh
 {
@@ -41,6 +43,10 @@ namespace zyh
 		VkDescriptorSetLayout mVkDescriptorSetLayout_;
 		virtual void _setupDescriptorSetLayout();
 		virtual void _setupGraphicsPipeline();
+
+	protected:
+		VkCompareOp _convertCompareOp(ECompareOP op);
+		VkStencilOp _convertStencilOp(DepthStencilState::EStencilOp op);
 
 	public:
 		const VkPipelineLayout& getPipelineLayout() { return mVkPipelineLayout_; }

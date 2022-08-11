@@ -85,14 +85,26 @@ namespace zyh
 		{
 		}
 
-		void AddVertex(TVertexStruct point)
+		virtual void AddVertex(TVertexStruct point)
 		{
 			mVertices_.push_back(point);
 		}
 
-		void AddIndex(uint32_t index)
+		void AddVertex(std::initializer_list<TVertexStruct> points)
+		{
+			for (auto point : points)
+				AddVertex(point);
+		}
+
+		virtual void AddIndex(uint32_t index)
 		{
 			mIndices_.push_back(index);
+		}
+
+		void AddIndex(std::initializer_list<uint32_t> index)
+		{
+			for (auto indice : index)
+				AddIndex(indice);
 		}
 
 		virtual void GetVerticesData(void** data, size_t& size) override
@@ -135,6 +147,9 @@ namespace zyh
 	class Primitive : public TPrimitive<Vertex>
 	{
 	public:
+		Primitive() = default;
+		Primitive(IMaterial* material) : TPrimitive<Vertex>(material) {}
+
 		virtual void LoadResourceFile(const std::string& InFileName)
 		{
 			ResourceLoader::loadModel(InFileName, mVertices_, mIndices_);
@@ -144,8 +159,17 @@ namespace zyh
 	class SpherePrimitive : public Primitive
 	{
 	public:
-		SpherePrimitive() 
-			: Primitive()
+		SpherePrimitive() : Primitive()
+		{
+			Initialize();
+		}
+
+		SpherePrimitive(IMaterial* material) : Primitive(material)
+		{
+			Initialize();
+		}
+
+		void Initialize()
 		{
 			mType_ = EPrimitiveType::SPHERE;
 
@@ -167,7 +191,7 @@ namespace zyh
 					float v = j * stepV + startV;
 					float un = (i + 1 == division) ? endU : (i + 1) * stepU + startU;
 					float vn = (j + 1 == division) ? endV : (j + 1) * stepV + startV;
-					
+
 					Vector3 p0 = _GetUnitSphereSurfacePoint(u, v) * mRadius_;
 					Vector3 p1 = _GetUnitSphereSurfacePoint(u, vn) * mRadius_;
 					Vector3 p2 = _GetUnitSphereSurfacePoint(un, v) * mRadius_;
@@ -176,9 +200,9 @@ namespace zyh
 					glm::vec2 texCoord(-1.f, -1.f);
 
 					auto colorGenerate = [](float u, float v) ->  glm::vec3
-					{ 
-						return  glm::vec3((Sin(u) + 1) * 0.5, (Cos(v) + 1) * 0.5, 1.f); 
-					}; 
+					{
+						return  glm::vec3((Sin(u) + 1) * 0.5, (Cos(v) + 1) * 0.5, 1.f);
+					};
 
 					Vertex v0(glm::vec3(p0.x, p0.y, p0.z), colorGenerate(u, v), texCoord);
 					Vertex v1(glm::vec3(p1.x, p1.y, p1.z), colorGenerate(u, vn), texCoord);

@@ -26,11 +26,8 @@ namespace zyh
 		mVKFramebuffer_ = framebuffer;
 	}
 
-	void IRenderPass::Draw(RenderSet renderSet)
+	void IRenderPass::Draw()
 	{
-		if (!IsRenderSetSupported(renderSet))
-			return;
-
 		mVKBufferBeginInfo_.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		mVKBufferBeginInfo_.flags = 0;
 		mVKBufferBeginInfo_.pInheritanceInfo = nullptr;
@@ -53,35 +50,22 @@ namespace zyh
 		{
 			VkCommandBuffer vkCommandBuffer = command->Get();
 			vkCmdBeginRenderPass(vkCommandBuffer, &mRenderPassInfo_, VK_SUBPASS_CONTENTS_INLINE);
-			_DrawElements(vkCommandBuffer, renderSet);
+			_DrawElements(vkCommandBuffer);
 			vkCmdEndRenderPass(vkCommandBuffer);
 		}
 		command->end();
 	}
 
-	void IRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet)
+	void IRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer)
 	{
-		for (auto& renderElement : GEngine->Scene->GetRenderElements(renderSet))
+		for (auto RenderSet : mRenderSets_)
 		{
-			VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-			element->draw(vkCommandBuffer, GVulkanInstance->GetCurrentImage());
+			for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet))
+			{
+				VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+				element->draw(vkCommandBuffer, GVulkanInstance->GetCurrentImage());
+			}
 		}
-	}
-
-	void IRenderPass::InitRenderPass()
-	{
-		InitCommandBufferBeginInfo();
-		InitRenderPassBeginInfo();
-	}
-
-	void IRenderPass::InitCommandBufferBeginInfo()
-	{
-
-	}
-
-	void IRenderPass::InitRenderPassBeginInfo()
-	{
-
 	}
 
 	ImGuiRenderPass::ImGuiRenderPass(const std::string& renderPassName, const TRenderSets& renderSets, VulkanRenderPassBase* renderPass)
@@ -89,13 +73,6 @@ namespace zyh
 	{
 		Init();
 	}
-
-	ImGuiRenderPass::ImGuiRenderPass(const std::string& renderPassName, const TRenderSets& renderSets, VkRenderPass renderPass)
-		: IRenderPass(renderPassName, renderSets, renderPass)
-	{
-		Init();
-	}
-
 	ImGuiRenderPass::~ImGuiRenderPass()
 	{
 		ImGui::DestroyContext();
@@ -208,11 +185,7 @@ namespace zyh
 		uiSettings.frameTimes[GEngine->GetCurrFrame() % uiSettings.frameTimes.size()] = GEngine->GetDeltaTime() * 1000 * (uiSettings.frameTimeMax - uiSettings.frameTimeMin) / 10.f;
 	}
 
-	void ImGuiRenderPass::InitResource()
-	{
-	}
-
-	void ImGuiRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet)
+	void ImGuiRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 

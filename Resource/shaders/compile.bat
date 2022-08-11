@@ -12,4 +12,11 @@ echo %ROOT_DIR%
 
 %ROOT_DIR%\Libraries\VulkanSDK\glslc.exe terrain.vert -O0 -o terrain.vert.spv
 %ROOT_DIR%\Libraries\VulkanSDK\glslc.exe terrain.frag -O0 -o terrain.frag.spv
+
+%ROOT_DIR%\Libraries\VulkanSDK\glslc.exe XRayStencilWriter.vert -O0 -o XRayStencilWriter.vert.spv
+%ROOT_DIR%\Libraries\VulkanSDK\glslc.exe XRayStencilWriter.frag -O0 -o XRayStencilWriter.frag.spv
+
+%ROOT_DIR%\Libraries\VulkanSDK\glslc.exe postprocess.vert -O0 -o postprocess.vert.spv
+%ROOT_DIR%\Libraries\VulkanSDK\glslc.exe postprocess.frag -O0 -o postprocess.frag.spv
+
 pause

@@ -6,7 +6,6 @@
 
 namespace zyh 
 {
-
 	void HeightMap::GenerateData()
 	{
 		if (mHeightMapData_)

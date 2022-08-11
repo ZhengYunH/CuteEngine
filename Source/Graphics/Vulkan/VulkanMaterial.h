@@ -37,10 +37,10 @@ namespace zyh
 	{
 		friend class VulkanGraphicsPipeline;
 	public:
-		VulkanMaterial(IMaterial* material, VulkanRenderPassBase::OpType opType = VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
+		VulkanMaterial(IMaterial* material, RenderSet renderSet, VulkanRenderPassBase::OpType opType = VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
 		
 		// Temp: Clean after VertexFactory Implementation
-		VulkanMaterial(IPrimitive* prim, VulkanRenderPassBase::OpType opType = VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
+		VulkanMaterial(IPrimitive* prim, RenderSet renderSet, VulkanRenderPassBase::OpType opType = VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
 		IPrimitive* mPrim_ { nullptr };
 
 		virtual void connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, uint32_t layoutCount);
@@ -82,6 +82,7 @@ namespace zyh
 		uint32_t			mLayoutCount_;
 		size_t				mCurrentUpdateImage_;
 		IMaterial*			mMaterial_;
+		RenderSet			mRenderSet_;
 
 	public:
 		VulkanGraphicsPipeline* mGraphicsPipeline_;
@@ -113,7 +114,7 @@ namespace zyh
 		} pushConstBlock;
 
 	public:
-		ImGuiMaterial(IMaterial* material) : VulkanMaterial(material, VulkanRenderPassBase::OpType::LOAD_AND_STORE) {}
+		ImGuiMaterial(IMaterial* material) : VulkanMaterial(material, RenderSet::SCENE, VulkanRenderPassBase::OpType::LOAD_AND_STORE) {}
 
 	public:
 		virtual void createDescriptorSetData() override;

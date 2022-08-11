@@ -23,15 +23,28 @@ namespace zyh
 	public:
 		IMaterial(const std::string& vertShaderFile, const std::string& fragShaderFile)
 		{
-			mShaderPathMap_[EShaderType::VS] = vertShaderFile;
-			mShaderPathMap_[EShaderType::PS] = fragShaderFile;
+			mShaderPathMap_[RenderSet::SCENE] = std::map<EShaderType, std::string>();
+			mShaderPathMap_[RenderSet::SCENE][EShaderType::VS] = vertShaderFile;
+			mShaderPathMap_[RenderSet::SCENE][EShaderType::PS] = fragShaderFile;
 		}
 		virtual ~IMaterial() {}
 		virtual bool IsValid() const { return true; }
 		virtual const TRenderSets& GetSupportRenderSet() const { return mRenderSets_; }
-		IShader* GetShader(EShaderType _Type) noexcept
+		void AddRenderSet(RenderSet set, const std::string& vertShaderFile, const std::string& fragShaderFile)
+		{ 
+			if (std::find(mRenderSets_.begin(), mRenderSets_.end(), set) == mRenderSets_.end())
+			{
+				mRenderSets_.push_back(set);
+				mShaderPathMap_[set] = std::map<EShaderType, std::string>();
+				mShaderPathMap_[set][EShaderType::VS] = vertShaderFile;
+				mShaderPathMap_[set][EShaderType::PS] = fragShaderFile;
+			}
+		}
+
+		IShader* GetShader(EShaderType _Type, RenderSet renderSet = RenderSet::SCENE) noexcept
 		{
-			return GShaderCreator->GetShader(mShaderPathMap_[_Type]);
+			HYBRID_CHECK(mShaderPathMap_.find(renderSet) != mShaderPathMap_.end());
+			return GShaderCreator->GetShader(mShaderPathMap_[renderSet][_Type]);
 		}
 
 	public:
@@ -44,7 +57,7 @@ namespace zyh
 		RasterizationState Rasterization{};
 
 	protected:
-		std::map<EShaderType, std::string> mShaderPathMap_;
+		std::unordered_map<RenderSet, std::map<EShaderType, std::string>> mShaderPathMap_;
 		std::map<EShaderType, IShader*> mShaderMap_;
 	};
 }
