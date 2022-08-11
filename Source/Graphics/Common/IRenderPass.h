@@ -125,13 +125,6 @@ namespace zyh
 	protected:
 		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer, RenderSet renderSet) override;
 
-	protected: // Event Binding
-		void EventLeftMouseDown(KEY_TYPE x, KEY_TYPE y);
-		void EventRightMouseDown(KEY_TYPE x, KEY_TYPE y);
-		void EventLeftMouseUp(KEY_TYPE x, KEY_TYPE y);
-		void EventRightMouseUp(KEY_TYPE x, KEY_TYPE y);
-		void EventMouseMove(KEY_TYPE x, KEY_TYPE y);
-
 	private:
 		void Init();
 	};

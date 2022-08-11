@@ -35,7 +35,11 @@ namespace zyh
 		}
 
 	public:
+		IPipelineState& GetPipelineState() { return mPipelineState_; }
+
+	protected:
 		TRenderSets mRenderSets_{ SCENE };
+		IPipelineState mPipelineState_{};
 		DepthStencilState DepthStencil{};
 		RasterizationState Rasterization{};
 

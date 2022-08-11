@@ -73,8 +73,8 @@ namespace zyh
 		virtual void PushConstant(std::string semantic, void* data){}
 		virtual void BindPushConstant(VkCommandBuffer vkCommandBuffer) {}
 
-		virtual DepthStencilState GetDepthStencilState() { return mMaterial_->DepthStencil; }
-		virtual RasterizationState GetRasterizationState() { return mMaterial_->Rasterization; }
+		virtual DepthStencilState GetDepthStencilState() { return mMaterial_->GetPipelineState().DepthStencil; }
+		virtual RasterizationState GetRasterizationState() { return mMaterial_->GetPipelineState().Rasterization; }
 
 	protected:
 		VulkanLogicalDevice* mLogicalDevice_;

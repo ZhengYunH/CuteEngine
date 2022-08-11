@@ -160,7 +160,6 @@ namespace zyh
 
 		// Update buffers only if vertex or index count has been changed compared to current buffer size
 		
-		
 		// Vertex buffer
 		if (mVertexBuffer_ == nullptr || mVertexBuffer_->GetBufferSize() != vertexBufferSize)
 		{
@@ -271,8 +270,8 @@ namespace zyh
 	void ImGuiRenderPass::Init()
 	{
 		IMaterial* material = new IMaterial("Resource/shaders/ui.vert.spv", "Resource/shaders/ui.frag.spv");
-		material->DepthStencil = DepthStencilState{ false, false };
-		material->Rasterization = RasterizationState{ ERasterizationCullMode::NONE };
+		material->GetPipelineState().DepthStencil = DepthStencilState{false, false};
+		material->GetPipelineState().Rasterization = RasterizationState{ ERasterizationCullMode::NONE };
 
 		mMaterial_ = new ImGuiMaterial(material);
 		mMaterial_->connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, *GInstance->mImageCount_);;
@@ -282,19 +281,19 @@ namespace zyh
 		ImGui_ImplVulkan_InitInfo initInfo
 		{
 			GVulkanInstance->mInstance_->Get(), // VkInstance Instance;
-			GVulkanInstance->mPhysicalDevice_->Get(), // VkPhysicalDevice                PhysicalDevice;
-			GVulkanInstance->mLogicalDevice_->Get(), //VkDevice                        Device;
-			GVulkanInstance->mLogicalDevice_->mFamilyIndices_->getIndexByQueueFamily(GRAPHICS), //uint32_t                        QueueFamily;
-			GVulkanInstance->mLogicalDevice_->graphicsQueue(), //VkQueue                         Queue;
-			VK_NULL_HANDLE, //VkPipelineCache                 PipelineCache;
-			mMaterial_->mDescriptorPool_, //VkDescriptorPool                DescriptorPool;
-			0, //uint32_t                        Subpass;
-			*GInstance->mImageCount_, // uint32_t                        MinImageCount;          // >= 2
-			*GInstance->mImageCount_, //Setting:: uint32_t                        ImageCount;             // >= MinImageCount
-			*GInstance->mMsaaSamples_, // VkSampleCountFlagBits           MSAASamples;            // >= VK_SAMPLE_COUNT_1_BIT (0 -> default to VK_SAMPLE_COUNT_1_BIT)
+			GVulkanInstance->mPhysicalDevice_->Get(), // VkPhysicalDevice PhysicalDevice;
+			GVulkanInstance->mLogicalDevice_->Get(), //VkDevice Device;
+			GVulkanInstance->mLogicalDevice_->mFamilyIndices_->getIndexByQueueFamily(GRAPHICS), //uint32_t QueueFamily;
+			GVulkanInstance->mLogicalDevice_->graphicsQueue(), //VkQueue  Queue;
+			VK_NULL_HANDLE, //VkPipelineCache PipelineCache;
+			mMaterial_->mDescriptorPool_, //VkDescriptorPool DescriptorPool;
+			0, //uint32_t Subpass;
+			*GInstance->mImageCount_, // uint32_t MinImageCount;          // >= 2
+			*GInstance->mImageCount_, //Setting:: uint32_t ImageCount;             // >= MinImageCount
+			*GInstance->mMsaaSamples_, // VkSampleCountFlagBits MSAASamples;            // >= VK_SAMPLE_COUNT_1_BIT (0 -> default to VK_SAMPLE_COUNT_1_BIT)
 			nullptr,
 			// const VkAllocationCallbacks* Allocator;
-			// void                            (*CheckVkResultFn)(VkResult err);
+			// void (*CheckVkResultFn)(VkResult err);
 		};
 		ImGui_ImplVulkan_Init(&initInfo, mRenderPass_);
 

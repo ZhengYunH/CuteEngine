@@ -76,8 +76,6 @@ namespace zyh
 
 		std::vector<IRenderPass*> mRenderPasses_;
 
-		VulkanImage* mDepthStencil_{ nullptr };
-
 		/** @brief Synchronization Objects*/
 		const int MAX_FRAMES_IN_FLIGHT = 2;
 		std::vector<VkSemaphore> mImageAvailableSemaphores_;
