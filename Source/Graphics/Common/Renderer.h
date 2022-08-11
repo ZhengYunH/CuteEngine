@@ -28,9 +28,5 @@ namespace zyh
 		std::vector<IRenderPass*> mRenderPasses_;
 
 		size_t mCurrentImage_ = 0;
-
-	private:
-		ImGuiType mGuiData_;
-		uint32_t mGuiMinImageCount_ = 2;
 	};
 }
