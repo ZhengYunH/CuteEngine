@@ -195,7 +195,9 @@ namespace zyh
 			mMaterial_ = new IMaterial("Resource/shaders/terrain.vert.spv", "Resource/shaders/terrain.frag.spv");
 			mHeightmapPrim_ = new HeightMapPrimitive(mMaterial_, mHeightmap_);
 			mHeightmapPrim_->DataChanged.Bind(Bind(&TerrainComponent::HeightMapDataChanged, this));
+
 			mModel_->AddPrimitive(mHeightmapPrim_);
+
 		}
 
 		virtual ~TerrainComponent()

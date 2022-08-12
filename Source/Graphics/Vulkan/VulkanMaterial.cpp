@@ -21,16 +21,15 @@
 
 namespace zyh
 {
-	VulkanMaterial::VulkanMaterial(IMaterial* material, RenderSet renderSet, VulkanRenderPassBase::OpType opType)
+	VulkanMaterial::VulkanMaterial(IMaterial* material, RenderSet renderSet)
 	{
 		mMaterial_ = material;
 		mRenderSet_ = renderSet;
-		mRenderPass_ = new VulkanRenderPassBase(opType);
 		mGraphicsPipeline_ = new VulkanGraphicsPipeline(this);
 	}
 
-	VulkanMaterial::VulkanMaterial(IPrimitive* prim, RenderSet renderSet, VulkanRenderPassBase::OpType opType /*= VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE*/)
-		: VulkanMaterial(prim->GetMaterial(),  renderSet, opType)
+	VulkanMaterial::VulkanMaterial(IPrimitive* prim, RenderSet renderSet)
+		: VulkanMaterial(prim->GetMaterial(), renderSet)
 	{
 		mPrim_ = prim;
 	}
@@ -46,7 +45,6 @@ namespace zyh
 
 	void VulkanMaterial::setup()
 	{
-		mRenderPass_->setup(*GInstance->mColorFormat_, *GInstance->mMsaaSamples_, *GInstance->mDepthFormat_);
 		createDescriptorSetData();
 		createGraphicsPipeline();
 		if (mUniformBuffers_.size() + mTextureImages_.size() > 0)

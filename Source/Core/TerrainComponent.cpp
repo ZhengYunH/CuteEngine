@@ -47,8 +47,7 @@ namespace zyh
 		mModel_->getAllRenderElements(Elements);
 		for (VulkanRenderElement* element : Elements)
 		{
-			if(element->mPrimitives_ == prim)
-				element->updatePrimitiveData();
+			element->updateData(prim);
 		}
 	}
 

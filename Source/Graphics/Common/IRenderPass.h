@@ -17,6 +17,7 @@
 #include "Graphics/Vulkan/VulkanCommandPool.h"
 
 #include "Core/IPrimitivesComponent.h"
+#include "Graphics/Common/RenderResource.h"
 
 #include "Graphics/Imgui/imgui.h"
 #include "Graphics/Imgui/imgui_impl_vulkan.h"
@@ -31,31 +32,32 @@ namespace zyh
 		IRenderPass(
 			const std::string& renderPassName, 
 			const TRenderSets& renderSets,
-			VulkanRenderPassBase* renderPass
 		):	mName_(renderPassName),
-			mRenderSets_(renderSets),
-			mRenderPass_(renderPass->Get())
+			mRenderSets_(renderSets)
 		{
 		}
 
-		const bool IsRenderSetSupported(RenderSet renderSet)
+		const TRenderSets& GetRenderSets()
 		{
-			return std::find(mRenderSets_.begin(), mRenderSets_.end(), renderSet) != mRenderSets_.end();
+			return mRenderSets_;
 		}
+	
+		const std::vector<RenderTarget*>& GetRenderTargets() { return mRenderTargets_; }
+		void AddRenderTarget(RenderTarget* target) { mRenderTargets_.push_back(target); }
 		
-		virtual void Prepare(VkFramebuffer framebuffer);
+		const RenderTarget* GetDepthStencilTarget() { return mDepthStencilTarget_; };
+		void SetDepthStencilTarget_(RenderTarget* target) { mDepthStencilTarget_ = target; }
+	
+		virtual void PrepareData() {}
 
-		void Draw();
-	
-	protected:
-		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer);
-	
 	protected:
 		std::string mName_;
 		TRenderSets mRenderSets_;
-		VkRenderPass mRenderPass_;
-		VkRenderPassBeginInfo mRenderPassInfo_{};
-	
+		
+		std::vector<RenderTarget*> mRenderTargets_;
+		RenderTarget* mDepthStencilTarget_;
+
+
 	private:
 		VkFramebuffer mVKFramebuffer_;
 		VkCommandBufferBeginInfo mVKBufferBeginInfo_{};
@@ -83,12 +85,13 @@ namespace zyh
 			VulkanRenderPassBase* renderPass
 		);
 
-		virtual void Prepare(VkFramebuffer framebuffer) override;
+		virtual void PrepareData() override;
 
 		~ImGuiRenderPass();
 
 		void NewFrame();
 		void UpdateBuffers();
+		void EmitRenderElements();
 
 	public:
 		class VulkanMaterial* mMaterial_{ nullptr };
@@ -101,6 +104,9 @@ namespace zyh
 
 	private:
 		void Init();
+
+	protected:
+		class ImGuiRenderElement* mRenderElement_;
 	};
 
 	class PostProcessRenderPass : public IRenderPass
@@ -160,12 +166,12 @@ namespace zyh
 			mPrim_ = new QuadPrimitives(mMaterial);
 		}
 
-		virtual void Prepare(VkFramebuffer framebuffer) override
+		virtual void PrepareData() override
 		{
-			IRenderPass::Prepare(framebuffer);
+			IRenderPass::PrepareData();
 			if (!mElement_)
 			{
-				mElement_ = new VulkanRenderElement(mPrim_, RenderSet::SCENE);
+				mElement_ = new VulkanRenderElement(mPrim_->GetMaterial(), RenderSet::SCENE);
 			}
 		}
 

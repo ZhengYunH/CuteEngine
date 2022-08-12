@@ -36,6 +36,7 @@ namespace zyh
 
 	public:
 		virtual void Serialize(class Archive* ar) override;
+		IRenderScene* GetRenderScene() { return mRenderScene_; }
 
 	protected:
 		void LoadScene();

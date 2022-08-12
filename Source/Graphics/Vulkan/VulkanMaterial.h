@@ -37,10 +37,10 @@ namespace zyh
 	{
 		friend class VulkanGraphicsPipeline;
 	public:
-		VulkanMaterial(IMaterial* material, RenderSet renderSet, VulkanRenderPassBase::OpType opType = VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
+		VulkanMaterial(IMaterial* material, RenderSet renderSet);
 		
 		// Temp: Clean after VertexFactory Implementation
-		VulkanMaterial(IPrimitive* prim, RenderSet renderSet, VulkanRenderPassBase::OpType opType = VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
+		VulkanMaterial(IPrimitive* prim, RenderSet renderSet);
 		IPrimitive* mPrim_ { nullptr };
 
 		virtual void connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice, uint32_t layoutCount);

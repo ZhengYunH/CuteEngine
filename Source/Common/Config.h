@@ -42,7 +42,9 @@ enum RenderSet : uint32_t
 	SCENE = 1,
 	SHADOW = 2,
 	XRAY = 3,
+	UI = 4,
 };
+
 typedef std::vector<RenderSet> TRenderSets;
 
 typedef std::vector<bool> BitArray;

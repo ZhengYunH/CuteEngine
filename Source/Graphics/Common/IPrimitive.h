@@ -4,6 +4,8 @@
 #include "Math/Vector3.h"
 #include "IMaterial.h"
 #include "Math/Matrix4x4.h"
+#include "Graphics/Common/IRenderElement.h"
+
 
 namespace zyh
 {
@@ -66,8 +68,38 @@ namespace zyh
 		virtual uint32_t GetVerticeCount() = 0;
 		virtual uint32_t GetIndicesCount() = 0;
 
+		virtual void AddRenderElement(RenderSet renderSet, IRenderElement* element)
+		{
+			mRenderElements_[renderSet] = element;
+		}
+
+		IRenderElement* GetRenderElement(RenderSet renderSet)
+		{
+			return mRenderElements_.at(renderSet);
+		}
+
+		std::vector<IRenderElement*> GetAllRenderElement()
+		{
+			std::vector<IRenderElement*> Elements;
+			for (auto& pair : mRenderElements_)
+			{
+				Elements.push_back(pair.second);
+			}
+			return Elements;
+		}
+
+		void ClearRenderElement()
+		{
+			for (auto& pair : mRenderElements_)
+			{
+				delete pair.second;
+			}
+			mRenderElements_.clear();
+		}
+
 	protected:
 		IMaterial* mMaterial_;
+		std::unordered_map<RenderSet, IRenderElement*> mRenderElements_;
 		EPrimitiveType mType_ { EPrimitiveType::MESH };
 		Matrix4x3 mTransform_;
 		bool	mIsStatic_{ true };

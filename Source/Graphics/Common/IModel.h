@@ -37,6 +37,11 @@ namespace zyh
 			return mMesh_->AddPrimitive(primType, localTransform);
 		}
 
+		std::vector<IPrimitive*>& GetPrimitives()
+		{
+			return mMesh_->GetPrimitives();
+		}
+
 	public:
 		IMesh* mMesh_;
 	};

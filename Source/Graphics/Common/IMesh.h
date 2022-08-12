@@ -82,6 +82,11 @@ namespace zyh
 			return mPrimitives_[index];
 		}
 
+		virtual std::vector<IPrimitive*>& GetPrimitives()
+		{
+			return mPrimitives_;
+		}
+
 		void GetPrimLocalTransform(size_t index, Matrix4x3& outMatrix)
 		{
 			HYBRID_CHECK(index < mPrimitivesTransform_.size());

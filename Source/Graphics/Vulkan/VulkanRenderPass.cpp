@@ -4,75 +4,99 @@
 
 namespace zyh
 {
-	void VulkanRenderPassBase::connect(VulkanLogicalDevice* logicalDevice)
+	void VulkanRenderPass::connect(VulkanLogicalDevice* logicalDevice)
 	{
 		mVulkanLogicalDevice_ = logicalDevice;
 	}
 
-	void VulkanRenderPassBase::setup(VkFormat colorFormat, VkSampleCountFlagBits msaaSample, VkFormat depthFormat)
+	void VulkanRenderPass::setup()
 	{
-		std::array<VkAttachmentDescription, 3> attachments = {};
-		// Color attachment
-		attachments[0].format = colorFormat;
-		attachments[0].samples = msaaSample;
-		if (mOpType_ == OpType::LOAD_AND_STORE)
-		{
-			attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-			attachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		}
-		else if(mOpType_ == OpType::LOADCLEAR_AND_STORE)
-		{
-			attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		}
-		attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		// Depth attachment
-		attachments[1].format = depthFormat;
-		attachments[1].samples = msaaSample;
-		if (mOpType_ == OpType::LOAD_AND_STORE)
-		{
-			attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-			attachments[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-			attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		}
-		else if (mOpType_ == OpType::LOADCLEAR_AND_STORE)
-		{
-			attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-			attachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-		}
-		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		// Color Resolve Attachment
-		attachments[2].format = colorFormat;
-		attachments[2].samples = VK_SAMPLE_COUNT_1_BIT;
-		attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		attachments[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		attachments[2].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		const std::vector<RenderTarget*>& RenderTargets = mRenderPass_->GetRenderTargets();
+		size_t attachmentSize = RenderTargets.size();
+		const RenderTarget* DepthStencil = mRenderPass_->GetDepthStencilTarget();
+		if (DepthStencil)
+			attachmentSize += 1;
 
-		VkAttachmentReference colorReference = {};
-		colorReference.attachment = 0;
-		colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		VkAttachmentReference depthReference = {};
-		depthReference.attachment = 1;
-		depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		VkAttachmentReference colorAttachmentResolve{};
-		colorAttachmentResolve.attachment = 2;
-		colorAttachmentResolve.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		bool enableAA = true;
+		if (enableAA)
+			attachmentSize += 1; // for resolves
+
+		std::vector<VkAttachmentDescription> attachments;
+		std::vector<VkAttachmentReference> references;
+		attachments.resize(attachmentSize);
+		references.resize(attachmentSize);
+
+		size_t index = 0;
+		// Color Attachment
+		for (index = 0; index < RenderTargets.size(); ++index)
+		{
+			const RenderTarget& target = *RenderTargets[index];
+			attachments[index].format = _convertFormat(target.Format);
+			attachments[index].samples = _convertQuality(target.Quality);
+			attachments[index].loadOp = _convertLoadOp(target.LoadOp);
+			attachments[index].storeOp = _convertStoreOp(target.StoreOp);
+
+			attachments[index].initialLayout = target.LoadOp == RenderTarget::ELoadOp::LOAD ?
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+
+			attachments[index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachments[index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments[index].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			references[index].attachment = index;
+			references[index].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		}
+
+		// Depth Attachment
+		int depthStencilIndex = -1;
+		if (DepthStencil)
+		{
+			depthStencilIndex = index;
+			const RenderTarget& target = *RenderTargets[index];
+			attachments[index].format = _convertFormat(target.Format);
+			attachments[index].samples = _convertQuality(target.Quality);
+			attachments[index].stencilLoadOp = _convertLoadOp(target.LoadOp);
+			attachments[index].stencilStoreOp = _convertStoreOp(target.StoreOp);
+
+			attachments[index].initialLayout = target.LoadOp == RenderTarget::ELoadOp::LOAD ?
+				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+
+			attachments[index].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachments[index].storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments[index].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			references[index].attachment = index;
+			references[index].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+			++index;
+		}
+
+		// Color Resolve Attachment
+		int resolveIndex = -1;
+		if (enableAA && !RenderTargets.empty())
+		{
+			resolveIndex = index;
+			attachments[index].format = _convertFormat(RenderTargets[0]->Format);
+			attachments[index].samples = VK_SAMPLE_COUNT_1_BIT;
+			attachments[index].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachments[index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+			attachments[index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+			attachments[index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+			attachments[index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			attachments[index].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+			references[index].attachment = index;
+			references[index].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+			++index;
+		}
 
 		VkSubpassDescription subpassDescription = {};
 		subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-		subpassDescription.colorAttachmentCount = 1;
-		subpassDescription.pColorAttachments = &colorReference;
-		subpassDescription.pDepthStencilAttachment = &depthReference;
-		subpassDescription.pResolveAttachments = &colorAttachmentResolve;
+		subpassDescription.colorAttachmentCount = static_cast<uint32_t>(RenderTargets.size());
+		subpassDescription.pColorAttachments = references.data();
+		subpassDescription.pDepthStencilAttachment = depthStencilIndex > 0 ? &references[depthStencilIndex] : VK_NULL_HANDLE;
+		subpassDescription.pResolveAttachments = resolveIndex > 0 ? &references[resolveIndex] : VK_NULL_HANDLE;
 		subpassDescription.inputAttachmentCount = 0;
 		subpassDescription.pInputAttachments = nullptr;
 		subpassDescription.preserveAttachmentCount = 0;
@@ -100,14 +124,140 @@ namespace zyh
 		VK_CHECK_RESULT(vkCreateRenderPass(mVulkanLogicalDevice_->Get(), &renderPassInfo, nullptr, &mVkImpl_));
 	}
 
-	void VulkanRenderPassBase::cleanup()
+	void VulkanRenderPass::cleanup()
 	{
 		vkDestroyRenderPass(mVulkanLogicalDevice_->Get(), mVkImpl_, nullptr);
 	}
 
-	void VulkanRenderPassBase::Draw(VkCommandBuffer commandBuffer)
+	void VulkanRenderPass::Prepare(VkFramebuffer framebuffer)
 	{
-		
+		mVKFramebuffer_ = framebuffer;
 	}
+
+	void VulkanRenderPass::Draw()
+	{
+		mVKBufferBeginInfo_.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		mVKBufferBeginInfo_.flags = 0;
+		mVKBufferBeginInfo_.pInheritanceInfo = nullptr;
+
+		mRenderPassInfo_.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		mRenderPassInfo_.renderPass = mVkImpl_;
+		mRenderPassInfo_.framebuffer = mVKFramebuffer_;
+		mRenderPassInfo_.renderArea.offset = { 0, 0 };
+		mRenderPassInfo_.renderArea.extent = *(GInstance->mExtend_);
+		{
+			// set Clear Values
+			const std::vector<RenderTarget*>& RenderTargets = mRenderPass_->GetRenderTargets();
+			size_t attachmentSize = RenderTargets.size();
+			const RenderTarget* DepthStencil = mRenderPass_->GetDepthStencilTarget();
+			if (DepthStencil)
+				attachmentSize += 1;
+			std::vector<VkClearValue> clearValues;
+			clearValues.resize(attachmentSize, {});
+			size_t index = 0;
+			for (index = 0; index < RenderTargets.size(); ++index)
+			{
+				clearValues[index].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+			}
+			clearValues[index].depthStencil = { 1.0f, 0 };
+			++index;
+			mRenderPassInfo_.clearValueCount = static_cast<uint32_t>(clearValues.size());
+			mRenderPassInfo_.pClearValues = clearValues.data();
+		}
+		VulkanCommand* command = GVulkanInstance->GetCommandBuffer();
+		command->begin(&mVKBufferBeginInfo_);
+		{
+			VkCommandBuffer vkCommandBuffer = command->Get();
+			vkCmdBeginRenderPass(vkCommandBuffer, &mRenderPassInfo_, VK_SUBPASS_CONTENTS_INLINE);
+			_DrawElements(vkCommandBuffer);
+			vkCmdEndRenderPass(vkCommandBuffer);
+		}
+		command->end();
+	}
+
+	void VulkanRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer)
+	{
+		auto& renderSets = mRenderPass_->GetRenderSets();
+		for (const RenderSet& renderSet : renderSets)
+		{
+			for (auto& renderElement : GEngine->Scene->GetRenderElements(renderSet))
+			{
+				VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+				element->draw(vkCommandBuffer, GVulkanInstance->GetCurrentImage());
+			}
+		}
+	}
+
+	// Helper Function
+	VkFormat VulkanRenderPass::_convertFormat(const EPixelFormat format)
+	{
+		switch (format)
+		{
+		case EPixelFormat::UNDEFINED:
+			return VK_FORMAT_UNDEFINED;
+		case EPixelFormat::A32R32G32B32F:
+			return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case EPixelFormat::A16B16G16R16F:
+			return VK_FORMAT_R16G16B16A16_SFLOAT;
+		case EPixelFormat::R8G8B8A8:
+			return VK_FORMAT_R8G8B8A8_SRGB;
+		default:
+			Unimplement(0);
+			break;
+		}
+		return VK_FORMAT_MAX_ENUM;
+	}
+
+	VkSampleCountFlagBits VulkanRenderPass::_convertQuality(const ESamplerQuality quality)
+	{
+		switch (quality)
+		{
+		case ESamplerQuality::None:
+			return VK_SAMPLE_COUNT_1_BIT;
+		case ESamplerQuality::Quality2X:
+			return VK_SAMPLE_COUNT_2_BIT;
+		case ESamplerQuality::Quality4X:
+			return VK_SAMPLE_COUNT_4_BIT;
+		case ESamplerQuality::Quality8X:
+			return VK_SAMPLE_COUNT_8_BIT;
+		default:
+			Unimplement(0);
+			break;
+		}
+		return VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
+	}
+
+	VkAttachmentLoadOp VulkanRenderPass::_convertLoadOp(const RenderTarget::ELoadOp op)
+	{
+		switch (op)
+		{
+		case RenderTarget::ELoadOp::LOAD:
+			return VK_ATTACHMENT_LOAD_OP_LOAD;
+		case RenderTarget::ELoadOp::CLEAR:
+			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		case RenderTarget::ELoadOp::DONT_CARE:
+			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		default:
+			Unimplement(0);
+			break;
+		}
+		return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
+	}
+
+	VkAttachmentStoreOp VulkanRenderPass::_convertStoreOp(const RenderTarget::EStoreOp op)
+	{
+		switch (op)
+		{
+		case RenderTarget::EStoreOp::STORE:
+			return VK_ATTACHMENT_STORE_OP_STORE;
+		case RenderTarget::EStoreOp::DONT_CARE:
+			return VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		default:
+			Unimplement(0);
+			break;
+		}
+		return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
+	}
+
 }
 

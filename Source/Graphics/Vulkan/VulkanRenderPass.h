@@ -1,41 +1,59 @@
 #pragma once
 #include "VulkanObject.h"
+#include "Graphics/Common/IRenderPass.h"
+
 
 namespace zyh
 {
 	class VulkanLogicalDevice;
-	class VulkanRenderElement;
-
-	class VulkanRenderPassBase : public TVulkanObject<VkRenderPass>
+	class VulkanRenderPass : public TVulkanObject<VkRenderPass>
 	{
 	public:
-		enum class OpType
+		VulkanRenderPass(IRenderPass* renderPass)
+			: mRenderPass_(renderPass)
 		{
-			LOADCLEAR_AND_STORE,
-			LOAD_AND_STORE,
-		};
 
-	public:
-		VulkanRenderPassBase(OpType opType)
-			: mOpType_(opType)
-		{}
-
-		void connect(VulkanLogicalDevice* logicalDevice);
-		virtual void setup(VkFormat colorFormat, VkSampleCountFlagBits msaaSample, VkFormat depthFormat);
-		virtual void cleanup() override;
-
-	public:
-		virtual void AddElements(VulkanRenderElement* element)
-		{
-			mElements_.push_back(element);
 		}
 
-		virtual void Draw(VkCommandBuffer commandBuffer);
+		~VulkanRenderPass()
+		{
+
+		}
+
+	public:
+		void connect(VulkanLogicalDevice* logicalDevice);
+		virtual void setup();
+		virtual void cleanup() override;
+
+		virtual void Prepare(VkFramebuffer framebuffer);
+		virtual void Draw();
+
+	protected:
+		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer);
 
 	protected:
 		VulkanLogicalDevice* mVulkanLogicalDevice_;
-		OpType mOpType_;
 
-		std::vector<VulkanRenderElement*> mElements_;
+	public:
+		void InitailizeResource()
+		{
+			connect(GVulkanInstance->mLogicalDevice_);
+			setup();
+		}
+
+	protected:
+		VkFormat _convertFormat(const EPixelFormat format);
+		VkSampleCountFlagBits _convertQuality(const ESamplerQuality quality);
+		VkAttachmentLoadOp _convertLoadOp(const RenderTarget::ELoadOp op);
+		VkAttachmentStoreOp _convertStoreOp(const RenderTarget::EStoreOp op);
+
+	protected:
+		IRenderPass* mRenderPass_;
+
+	protected:
+		VkFramebuffer mVKFramebuffer_;
+		VkCommandBufferBeginInfo mVKBufferBeginInfo_{};
+		VkRenderPassBeginInfo mRenderPassInfo_{}
 	};
+
 }

@@ -61,24 +61,17 @@ namespace zyh
 				{
 					mRenderElements_[renderSet] = *(new std::vector<IRenderElement*>());
 				}
-				mRenderElements_[renderSet].push_back(new VulkanRenderElement(prim, renderSet));
+				IRenderElement* element = new VulkanRenderElement(prim, renderSet);
+				prim->AddRenderElement(renderSet, element);
 			}
 		}
 
 		void GenerateRenderElements()
 		{
-			for (auto& pair : mRenderElements_)
+			auto& prims = GetPrimitives();
+			for (auto& prim : prims)
 			{
-				for (auto element : pair.second)
-				{
-					delete element;
-				}
-				pair.second.clear();
-			}
-			mRenderElements_.clear();
-
-			for (IPrimitive* prim : mModel_->mMesh_->mPrimitives_)
-			{
+				prim->ClearRenderElement();
 				GenerateRenderElement(prim);
 			}
 		}
@@ -127,9 +120,10 @@ namespace zyh
 		void getAllRenderElements(std::vector<VulkanRenderElement*>& OutElements)
 		{
 			OutElements.clear();
-			for (auto& elements : mRenderElements_)
+			auto& prims = GetPrimitives();
+			for (auto prim : prims)
 			{
-				for (auto element : elements.second)
+				for (auto element : prim->GetAllRenderElement())
 				{
 					OutElements.push_back(static_cast<VulkanRenderElement*>(element));
 				}

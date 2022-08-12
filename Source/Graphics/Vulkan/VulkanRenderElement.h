@@ -21,11 +21,13 @@ namespace zyh
 	class VulkanRenderElement : public IRenderElement, public IVulkanObject
 	{
 	public:
-		VulkanRenderElement(IPrimitive* InPrimtives, RenderSet renderSet) : IRenderElement(InPrimtives)
+		VulkanRenderElement(IPrimitive* InPrimtives, RenderSet renderSet) : IRenderElement()
 		{
 			mMaterial_ = new VulkanMaterial(InPrimtives, renderSet);
 			connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
 			setup();
+			updateData(InPrimtives);
+
 		}
 
 		virtual ~VulkanRenderElement() 
@@ -53,8 +55,6 @@ namespace zyh
 			size_t maxBufferSize = *GInstance->mImageCount_;
 			mVertexBuffers_.resize(maxBufferSize, nullptr);
 			mIndexBuffers_.resize(maxBufferSize, nullptr);
-
-			updatePrimitiveData();
 		}
 
 		virtual void cleanup() override
@@ -123,9 +123,11 @@ namespace zyh
 			mMaterial_->endUpdateUniformBuffer(ubo, ulbo);
 		}
 
-		// TODO: should be optimized, less pipeline change
-		void draw(VkCommandBuffer commandBuffer, size_t currImage)
+		virtual void draw(VkCommandBuffer commandBuffer, size_t currImage)
 		{
+			HYBRID_CHECK(GetActiveVertexBuffer());
+			HYBRID_CHECK(GetActiveIndexBuffer());
+
 			size_t width = GVulkanInstance->GetScreenWidth();
 			size_t height = GVulkanInstance->GetScreenHeigth();
 			
@@ -150,8 +152,7 @@ namespace zyh
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipelineLayout(), 0, 1, &set, 0, nullptr);
 			}
 
-			uint32_t indexSize = mPrimitives_->GetIndicesCount();
-
+			uint32_t indexSize = GetActiveIndexBuffer()->GetBufferSize() / sizeof(uint32_t);
 			VkBuffer vertexBuffers[] = { GetActiveVertexBuffer()->Get().buffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
@@ -159,16 +160,13 @@ namespace zyh
 			vkCmdDrawIndexed(commandBuffer, indexSize, 1, 0, 0, 0);
 		}
 
-		void updatePrimitiveData()
+		void updateData(
+			void* vertexData, size_t vertexSize,
+			void* indexData, size_t indexSize
+		)
 		{
 			VulkanBuffer stagingBuffer;
 			stagingBuffer.connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
-
-			// create Vertex Buffer
-			void* vertexData{ nullptr }; size_t vertexSize;
-			void* indexData{ nullptr };	size_t indexSize;
-			mPrimitives_->GetVerticesData(&vertexData, vertexSize);
-			mPrimitives_->GetIndicesData(&indexData, indexSize);
 
 			uint32_t maxBufferSize = *GInstance->mImageCount_;
 			bool needCreateInitBuffer = mActiveVertexBufferIndex_ < 0;
@@ -200,6 +198,17 @@ namespace zyh
 			stagingBuffer.setup(indexSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 			stagingBuffer.setupData(indexData, indexSize);
 			VulkanBuffer::copyBuffer(mVulkanCommandPool_, stagingBuffer.Get().buffer, GetActiveIndexBuffer()->Get().buffer, indexSize);
+		}
+
+		void updateData(IPrimitive* InPrimtives)
+		{
+			if (!InPrimtives)
+				return;
+			void* vertexData{ nullptr }; size_t vertexSize;
+			void* indexData{ nullptr };	size_t indexSize;
+			InPrimtives->GetVerticesData(&vertexData, vertexSize);
+			InPrimtives->GetIndicesData(&indexData, indexSize);
+			updateData(vertexData, vertexSize, indexData, indexSize);
 		}
 
 	protected:

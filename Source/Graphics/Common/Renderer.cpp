@@ -4,7 +4,7 @@
 
 #include "Graphics/Vulkan/VulkanBase.h"
 #include "Graphics/Vulkan/VulkanRenderElement.h"
-
+#include "Graphics/Vulkan/VulkanRenderPass.h"
 
 #include "Graphics/Vulkan/VulkanLogicalDevice.h"
 #include "Graphics/Vulkan/VulkanSurface.h"
@@ -50,12 +50,12 @@ namespace zyh
 			)
 		);
 
-		ImGuiRenderPass* uiPass = new ImGuiRenderPass(
-			"GUI",
-			{ RenderSet::SCENE },
-			GVulkanInstance->mUIRenderPass_
-		);
-		mRenderPasses_.push_back(uiPass);
+		mRenderPasses_.push_back(
+			new ImGuiRenderPass(
+				"GUI",
+				{ RenderSet::SCENE },
+				GVulkanInstance->mUIRenderPass_
+		));
 	}
 
 	void Renderer::Draw()
@@ -78,6 +78,26 @@ namespace zyh
 			}
 		}
 		mPlatform_->DrawFrameEnd();
+	}
+
+	void Renderer::Connect()
+	{
+
+	}
+
+	void Renderer::Compile()
+	{
+		for (auto* renderPass : mVulkanRenderPasses_)
+			SafeDestroy(renderPass);
+
+		mVulkanRenderPasses_.clear();
+		for (IRenderPass* pass : mRenderPasses_)
+		{
+			pass->PrepareData();
+			VulkanRenderPass* vulkanPass = new VulkanRenderPass(pass);
+			vulkanPass->InitailizeResource();
+			mVulkanRenderPasses_.push_back(vulkanPass);
+		}
 	}
 
 }

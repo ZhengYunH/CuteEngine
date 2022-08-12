@@ -17,56 +17,15 @@
 #include "Math/MathUtil.h"
 
 #include "Core/TerrainComponent.h"
+#include "Graphics/Common/IRenderScene.h"
 
 
 namespace zyh
 {
-	void IRenderPass::Prepare(VkFramebuffer framebuffer)
+	class ImGuiRenderElement : public VulkanRenderElement
 	{
-		mVKFramebuffer_ = framebuffer;
-	}
 
-	void IRenderPass::Draw()
-	{
-		mVKBufferBeginInfo_.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-		mVKBufferBeginInfo_.flags = 0;
-		mVKBufferBeginInfo_.pInheritanceInfo = nullptr;
-
-		mRenderPassInfo_.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		mRenderPassInfo_.renderPass = mRenderPass_;
-		mRenderPassInfo_.framebuffer = mVKFramebuffer_;
-		mRenderPassInfo_.renderArea.offset = { 0, 0 };
-		mRenderPassInfo_.renderArea.extent = *(GInstance->mExtend_);
-
-		std::array<VkClearValue, 2> clearValues{};
-		clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-		clearValues[1].depthStencil = { 1.0f, 0 };
-		mRenderPassInfo_.clearValueCount = static_cast<uint32_t>(clearValues.size());
-		mRenderPassInfo_.pClearValues = clearValues.data();
-
-		VulkanCommand* command = GVulkanInstance->GetCommandBuffer();
-
-		command->begin(&mVKBufferBeginInfo_);
-		{
-			VkCommandBuffer vkCommandBuffer = command->Get();
-			vkCmdBeginRenderPass(vkCommandBuffer, &mRenderPassInfo_, VK_SUBPASS_CONTENTS_INLINE);
-			_DrawElements(vkCommandBuffer);
-			vkCmdEndRenderPass(vkCommandBuffer);
-		}
-		command->end();
-	}
-
-	void IRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer)
-	{
-		for (auto RenderSet : mRenderSets_)
-		{
-			for (auto& renderElement : GEngine->Scene->GetRenderElements(RenderSet))
-			{
-				VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
-				element->draw(vkCommandBuffer, GVulkanInstance->GetCurrentImage());
-			}
-		}
-	}
+	};
 
 	ImGuiRenderPass::ImGuiRenderPass(const std::string& renderPassName, const TRenderSets& renderSets, VulkanRenderPassBase* renderPass)
 		: IRenderPass(renderPassName, renderSets, renderPass)
@@ -176,12 +135,25 @@ namespace zyh
 		VulkanBuffer::copyBuffer(GVulkanInstance->mGraphicsCommandPool_, stagingBuffer2.Get().buffer, mIndexBuffer_->Get().buffer, mIndexBuffer_->GetBufferSize());
 	}
 
-	void ImGuiRenderPass::Prepare(VkFramebuffer framebuffer)
+	void ImGuiRenderPass::EmitRenderElements()
 	{
-		IRenderPass::Prepare(framebuffer);
+		GEngine->Scene->GetRenderScene()->AddRenderElement(RenderSet::UI, mRenderElement_);
+	}
+
+	void ImGuiRenderPass::PrepareData()
+	{
+		IRenderPass::PrepareData();
+		uiSettings.frameTimes[GEngine->GetCurrFrame() % uiSettings.frameTimes.size()] = GEngine->GetDeltaTime() * 1000 * (uiSettings.frameTimeMax - uiSettings.frameTimeMin) / 10.f;
+
+		ImGuiIO& io = ImGui::GetIO();
+		float constantScale[2] = { 2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y };
+		float constantTranslate[2] = { -1.0f, -1.0f };
+		mMaterial_->PushConstant("scale", &constantScale);
+		mMaterial_->PushConstant("translate", &constantTranslate);
+
 		NewFrame();
 		UpdateBuffers();
-		uiSettings.frameTimes[GEngine->GetCurrFrame() % uiSettings.frameTimes.size()] = GEngine->GetDeltaTime() * 1000 * (uiSettings.frameTimeMax - uiSettings.frameTimeMin) / 10.f;
+		EmitRenderElements();
 	}
 
 	void ImGuiRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer)
@@ -200,14 +172,8 @@ namespace zyh
 		viewport.minDepth = 0.0f;
 		viewport.maxDepth = 1.0f;
 		vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
-
-		// UI scale and translate via push constants
-		float constantScale[2] = { 2.0f / io.DisplaySize.x, 2.0f / io.DisplaySize.y };
-		float constantTranslate[2] = { -1.0f, -1.0f };
-		mMaterial_->PushConstant("scale", &constantScale);
-		mMaterial_->PushConstant("translate", &constantTranslate);
+		
 		mMaterial_->BindPushConstant(vkCommandBuffer);
-
 		// Render commands
 		ImDrawData* imDrawData = ImGui::GetDrawData();
 		int32_t vertexOffset = 0;
@@ -248,6 +214,8 @@ namespace zyh
 		mMaterial_ = new ImGuiMaterial(material);
 		mMaterial_->connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, *GInstance->mImageCount_);;
 		mMaterial_->setup();
+
+		mRenderElement_ = new ImGuiRenderElement();
 
 		ImGui::CreateContext();
 		ImGui_ImplVulkan_InitInfo initInfo
