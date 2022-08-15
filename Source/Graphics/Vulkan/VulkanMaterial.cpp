@@ -10,9 +10,10 @@
 #include "VulkanBuffer.h"
 #include "VulkanImage.h"
 #include "VulkanShader.h"
+#include "VulkanDescriptor.h"
 #include "Math/Matrix4x4.h"
 #include "VulkanRenderPass.h"
-#include "Graphics/Vulkan/VulkanSwapchain.h"
+#include "VulkanSwapchain.h"
 
 #include "Graphics/Imgui/imgui.h"
 #include "Graphics/Imgui/imgui_impl_vulkan.h"
@@ -26,6 +27,7 @@ namespace zyh
 		mMaterial_ = material;
 		mRenderSet_ = renderSet;
 		mGraphicsPipeline_ = new VulkanGraphicsPipeline(this);
+		mDescriptorLayout_ = new VulkanDescriptorLayout(this);
 	}
 
 	VulkanMaterial::VulkanMaterial(IPrimitive* prim, RenderSet renderSet)
@@ -39,14 +41,15 @@ namespace zyh
 		mPhysicalDevice_ = physicalDevice;
 		mLogicalDevice_ = logicalDevice;
 		mLayoutCount_ = layoutCount;
-		mRenderPass_->connect(mLogicalDevice_);
-		mGraphicsPipeline_->connect(mLogicalDevice_, mRenderPass_);
+		mGraphicsPipeline_->connect(mLogicalDevice_);
+		mDescriptorLayout_->connect(mLogicalDevice_);
 	}
 
 	void VulkanMaterial::setup()
 	{
 		createDescriptorSetData();
 		createGraphicsPipeline();
+		createDescriptorLayout();
 		if (mUniformBuffers_.size() + mTextureImages_.size() > 0)
 		{
 			createDesciptorPool();
@@ -57,6 +60,11 @@ namespace zyh
 	void VulkanMaterial::createGraphicsPipeline()
 	{
 		mGraphicsPipeline_->setup();
+	}
+
+	void VulkanMaterial::createDescriptorLayout()
+	{
+		mDescriptorLayout_->setup();
 	}
 
 	void VulkanMaterial::createDescriptorSetData()
@@ -169,7 +177,7 @@ namespace zyh
 
 	void VulkanMaterial::createDescriptorSets()
 	{
-		std::vector<VkDescriptorSetLayout> layouts(mLayoutCount_, mGraphicsPipeline_->getDescriptorSetLayout());
+		std::vector<VkDescriptorSetLayout> layouts(mLayoutCount_, mDescriptorLayout_->Get());
 
 		VkDescriptorSetAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;

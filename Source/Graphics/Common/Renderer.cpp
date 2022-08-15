@@ -30,31 +30,27 @@ namespace zyh
 		mRenderPasses_.push_back(
 			new IRenderPass(
 				"Scene",
-				{ RenderSet::SCENE },
-				GVulkanInstance->mRenderPass_
+				{ RenderSet::SCENE }
 			)
 		);
 
 		mRenderPasses_.push_back(
 			new IRenderPass(
 				"XRayWriter",
-				{ RenderSet::XRAY },
-				GVulkanInstance->mUIRenderPass_
+				{ RenderSet::XRAY }
 			)
 		);
 
 		mRenderPasses_.push_back(
 			new XRayPass(
-				"XRayPostProcess",
-				GVulkanInstance->mUIRenderPass_
+				"XRayPostProcess"
 			)
 		);
 
 		mRenderPasses_.push_back(
 			new ImGuiRenderPass(
 				"GUI",
-				{ RenderSet::SCENE },
-				GVulkanInstance->mUIRenderPass_
+				{ RenderSet::SCENE }
 		));
 	}
 
@@ -71,7 +67,7 @@ namespace zyh
 				}
 			}
 
-			for (IRenderPass* pass : mRenderPasses_)
+			for (VulkanRenderPass* pass : mVulkanRenderPasses_)
 			{
 				pass->Prepare(GVulkanInstance->GetSwapchainFrameBuffer());
 				pass->Draw();

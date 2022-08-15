@@ -6,6 +6,7 @@
 #include "VulkanMaterial.h"
 #include "VulkanBuffer.h"
 #include "VulkanShader.h"
+#include "VulkanDescriptor.h"
 
 
 namespace zyh
@@ -23,16 +24,14 @@ namespace zyh
 		VK_CHECK_RESULT(vkCreatePipelineCache(mVulkanLogicalDevice->Get(), &pipelineCacheCreateInfo, nullptr, &mVkPipelineCache_));
 	}
 
-	void VulkanGraphicsPipeline::connect(VulkanLogicalDevice* logicalDevice, VulkanRenderPassBase* renderPass)
+	void VulkanGraphicsPipeline::connect(VulkanLogicalDevice* logicalDevice)
 	{
 		VulkanGraphicsPipelineBase::connect(logicalDevice);
-		mVulkanRenderPass_ = renderPass;
 	}
 
 	void VulkanGraphicsPipeline::setup()
 	{
 		VulkanGraphicsPipelineBase::setup();
-		_setupDescriptorSetLayout();
 		_setupGraphicsPipeline();
 	}
 
@@ -40,43 +39,6 @@ namespace zyh
 	{
 		vkDestroyPipeline(mVulkanLogicalDevice->Get(), mVkImpl_, nullptr);
 		vkDestroyPipelineLayout(mVulkanLogicalDevice->Get(), mVkPipelineLayout_, nullptr);
-		vkDestroyDescriptorSetLayout(mVulkanLogicalDevice->Get(), mVkDescriptorSetLayout_, nullptr);
-	}
-
-	void VulkanGraphicsPipeline::_setupDescriptorSetLayout()
-	{
-		std::vector<VkDescriptorSetLayoutBinding> layoutBinding;
-		layoutBinding.resize(mOwner_->mUniformBuffers_.size() + mOwner_->mTextureImages_.size());
-
-		for (auto& uniformPair : mOwner_->mUniformBuffers_)
-		{
-			VkDescriptorSetLayoutBinding& uboLayoutBinding = layoutBinding[uniformPair.first];
-			uboLayoutBinding.binding = uniformPair.first;
-			uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-			uboLayoutBinding.descriptorCount = 1;
-			uboLayoutBinding.stageFlags = uniformPair.second[0]->GetState();
-			uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-		}
-
-		for (auto& texturePair : mOwner_->mTextureImages_)
-		{
-			VkDescriptorSetLayoutBinding& samplerLayoutBinding = layoutBinding[texturePair.first];
-			samplerLayoutBinding.binding = texturePair.first;
-			samplerLayoutBinding.descriptorCount = 1;
-			samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-			samplerLayoutBinding.pImmutableSamplers = nullptr;
-			samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-		}
-
-		VkDescriptorSetLayoutCreateInfo layoutInfo{};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.bindingCount = static_cast<uint32_t>(layoutBinding.size());
-		layoutInfo.pBindings = layoutBinding.data();
-
-		VK_CHECK_RESULT(
-			vkCreateDescriptorSetLayout(mVulkanLogicalDevice->Get(), &layoutInfo, nullptr, &mVkDescriptorSetLayout_), 
-			"failed to create descriptor set layout!"
-		);
 	}
 
 	void VulkanGraphicsPipeline::_setupGraphicsPipeline()
@@ -216,7 +178,7 @@ namespace zyh
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 		pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 		pipelineLayoutInfo.setLayoutCount = 1;
-		pipelineLayoutInfo.pSetLayouts = &mVkDescriptorSetLayout_;
+		pipelineLayoutInfo.pSetLayouts = &mOwner_->GetDescSetLayout()->Get();
 
 		std::vector<VkPushConstantRange> pushConstantRanges;
 		mOwner_->getPushConstantRange(pushConstantRanges);
@@ -282,7 +244,7 @@ namespace zyh
 		pipelineInfo.pDepthStencilState = nullptr; // Optional
 		pipelineInfo.pColorBlendState = &colorBlending;
 		pipelineInfo.layout = mVkPipelineLayout_;
-		pipelineInfo.renderPass = mVulkanRenderPass_->Get();
+		pipelineInfo.renderPass = mOwner_->GetRenderPass()->Get();
 		pipelineInfo.subpass = 0;
 		pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 		pipelineInfo.basePipelineIndex = -1; // Optional

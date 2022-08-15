@@ -9,6 +9,7 @@ namespace zyh
 		A32R32G32B32F,
 		A16B16G16R16F,
 		R8G8B8A8,
+		D32_SFLOAT_S8_UINT,
 	};
 
 	enum class ETextureType
@@ -47,7 +48,7 @@ namespace zyh
 		uint16_t Mips;
 		ETextureType Type;
 		EPixelFormat Format;
-		ESamplerQuality Quality{ None };
+		ESamplerQuality Quality{ ESamplerQuality::None };
 	};
 
 	struct IRenderTarget : public ITexture

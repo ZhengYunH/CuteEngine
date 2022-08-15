@@ -20,7 +20,7 @@ namespace zyh
 		}
 		
 	public:
-		void UpdateTransform(Matrix4x3& mat) { mMesh_->UpdateEntityTransform(mat); }
+		virtual void UpdateTransform(Matrix4x3& mat) { mMesh_->UpdateEntityTransform(mat); }
 		void LoadResourceFile(const std::string& InFileName)
 		{
 			IPrimitive* prim = mMesh_->LoadResourceFile(InFileName);

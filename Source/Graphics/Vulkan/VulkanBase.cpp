@@ -46,8 +46,7 @@ namespace zyh
 		mLogicalDevice_ = new VulkanLogicalDevice();
 		mSwapchain_ = new VulkanSwapchain();
 		mGraphicsCommandPool_ = new VulkanCommandPool(GRAPHICS);
-		mRenderPass_ = new VulkanRenderPassBase(VulkanRenderPassBase::OpType::LOADCLEAR_AND_STORE);
-		mUIRenderPass_ = new VulkanRenderPassBase(VulkanRenderPassBase::OpType::LOAD_AND_STORE);
+		mFrameBufferRenderPass_ = new VulkanRenderPass(new IRenderPass("FrameBuffer", { RenderSet::SCENE }));
 
 		// connect
 		mSurface_->connect(mInstance_);
@@ -55,8 +54,6 @@ namespace zyh
 		mLogicalDevice_->connect(mInstance_, mPhysicalDevice_);
 		mSwapchain_->connect(mInstance_, mPhysicalDevice_, mLogicalDevice_, mSurface_);
 		mGraphicsCommandPool_->connect(mPhysicalDevice_, mLogicalDevice_, mSwapchain_);
-		mRenderPass_->connect(mLogicalDevice_);
-		mUIRenderPass_->connect(mLogicalDevice_);
 	}
 
 	void VulkanBase::setupVulkan()
@@ -78,8 +75,25 @@ namespace zyh
 		
 		mGraphicsCommandPool_->setup();
 
-		mRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
-		mUIRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
+		RenderTarget* target = new RenderTarget(
+			mSwapchain_->getExtend().width,
+			mSwapchain_->getExtend().height,
+			1,
+			ETextureType::Texture2D,
+			EPixelFormat::R8G8B8A8
+		);
+		target->Quality = ESamplerQuality::None;
+		mFrameBufferRenderPass_->GetRenderPass()->AddRenderTarget(target);
+		mFrameBufferRenderPass_->GetRenderPass()->SetDepthStencilTarget(new RenderTarget(
+			mSwapchain_->getExtend().width,
+			mSwapchain_->getExtend().height,
+			1,
+			ETextureType::Texture2D,
+			EPixelFormat::D32_SFLOAT_S8_UINT
+			)
+		);
+
+		// mFrameBufferRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
 	}
 
 	void VulkanBase::createSyncObjects()
@@ -125,7 +139,7 @@ namespace zyh
 			mColorResources_->Get().view,
 			mDepthResources_->Get().view,
 		};
-		mSwapchain_->setupFrameBuffer(*mRenderPass_, attachments);
+		mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_, attachments);
 
 		createCommandBuffers();
 		createSyncObjects();
@@ -311,7 +325,7 @@ namespace zyh
 			mColorResources_->Get().view,
 			mDepthResources_->Get().view,
 		};
-		mSwapchain_->setupFrameBuffer(*mRenderPass_, attachments);
+		mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_, attachments);
 		
 		createCommandBuffers();
 	}

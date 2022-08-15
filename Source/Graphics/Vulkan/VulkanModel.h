@@ -35,6 +35,18 @@ namespace zyh
 			}
 			return index;
 		}
+		
+		
+		virtual void UpdateTransform(Matrix4x3& mat) 
+		{ 
+			IModel::UpdateTransform(mat);
+			std::vector<VulkanRenderElement*> allElements;
+			getAllRenderElements(allElements);
+			for (VulkanRenderElement* element : allElements)
+			{
+				element->UpdateTransform(mat);
+			}
+		}
 
 
 	public:

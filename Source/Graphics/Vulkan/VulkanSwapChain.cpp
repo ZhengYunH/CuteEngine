@@ -64,7 +64,7 @@ namespace zyh
 		mVkImpl_ = VK_NULL_HANDLE;
 	}
 
-	void VulkanSwapchain::setupFrameBuffer(VulkanRenderPassBase& renderPass, std::vector<VkImageView>& attachments)
+	void VulkanSwapchain::setupFrameBuffer(VulkanRenderPass& renderPass, std::vector<VkImageView>& attachments)
 	{
 		for (auto& buffer : mBuffers_)
 		{

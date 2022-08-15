@@ -16,7 +16,7 @@ namespace zyh
 	class VulkanCommand;
 	class VulkanImage;
 	class VulkanTextureImage;
-	class VulkanRenderPassBase;
+	class VulkanRenderPass;
 	class VulkanGraphicsPipeline;
 	class VulkanBuffer;
 
@@ -49,7 +49,6 @@ namespace zyh
 		virtual void prepare();
 		virtual void CleanUp();
 		virtual void windowResize(uint32_t width, uint32_t height);
-		void AddRenderPass(IRenderPass* renderPass) { mRenderPasses_.push_back(renderPass); }
 
 	public: // Device Relate
 		/** @brief Encapsulated instance */
@@ -70,11 +69,7 @@ namespace zyh
 		/** @brief Encapsulated command pool*/
 		VulkanCommandPool* mGraphicsCommandPool_{ nullptr };
 
-		VulkanRenderPassBase* mRenderPass_{ nullptr };
-
-		VulkanRenderPassBase* mUIRenderPass_{ nullptr };
-
-		std::vector<IRenderPass*> mRenderPasses_;
+		VulkanRenderPass* mFrameBufferRenderPass_{ nullptr };
 
 		/** @brief Synchronization Objects*/
 		const int MAX_FRAMES_IN_FLIGHT = 2;

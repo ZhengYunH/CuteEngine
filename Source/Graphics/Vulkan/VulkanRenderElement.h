@@ -30,6 +30,20 @@ namespace zyh
 
 		}
 
+		VulkanRenderElement(IMaterial* material, RenderSet renderSet) : IRenderElement()
+		{
+			mMaterial_ = new VulkanMaterial(material, renderSet);
+			connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
+			setup();
+		}
+
+		VulkanRenderElement(VulkanMaterial* material) : IRenderElement()
+		{
+			mMaterial_ = material;
+			connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, GVulkanInstance->mGraphicsCommandPool_);
+			setup();
+		}
+
 		virtual ~VulkanRenderElement() 
 		{ 
 			cleanup(); 
@@ -85,7 +99,7 @@ namespace zyh
 				};
 			};
 			
-			Matrix4x3 modelMat = mPrimitives_->GetTransform();
+			Matrix4x3 modelMat = mTransform_;
 			Matrix4x3 viewMat = GEngine->Scene->GetCamera()->getViewMatrix();
 			Matrix4x4 projMat = GEngine->Scene->GetCamera()->getProjMatrix();
 
@@ -152,7 +166,7 @@ namespace zyh
 				vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipelineLayout(), 0, 1, &set, 0, nullptr);
 			}
 
-			uint32_t indexSize = GetActiveIndexBuffer()->GetBufferSize() / sizeof(uint32_t);
+			uint32_t indexSize = static_cast<uint32_t>(GetActiveIndexBuffer()->GetBufferSize() / sizeof(uint32_t));
 			VkBuffer vertexBuffers[] = { GetActiveVertexBuffer()->Get().buffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);

@@ -17,6 +17,7 @@ namespace zyh
 	class VulkanGraphicsPipeline;
 	class VulkanUniformBuffer;
 	class VulkanTextureImage;
+	class VulkanDescriptorLayout;
 
 	struct UniformBufferObject {
 		alignas(16) glm::mat4 model;
@@ -77,6 +78,8 @@ namespace zyh
 		virtual const DepthStencilState& GetDepthStencilState() { return mMaterial_->GetPipelineState().DepthStencil; }
 		virtual const RasterizationState& GetRasterizationState() { return mMaterial_->GetPipelineState().Rasterization; }
 		virtual const ColorBlendState& GetColorBlendState() { return mMaterial_->GetPipelineState().ColorBlend; }
+		virtual const VulkanDescriptorLayout* GetDescSetLayout() { return mDescriptorLayout_; }
+		virtual const VulkanRenderPass* GetRenderPass() { return mRenderPass_; }
 
 	protected:
 		VulkanLogicalDevice* mLogicalDevice_;
@@ -90,6 +93,8 @@ namespace zyh
 		VulkanGraphicsPipeline* mGraphicsPipeline_;
 		virtual void createGraphicsPipeline();
 
+		VulkanDescriptorLayout* mDescriptorLayout_;
+		virtual void createDescriptorLayout();
 
 		VkDescriptorPool mDescriptorPool_;
 		virtual void createDesciptorPool();
@@ -101,7 +106,7 @@ namespace zyh
 		virtual void createDescriptorSetData();
 
 		std::unordered_map<uint32_t, class VulkanTexture*> mTextureImages_;
-		class VulkanRenderPassBase* mRenderPass_{ nullptr };
+		class VulkanRenderPass* mRenderPass_{ nullptr };
 
 	protected:
 		virtual void _createDescriptorSetData(EShaderType state, IShaderParser* parser);
@@ -116,7 +121,7 @@ namespace zyh
 		} pushConstBlock;
 
 	public:
-		ImGuiMaterial(IMaterial* material) : VulkanMaterial(material, RenderSet::SCENE, VulkanRenderPassBase::OpType::LOAD_AND_STORE) {}
+		ImGuiMaterial(IMaterial* material) : VulkanMaterial(material, RenderSet::SCENE) {}
 
 	public:
 		virtual void createDescriptorSetData() override;

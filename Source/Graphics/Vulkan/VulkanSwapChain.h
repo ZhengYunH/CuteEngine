@@ -8,7 +8,7 @@ namespace zyh
 	class VulkanPhysicalDevice;
 	class VulkanLogicalDevice;
 	class VulkanSurface;
-	class VulkanRenderPassBase;
+	class VulkanRenderPass;
 
 	typedef struct _SwapChainBuffers {
 		VkImage image;
@@ -31,7 +31,7 @@ namespace zyh
 		void setup(uint32_t* width, uint32_t* height, bool vsync = false);
 #endif
 		void cleanup();
-		void setupFrameBuffer(VulkanRenderPassBase& renderPass, std::vector<VkImageView>& attachments);
+		void setupFrameBuffer(VulkanRenderPass& renderPass, std::vector<VkImageView>& attachments);
 
 	private:
 		VulkanInstance* mVulkanInstance_{ nullptr };

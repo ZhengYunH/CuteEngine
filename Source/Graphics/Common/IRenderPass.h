@@ -13,7 +13,6 @@
 #include "Common/KeyCodes.h"
 
 #include "Graphics/Vulkan/VulkanHeader.h"
-#include "Graphics/Vulkan/VulkanRenderPass.h"
 #include "Graphics/Vulkan/VulkanCommandPool.h"
 
 #include "Core/IPrimitivesComponent.h"
@@ -26,12 +25,14 @@
 
 namespace zyh
 {
+	class VulkanRenderElement;
+	
 	class IRenderPass
 	{
 	public:
 		IRenderPass(
 			const std::string& renderPassName, 
-			const TRenderSets& renderSets,
+			const TRenderSets& renderSets
 		):	mName_(renderPassName),
 			mRenderSets_(renderSets)
 		{
@@ -46,7 +47,7 @@ namespace zyh
 		void AddRenderTarget(RenderTarget* target) { mRenderTargets_.push_back(target); }
 		
 		const RenderTarget* GetDepthStencilTarget() { return mDepthStencilTarget_; };
-		void SetDepthStencilTarget_(RenderTarget* target) { mDepthStencilTarget_ = target; }
+		void SetDepthStencilTarget(RenderTarget* target) { mDepthStencilTarget_ = target; }
 	
 		virtual void PrepareData() {}
 
@@ -81,8 +82,7 @@ namespace zyh
 	public:
 		ImGuiRenderPass(
 			const std::string& renderPassName,
-			const TRenderSets& renderSets,
-			VulkanRenderPassBase* renderPass
+			const TRenderSets& renderSets
 		);
 
 		virtual void PrepareData() override;
@@ -98,9 +98,6 @@ namespace zyh
 		class VulkanBuffer* mVertexBuffer_{ nullptr };
 		class VulkanBuffer* mIndexBuffer_{ nullptr };
 		bool mIsResourceDirty_{ true };
-
-	protected:
-		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer) override;
 
 	private:
 		void Init();
@@ -156,9 +153,8 @@ namespace zyh
 		PostProcessRenderPass(
 			const std::string& vertShaderFile, 
 			const std::string& fragShaderFile,
-			const std::string& renderPassName,
-			VulkanRenderPassBase* renderPass
-		) : IRenderPass(renderPassName, {RenderSet::NONE}, renderPass) // Don't care about Render-Set, cause we handle element
+			const std::string& renderPassName
+		) : IRenderPass(renderPassName, {RenderSet::NONE}) // Don't care about Render-Set, cause we handle element
 		{
 			mMaterial = new IMaterial(vertShaderFile, fragShaderFile);
 			mMaterial->GetPipelineState().Rasterization.CullMode = ERasterizationCullMode::NONE;
@@ -166,26 +162,8 @@ namespace zyh
 			mPrim_ = new QuadPrimitives(mMaterial);
 		}
 
-		virtual void PrepareData() override
-		{
-			IRenderPass::PrepareData();
-			if (!mElement_)
-			{
-				mElement_ = new VulkanRenderElement(mPrim_->GetMaterial(), RenderSet::SCENE);
-			}
-		}
-
-		virtual ~PostProcessRenderPass()
-		{
-			SafeDestroy(mElement_);
-			SafeDestroy(mPrim_);
-			SafeDestroy(mMaterial);
-		}
-
-		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer)
-		{
-			mElement_->draw(vkCommandBuffer, GVulkanInstance->GetCurrentImage());
-		}
+		virtual void PrepareData() override;
+		virtual ~PostProcessRenderPass();
 
 	protected:
 		IMaterial* mMaterial{ nullptr };
@@ -198,9 +176,8 @@ namespace zyh
 	{
 		XRayStencilWritePass(
 			const std::string& renderPassName,
-			const TRenderSets& renderSets,
-			VulkanRenderPassBase* renderPass
-		): IRenderPass(renderPassName, renderSets, renderPass)
+			const TRenderSets& renderSets
+		): IRenderPass(renderPassName, renderSets)
 		{
 		}
 	};
@@ -209,13 +186,11 @@ namespace zyh
 	{
 	public:
 		XRayPass(
-			const std::string& renderPassName,
-			VulkanRenderPassBase* renderPass
+			const std::string& renderPassName
 		) : PostProcessRenderPass(
 			"Resource/shaders/postprocess.vert.spv",
 			"Resource/shaders/postprocess.frag.spv",
-			renderPassName,
-			renderPass
+			renderPassName
 		)
 		{
 			mMaterial->GetPipelineState().DepthStencil.DepthTestEnable = false;

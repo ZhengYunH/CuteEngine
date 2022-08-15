@@ -13,6 +13,7 @@
 #include "Graphics/Vulkan/VulkanRenderPass.h"
 #include "Graphics/Vulkan/VulkanGraphicsPipeline.h"
 #include "Graphics/Vulkan/VulkanBuffer.h"
+#include "Graphics/Vulkan/VulkanRenderElement.h"
 
 #include "Math/MathUtil.h"
 
@@ -27,8 +28,8 @@ namespace zyh
 
 	};
 
-	ImGuiRenderPass::ImGuiRenderPass(const std::string& renderPassName, const TRenderSets& renderSets, VulkanRenderPassBase* renderPass)
-		: IRenderPass(renderPassName, renderSets, renderPass)
+	ImGuiRenderPass::ImGuiRenderPass(const std::string& renderPassName, const TRenderSets& renderSets)
+		: IRenderPass(renderPassName, renderSets)
 	{
 		Init();
 	}
@@ -140,6 +141,11 @@ namespace zyh
 		GEngine->Scene->GetRenderScene()->AddRenderElement(RenderSet::UI, mRenderElement_);
 	}
 
+	void ImGuiRenderPass::Init()
+	{
+
+	}
+
 	void ImGuiRenderPass::PrepareData()
 	{
 		IRenderPass::PrepareData();
@@ -156,91 +162,20 @@ namespace zyh
 		EmitRenderElements();
 	}
 
-	void ImGuiRenderPass::_DrawElements(VkCommandBuffer vkCommandBuffer)
+	void PostProcessRenderPass::PrepareData()
 	{
-		ImGuiIO& io = ImGui::GetIO();
-
-		VkDescriptorSet descriptorSet = mMaterial_->getDescriptorSet(GVulkanInstance->GetCurrentImage());
-		vkCmdBindDescriptorSets(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipelineLayout(), 0, 1, &descriptorSet, 0, nullptr);
-		vkCmdBindPipeline(vkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mMaterial_->getPipeline());
-
-		VkViewport viewport{};
-		viewport.x = 0.0f;
-		viewport.y = 0.0f;
-		viewport.width = ImGui::GetIO().DisplaySize.x;
-		viewport.height = ImGui::GetIO().DisplaySize.y;
-		viewport.minDepth = 0.0f;
-		viewport.maxDepth = 1.0f;
-		vkCmdSetViewport(vkCommandBuffer, 0, 1, &viewport);
-		
-		mMaterial_->BindPushConstant(vkCommandBuffer);
-		// Render commands
-		ImDrawData* imDrawData = ImGui::GetDrawData();
-		int32_t vertexOffset = 0;
-		int32_t indexOffset = 0;
-
-		if (imDrawData->CmdListsCount > 0) {
-
-			VkDeviceSize offsets[1] = { 0 };
-			vkCmdBindVertexBuffers(vkCommandBuffer, 0, 1, &mVertexBuffer_->Get().buffer, offsets);
-			vkCmdBindIndexBuffer(vkCommandBuffer, mIndexBuffer_->Get().buffer, 0, VK_INDEX_TYPE_UINT16);
-
-			for (int32_t i = 0; i < imDrawData->CmdListsCount; i++)
-			{
-				const ImDrawList* cmd_list = imDrawData->CmdLists[i];
-				for (int32_t j = 0; j < cmd_list->CmdBuffer.Size; j++)
-				{
-					const ImDrawCmd* pcmd = &cmd_list->CmdBuffer[j];
-					VkRect2D scissorRect;
-					scissorRect.offset.x = Max((int32_t)(pcmd->ClipRect.x), 0);
-					scissorRect.offset.y = Max((int32_t)(pcmd->ClipRect.y), 0);
-					scissorRect.extent.width = (uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x);
-					scissorRect.extent.height = (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y);
-					vkCmdSetScissor(vkCommandBuffer, 0, 1, &scissorRect);
-					vkCmdDrawIndexed(vkCommandBuffer, pcmd->ElemCount, 1, indexOffset, vertexOffset, 0);
-					indexOffset += pcmd->ElemCount;
-				}
-				vertexOffset += cmd_list->VtxBuffer.Size;
-			}
+		IRenderPass::PrepareData();
+		if (!mElement_)
+		{
+			mElement_ = new VulkanRenderElement(mPrim_, RenderSet::SCENE);
 		}
 	}
 
-	void ImGuiRenderPass::Init()
+	PostProcessRenderPass::~PostProcessRenderPass()
 	{
-		IMaterial* material = new IMaterial("Resource/shaders/ui.vert.spv", "Resource/shaders/ui.frag.spv");
-		material->GetPipelineState().DepthStencil = DepthStencilState{false, false};
-		material->GetPipelineState().Rasterization = RasterizationState{ ERasterizationCullMode::NONE };
-
-		mMaterial_ = new ImGuiMaterial(material);
-		mMaterial_->connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_, *GInstance->mImageCount_);;
-		mMaterial_->setup();
-
-		mRenderElement_ = new ImGuiRenderElement();
-
-		ImGui::CreateContext();
-		ImGui_ImplVulkan_InitInfo initInfo
-		{
-			GVulkanInstance->mInstance_->Get(), // VkInstance Instance;
-			GVulkanInstance->mPhysicalDevice_->Get(), // VkPhysicalDevice PhysicalDevice;
-			GVulkanInstance->mLogicalDevice_->Get(), //VkDevice Device;
-			GVulkanInstance->mLogicalDevice_->mFamilyIndices_->getIndexByQueueFamily(GRAPHICS), //uint32_t QueueFamily;
-			GVulkanInstance->mLogicalDevice_->graphicsQueue(), //VkQueue  Queue;
-			VK_NULL_HANDLE, //VkPipelineCache PipelineCache;
-			mMaterial_->mDescriptorPool_, //VkDescriptorPool DescriptorPool;
-			0, //uint32_t Subpass;
-			*GInstance->mImageCount_, // uint32_t MinImageCount;          // >= 2
-			*GInstance->mImageCount_, //Setting:: uint32_t ImageCount;             // >= MinImageCount
-			*GInstance->mMsaaSamples_, // VkSampleCountFlagBits MSAASamples;            // >= VK_SAMPLE_COUNT_1_BIT (0 -> default to VK_SAMPLE_COUNT_1_BIT)
-			nullptr,
-			// const VkAllocationCallbacks* Allocator;
-			// void (*CheckVkResultFn)(VkResult err);
-		};
-		ImGui_ImplVulkan_Init(&initInfo, mRenderPass_);
-
-		// Dimensions
-		ImGuiIO& io = ImGui::GetIO();
-		io.DisplaySize = ImVec2((float)GVulkanInstance->GetScreenWidth(), (float)GVulkanInstance->GetScreenHeigth());
-		io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
+		SafeDestroy(mElement_);
+		SafeDestroy(mPrim_);
+		SafeDestroy(mMaterial);
 	}
 
 }
