@@ -9,6 +9,7 @@
 #include "Graphics/Vulkan/VulkanLogicalDevice.h"
 #include "Graphics/Vulkan/VulkanSurface.h"
 #include "Graphics/Vulkan/VulkanSwapchain.h"
+#include "Graphics/Common/IRenderPass.h"
 
 
 namespace zyh
@@ -27,35 +28,69 @@ namespace zyh
 	void Renderer::Build()
 	{
 		mPlatform_->Initialize();
+		RenderTarget target(
+			mPlatform_->GetScreenWidth(),
+			mPlatform_->GetScreenHeigth(),
+			1,
+			ETextureType::Texture2D,
+			EPixelFormat::A32R32G32B32F
+		);
+		RenderTarget depthStencil(
+			mPlatform_->GetScreenWidth(),
+			mPlatform_->GetScreenHeigth(),
+			1,
+			ETextureType::Texture2D,
+			EPixelFormat::D32_SFLOAT_S8_UINT
+		);
+		target.Quality = ESamplerQuality::Quality8X;
+		depthStencil.Quality = ESamplerQuality::Quality8X;
+
+
+		target.LoadOp = RenderTarget::ELoadOp::DONT_CARE;
+		target.StoreOp = RenderTarget::EStoreOp::STORE;
+		depthStencil.LoadOp = RenderTarget::ELoadOp::DONT_CARE;
+		depthStencil.StoreOp = RenderTarget::EStoreOp::STORE;
 		mRenderPasses_.push_back(
 			new IRenderPass(
 				"Scene",
 				{ RenderSet::SCENE }
 			)
 		);
+		mRenderPasses_.back()->AddRenderTarget(target);
+		mRenderPasses_.back()->SetDepthStencilTarget(depthStencil);
 
+
+		target.LoadOp = RenderTarget::ELoadOp::LOAD;
+		depthStencil.LoadOp = RenderTarget::ELoadOp::LOAD;
 		mRenderPasses_.push_back(
 			new IRenderPass(
 				"XRayWriter",
 				{ RenderSet::XRAY }
 			)
 		);
+		mRenderPasses_.back()->AddRenderTarget(target);
+		mRenderPasses_.back()->SetDepthStencilTarget(depthStencil);
 
 		mRenderPasses_.push_back(
 			new XRayPass(
 				"XRayPostProcess"
 			)
 		);
+		mRenderPasses_.back()->AddRenderTarget(target);
+		mRenderPasses_.back()->SetDepthStencilTarget(depthStencil);
 
 		mRenderPasses_.push_back(
 			new ImGuiRenderPass(
 				"GUI",
 				{ RenderSet::SCENE }
 		));
+		mRenderPasses_.back()->AddRenderTarget(target);
+		mRenderPasses_.back()->SetDepthStencilTarget(depthStencil);
 	}
 
 	void Renderer::Draw()
 	{
+		Compile();
 		mPlatform_->DrawFrameBegin(mCurrentImage_);
 		{
 			for (auto renderSet : mRenderScene_->GetExistRenderSets())
@@ -67,9 +102,14 @@ namespace zyh
 				}
 			}
 
+			VulkanFrameBuffer* frameBuffer = new VulkanFrameBuffer();
+			VulkanRenderPass& renderPass = *mVulkanRenderPasses_[0];
+			frameBuffer->createResource(renderPass);
+			frameBuffer->setup(renderPass);
+
 			for (VulkanRenderPass* pass : mVulkanRenderPasses_)
 			{
-				pass->Prepare(GVulkanInstance->GetSwapchainFrameBuffer());
+				pass->Prepare(frameBuffer->Get());
 				pass->Draw();
 			}
 		}
@@ -92,6 +132,7 @@ namespace zyh
 			pass->PrepareData();
 			VulkanRenderPass* vulkanPass = new VulkanRenderPass(pass);
 			vulkanPass->InitailizeResource();
+			
 			mVulkanRenderPasses_.push_back(vulkanPass);
 		}
 	}

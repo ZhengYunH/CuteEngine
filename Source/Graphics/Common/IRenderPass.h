@@ -43,21 +43,36 @@ namespace zyh
 			return mRenderSets_;
 		}
 	
-		const std::vector<RenderTarget*>& GetRenderTargets() { return mRenderTargets_; }
-		void AddRenderTarget(RenderTarget* target) { mRenderTargets_.push_back(target); }
+		const std::vector<RenderTarget>& GetRenderTargets() { return mRenderTargets_; }
+		void AddRenderTarget(RenderTarget& target) 
+		{ 
+			mRenderTargets_.push_back(target); 
+			mWidth_ = Min(mWidth_, target.Width);
+			mHeight_ = Min(mHeight_, target.Height);
+		}
 		
-		const RenderTarget* GetDepthStencilTarget() { return mDepthStencilTarget_; };
-		void SetDepthStencilTarget(RenderTarget* target) { mDepthStencilTarget_ = target; }
+		const RenderTarget& GetDepthStencilTarget() { return mDepthStencilTarget_; };
+		void SetDepthStencilTarget(RenderTarget& target) 
+		{ 
+			mDepthStencilTarget_ = target;
+			mWidth_ = Min(mWidth_, target.Width);
+			mHeight_ = Min(mHeight_, target.Height);
+		}
 	
 		virtual void PrepareData() {}
+
+		uint32_t GetWidth() { return mWidth_; }
+		uint32_t GetHeight() { return mHeight_; }
 
 	protected:
 		std::string mName_;
 		TRenderSets mRenderSets_;
 		
-		std::vector<RenderTarget*> mRenderTargets_;
-		RenderTarget* mDepthStencilTarget_;
+		std::vector<RenderTarget> mRenderTargets_;
+		RenderTarget mDepthStencilTarget_;
 
+		uint32_t mWidth_{ MAX_UINT };
+		uint32_t mHeight_{ MAX_UINT };
 
 	private:
 		VkFramebuffer mVKFramebuffer_;

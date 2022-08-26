@@ -143,7 +143,7 @@ namespace zyh
 
 	void ImGuiRenderPass::Init()
 	{
-
+		ImGui::CreateContext();
 	}
 
 	void ImGuiRenderPass::PrepareData()

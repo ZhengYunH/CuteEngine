@@ -75,25 +75,28 @@ namespace zyh
 		
 		mGraphicsCommandPool_->setup();
 
-		RenderTarget* target = new RenderTarget(
+		RenderTarget target(
 			mSwapchain_->getExtend().width,
 			mSwapchain_->getExtend().height,
 			1,
 			ETextureType::Texture2D,
 			EPixelFormat::R8G8B8A8
 		);
-		target->Quality = ESamplerQuality::None;
-		mFrameBufferRenderPass_->GetRenderPass()->AddRenderTarget(target);
-		mFrameBufferRenderPass_->GetRenderPass()->SetDepthStencilTarget(new RenderTarget(
+		target.Quality = ESamplerQuality::Quality8X;
+
+		RenderTarget depthStencil(
 			mSwapchain_->getExtend().width,
 			mSwapchain_->getExtend().height,
 			1,
 			ETextureType::Texture2D,
 			EPixelFormat::D32_SFLOAT_S8_UINT
-			)
 		);
+		depthStencil.Quality = ESamplerQuality::Quality8X;
 
-		// mFrameBufferRenderPass_->setup(mSwapchain_->getColorFormat(), getMsaaSamples(), getDepthFormat());
+
+		mFrameBufferRenderPass_->GetRenderPass()->AddRenderTarget(target);
+		mFrameBufferRenderPass_->GetRenderPass()->SetDepthStencilTarget(depthStencil);
+		mFrameBufferRenderPass_->InitailizeResource();
 	}
 
 	void VulkanBase::createSyncObjects()
@@ -132,15 +135,7 @@ namespace zyh
 	/// impl
 	void VulkanBase::prepare()
 	{
-		createColorResources();
-		createDepthResources();
-
-		std::vector<VkImageView> attachments = {
-			mColorResources_->Get().view,
-			mDepthResources_->Get().view,
-		};
-		mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_, attachments);
-
+		mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_);
 		createCommandBuffers();
 		createSyncObjects();
 
@@ -161,9 +156,6 @@ namespace zyh
 			}
 		}
 
-		SafeDestroy(mDepthResources_);
-		SafeDestroy(mColorResources_);
-
 		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 			vkDestroySemaphore(mLogicalDevice_->Get(), mRenderFinishedSemaphores_[i], nullptr);
 			vkDestroySemaphore(mLogicalDevice_->Get(), mImageAvailableSemaphores_[i], nullptr);
@@ -181,30 +173,6 @@ namespace zyh
 		mWidth_ = width;
 		mHeight_ = height;
 		recreateSwapchain();
-	}
-
-	void VulkanBase::createColorResources()
-	{
-		mColorResources_ = new VulkanImage();
-		mColorResources_->connect(mPhysicalDevice_, mLogicalDevice_);
-		mColorResources_->setup(
-			mSwapchain_->getExtend().width, mSwapchain_->getExtend().height, 1,
-			getMsaaSamples(), mSwapchain_->getColorFormat(), VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_COLOR_BIT
-		);
-	}
-
-	void VulkanBase::createDepthResources()
-	{
-		mDepthResources_ = new VulkanImage();
-		mDepthResources_->connect(mPhysicalDevice_, mLogicalDevice_);
-		mDepthResources_->setup(
-			mSwapchain_->getExtend().width, mSwapchain_->getExtend().height, 1,
-			getMsaaSamples(), getDepthFormat(), VK_IMAGE_TILING_OPTIMAL,
-			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_ASPECT_DEPTH_BIT
-		);
 	}
 
 	void VulkanBase::createCommandBuffers()
@@ -317,24 +285,13 @@ namespace zyh
 
 		// Recreate swap chain
 		mSwapchain_->setup(&mWidth_, &mHeight_);
-
-		createColorResources();
-		createDepthResources();
-
-		std::vector<VkImageView> attachments = {
-			mColorResources_->Get().view,
-			mDepthResources_->Get().view,
-		};
-		mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_, attachments);
+		mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_);
 		
 		createCommandBuffers();
 	}
 
 	void VulkanBase::_cleanupSwapchain()
 	{
-		mDepthResources_->cleanup();
-		mColorResources_->cleanup();
-		
 		for (auto& buffers : mCommandBuffers_)
 		{
 			for (auto& buffer : buffers)

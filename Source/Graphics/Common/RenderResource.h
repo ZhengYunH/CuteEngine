@@ -34,6 +34,8 @@ namespace zyh
 
 	struct ITexture : public IRenderResource
 	{
+		ITexture() {}
+
 		ITexture(uint16_t width, uint16_t height, uint16_t mips, ETextureType type, EPixelFormat format)
 			: Width(width)
 			, Height(height)
@@ -43,16 +45,22 @@ namespace zyh
 		{
 		}
 
-		uint16_t Width;
-		uint16_t Height;
-		uint16_t Mips;
-		ETextureType Type;
-		EPixelFormat Format;
+		operator bool() const
+		{
+			return Type != ETextureType::None;
+		}
+
+		uint16_t Width{ 0 };
+		uint16_t Height{ 0 };
+		uint16_t Mips{ 0 };
+		ETextureType Type{ ETextureType::None };
+		EPixelFormat Format{ EPixelFormat::UNDEFINED };
 		ESamplerQuality Quality{ ESamplerQuality::None };
 	};
 
 	struct IRenderTarget : public ITexture
 	{
+		IRenderTarget() = default;
 		IRenderTarget(uint16_t width, uint16_t height, uint16_t mips, ETextureType type, EPixelFormat format)
 			: ITexture(width, height, mips, type, format)
 		{
@@ -61,6 +69,7 @@ namespace zyh
 
 	struct RenderTarget : public IRenderTarget
 	{
+		RenderTarget() = default;
 		RenderTarget(uint16_t width, uint16_t height, uint16_t mips, ETextureType type, EPixelFormat format)
 			: IRenderTarget(width, height, mips, type, format)
 		{

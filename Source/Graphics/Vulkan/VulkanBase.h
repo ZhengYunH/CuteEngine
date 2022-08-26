@@ -78,7 +78,7 @@ namespace zyh
 		std::vector<VkFence> mInFlightFences_;
 		std::vector<VkFence> mImagesInFights_;
 
-	protected:
+	public:
 		virtual VkSampleCountFlagBits getMsaaSamples();
 		virtual VkFormat getDepthFormat();
 
@@ -106,12 +106,6 @@ namespace zyh
 
 	// impl
 	private:
-		VulkanImage* mColorResources_;
-		void createColorResources();
-
-		VulkanImage* mDepthResources_;
-		void createDepthResources();
-
 		std::vector<std::vector<VulkanCommand*>> mCommandBuffers_;
 		void createCommandBuffers();
 		VulkanCommand* createCommandBuffer(VkCommandBufferAllocateInfo* pAllocInfo = nullptr);

@@ -1,5 +1,6 @@
 #pragma once
 #include "VulkanObject.h"
+#include "Graphics/Common/RenderResource.h"
 
 namespace zyh
 {
@@ -8,6 +9,7 @@ namespace zyh
 	class VulkanCommandPool;
 	class VulkanBuffer;
 	class VulkanImageBuffer;
+	class VulkanRenderPass;
 
 	struct VkImageCollection
 	{
@@ -26,6 +28,14 @@ namespace zyh
 			VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImageAspectFlags aspectFlags
 		);
 		virtual void cleanup() override;
+
+	public:
+		void createImageView(VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+		
+		uint32_t GetWidth() { return mTexWidth_; }
+		uint32_t GetHeight() { return mTexHeight_; }
+		uint32_t GetMipLevels() { return mMipLevels_; }
+		VkFormat GetFormat() { return mFormat_; }
 
 	protected:
 		VulkanPhysicalDevice* mVulkanPhysicalDevice_{ nullptr };
@@ -50,6 +60,37 @@ namespace zyh
 		void _transitionImageLayout(VkImageLayout oldLayout, VkImageLayout newLayout);
 		void _copyBufferToImage(VkBuffer buffer);
 		void _generateMipmaps();
+	};
+
+
+	class VulkanFrameBuffer : public TVulkanObject<VkFramebuffer>
+	{
+	public:
+		VulkanFrameBuffer()
+		{
+
+		}
+		~VulkanFrameBuffer()
+		{
+			cleanup();
+		}
+
+		void connect(VulkanPhysicalDevice* physicalDevice, VulkanLogicalDevice* logicalDevice)
+		{
+			mVulkanPhysicalDevice_ = physicalDevice;
+			mVulkanLogicalDevice_ = logicalDevice;
+		}
+		void createResource(VulkanRenderPass& renderPass);
+		void setup(VulkanRenderPass& renderPass, VkImageView* extraViews = nullptr, size_t extraViewCount = 0);
+		void cleanup();
+
+
+	protected:
+		VulkanPhysicalDevice* mVulkanPhysicalDevice_{ nullptr };
+		VulkanLogicalDevice* mVulkanLogicalDevice_{ nullptr };
+
+	protected:
+		std::vector<VulkanImage*> mResources_;
 	};
 
 

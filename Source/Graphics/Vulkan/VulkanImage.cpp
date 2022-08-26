@@ -1,9 +1,11 @@
 #include "VulkanImage.h"
+#include "VulkanBase.h"
 #include "VulkanPhysicalDevice.h"
 #include "VulkanLogicalDevice.h"
 #include "VulkanCommandPool.h"
 #include "VulkanBuffer.h"
-
+#include "VulkanRenderPass.h"
+#include "Graphics/Common/IRenderPass.h"
 #include <stb_image.h>
 
 
@@ -35,6 +37,14 @@ namespace zyh
 		mVkImpl_.view = VK_NULL_HANDLE;
 		mVkImpl_.image = VK_NULL_HANDLE;
 		mVkImpl_.mem = VK_NULL_HANDLE;
+	}
+
+	void VulkanImage::createImageView(VkImage& image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels)
+	{
+		Get().image = image;
+		mFormat_ = format;
+		mMipLevels_ = mipLevels;
+		_setupImageView(aspectFlags);
 	}
 
 	void VulkanImage::_setupImage(
@@ -423,6 +433,69 @@ namespace zyh
 		buffer->setup(buffer->GetImageSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 		buffer->setupData(mData_, buffer->GetImageSize());
 		return buffer;
+	}
+
+	void VulkanFrameBuffer::createResource(VulkanRenderPass& renderPass)
+	{
+		const std::vector<RenderTarget>& targets = renderPass.GetRenderPass()->GetRenderTargets();
+		const RenderTarget& depthStencil = renderPass.GetRenderPass()->GetDepthStencilTarget();
+		size_t ResourceSize = targets.size();
+		if (depthStencil)
+			ResourceSize += 1;
+		mResources_.resize(ResourceSize);
+
+		size_t i = 0;
+		for (; i< ResourceSize; ++i)
+		{
+			bool isDepthStencil = depthStencil && i == targets.size();
+			auto& target = isDepthStencil ? depthStencil : targets[i];
+			VulkanImage*& colorResource = mResources_[i];
+			colorResource = new VulkanImage();
+			colorResource->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
+
+			VkImageUsageFlags usage = isDepthStencil? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT:  VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			VkImageAspectFlags aspectFlag = isDepthStencil ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
+			colorResource->setup(target.Width, target.Height, target.Mips,
+				Convert::Quality2SamplerCount(target.Quality), Convert::Format(target.Format),
+				VK_IMAGE_TILING_OPTIMAL,
+				usage,
+				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, aspectFlag
+			);
+		}
+	}
+
+	void VulkanFrameBuffer::setup(VulkanRenderPass& renderPass, VkImageView* extraViews, size_t extraViewCount)
+	{
+		std::vector<VkImageView> attachments;
+		for (auto& resource : mResources_)
+			attachments.push_back(resource->Get().view);
+
+		if (extraViewCount > 0)
+		{
+			for (size_t i = 0; i < extraViewCount; ++i)
+				attachments.push_back(extraViews[i]);
+		}
+
+		VkFramebufferCreateInfo framebufferInfo{};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = renderPass.Get();
+		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());;
+		framebufferInfo.pAttachments = attachments.data();
+		framebufferInfo.width = renderPass.GetRenderPass()->GetWidth();
+		framebufferInfo.height = renderPass.GetRenderPass()->GetHeight();
+		framebufferInfo.layers = 1;
+
+		VK_CHECK_RESULT(vkCreateFramebuffer(mVulkanLogicalDevice_->Get(), &framebufferInfo, nullptr, &mVkImpl_), "failed to create framebuffer!");
+	}
+
+	void VulkanFrameBuffer::cleanup()
+	{
+		for (auto& resource : mResources_)
+		{
+			SafeDestroy(resource);
+		}
+		mResources_.clear();
 	}
 
 }

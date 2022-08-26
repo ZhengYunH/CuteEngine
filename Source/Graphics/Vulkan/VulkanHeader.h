@@ -32,3 +32,11 @@
 
 VkVertexInputBindingDescription initInputBindingDesc(uint32_t binding, uint32_t stride, VkVertexInputRate rate);
 VkVertexInputAttributeDescription initInputAttrDesc(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset);
+
+
+#include "Graphics/Common/RenderResource.h"
+namespace Convert
+{
+	VkSampleCountFlagBits Quality2SamplerCount(const zyh::ESamplerQuality quality);
+	VkFormat Format(const zyh::EPixelFormat format);
+};

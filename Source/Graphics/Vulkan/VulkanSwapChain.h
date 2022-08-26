@@ -1,6 +1,7 @@
 #pragma once
-
 #include "VulkanObject.h"
+#include "VulkanImage.h"
+
 
 namespace zyh
 {
@@ -31,7 +32,7 @@ namespace zyh
 		void setup(uint32_t* width, uint32_t* height, bool vsync = false);
 #endif
 		void cleanup();
-		void setupFrameBuffer(VulkanRenderPass& renderPass, std::vector<VkImageView>& attachments);
+		void setupFrameBuffer(VulkanRenderPass& renderPass);
 
 	private:
 		VulkanInstance* mVulkanInstance_{ nullptr };
@@ -48,7 +49,7 @@ namespace zyh
 		VkFormat getColorFormat() { return mColorFormat_; }
 		VkColorSpaceKHR getColorSpace() { return mColorSpace_; }
 		VkExtent2D getExtend() { return mExtend2D_; };
-		VkFramebuffer getFrameBuffer(uint32_t i) { HYBRID_CHECK(i < getImageCount()); return mBuffers_[i].buffer; }
+		VkFramebuffer getFrameBuffer(uint32_t i) { HYBRID_CHECK(i < getImageCount()); return mBuffers_[i].Get(); }
 
 	public:
 		uint32_t queueNodeIndex = UINT32_MAX;
@@ -65,10 +66,7 @@ namespace zyh
 	private:
 		VkResult _createSwapchain(uint32_t* width, uint32_t* height, bool vsync = false);
 		VkResult _createSwapchainImages();
-		void _destroyOldSwapchain(VkSwapchainKHR& swapChain, std::vector<SwapChainBuffer>& buffer);
-
-		// TODO: combine with VulkanImage
-		VkImageView _createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels);
+		void _destroyOldSwapchain(VkSwapchainKHR& swapChain);
 
 	private: // Members
 		SwapChainSupportDetails mSwapChainSupportDetails_;
@@ -77,8 +75,8 @@ namespace zyh
 		VkExtent2D mExtend2D_;
 		TCache<VkSurfaceFormatKHR> mSurfaceFormat_;
 		TCache<uint32_t> mImageCount_;
-		std::vector<VkImage> mImages_;
-		std::vector<SwapChainBuffer> mBuffers_;
+		std::vector<VulkanImage> mImages_;
+		std::vector<VulkanFrameBuffer> mBuffers_;
 
 	private: // Function pointers
 		PFN_vkGetPhysicalDeviceSurfaceSupportKHR fpGetPhysicalDeviceSurfaceSupportKHR;

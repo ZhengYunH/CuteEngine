@@ -48,8 +48,8 @@ namespace zyh
 	void VulkanMaterial::setup()
 	{
 		createDescriptorSetData();
-		createGraphicsPipeline();
 		createDescriptorLayout();
+		createGraphicsPipeline();
 		if (mUniformBuffers_.size() + mTextureImages_.size() > 0)
 		{
 			createDesciptorPool();

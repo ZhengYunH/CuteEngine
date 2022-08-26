@@ -19,9 +19,9 @@ namespace zyh
 
 	void VulkanRenderPass::setup()
 	{
-		const std::vector<RenderTarget*>& RenderTargets = mRenderPass_->GetRenderTargets();
+		const std::vector<RenderTarget>& RenderTargets = mRenderPass_->GetRenderTargets();
 		size_t attachmentSize = RenderTargets.size();
-		const RenderTarget* DepthStencil = mRenderPass_->GetDepthStencilTarget();
+		const RenderTarget& DepthStencil = mRenderPass_->GetDepthStencilTarget();
 		if (DepthStencil)
 			attachmentSize += 1;
 
@@ -38,9 +38,9 @@ namespace zyh
 		// Color Attachment
 		for (index = 0; index < RenderTargets.size(); ++index)
 		{
-			const RenderTarget& target = *RenderTargets[index];
-			attachments[index].format = _convertFormat(target.Format);
-			attachments[index].samples = _convertQuality(target.Quality);
+			const RenderTarget& target = RenderTargets[index];
+			attachments[index].format = Convert::Format(target.Format);
+			attachments[index].samples = Convert::Quality2SamplerCount(target.Quality);
 			attachments[index].loadOp = _convertLoadOp(target.LoadOp);
 			attachments[index].storeOp = _convertStoreOp(target.StoreOp);
 
@@ -60,9 +60,9 @@ namespace zyh
 		if (DepthStencil)
 		{
 			depthStencilIndex = static_cast<int>(index);
-			const RenderTarget& target = *RenderTargets[index];
-			attachments[index].format = _convertFormat(target.Format);
-			attachments[index].samples = _convertQuality(target.Quality);
+			const RenderTarget& target = DepthStencil;
+			attachments[index].format = Convert::Format(target.Format);
+			attachments[index].samples = Convert::Quality2SamplerCount(target.Quality);
 			attachments[index].stencilLoadOp = _convertLoadOp(target.LoadOp);
 			attachments[index].stencilStoreOp = _convertStoreOp(target.StoreOp);
 
@@ -84,7 +84,7 @@ namespace zyh
 		if (enableAA && !RenderTargets.empty())
 		{
 			resolveIndex = static_cast<int>(index);
-			attachments[index].format = _convertFormat(RenderTargets[0]->Format);
+			attachments[index].format = Convert::Format(RenderTargets[0].Format);
 			attachments[index].samples = VK_SAMPLE_COUNT_1_BIT;
 			attachments[index].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachments[index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -155,9 +155,9 @@ namespace zyh
 		mRenderPassInfo_.renderArea.extent = *(GInstance->mExtend_);
 		{
 			// set Clear Values
-			const std::vector<RenderTarget*>& RenderTargets = mRenderPass_->GetRenderTargets();
+			const std::vector<RenderTarget>& RenderTargets = mRenderPass_->GetRenderTargets();
 			size_t attachmentSize = RenderTargets.size();
-			const RenderTarget* DepthStencil = mRenderPass_->GetDepthStencilTarget();
+			const RenderTarget DepthStencil = mRenderPass_->GetDepthStencilTarget();
 			if (DepthStencil)
 				attachmentSize += 1;
 			std::vector<VkClearValue> clearValues;
@@ -191,6 +191,7 @@ namespace zyh
 			for (auto& renderElement : GEngine->Scene->GetRenderElements(renderSet))
 			{
 				VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
+				element->setupState(this);
 				element->draw(vkCommandBuffer, GVulkanInstance->GetCurrentImage());
 			}
 		}
@@ -203,46 +204,6 @@ namespace zyh
 	}
 
 	// Helper Function
-	VkFormat VulkanRenderPass::_convertFormat(const EPixelFormat format)
-	{
-		switch (format)
-		{
-		case EPixelFormat::UNDEFINED:
-			return VK_FORMAT_UNDEFINED;
-		case EPixelFormat::A32R32G32B32F:
-			return VK_FORMAT_R32G32B32A32_SFLOAT;
-		case EPixelFormat::A16B16G16R16F:
-			return VK_FORMAT_R16G16B16A16_SFLOAT;
-		case EPixelFormat::R8G8B8A8:
-			return VK_FORMAT_R8G8B8A8_SRGB;
-		case EPixelFormat::D32_SFLOAT_S8_UINT:
-			return VK_FORMAT_D32_SFLOAT_S8_UINT;
-		default:
-			Unimplement(0);
-			break;
-		}
-		return VK_FORMAT_MAX_ENUM;
-	}
-
-	VkSampleCountFlagBits VulkanRenderPass::_convertQuality(const ESamplerQuality quality)
-	{
-		switch (quality)
-		{
-		case ESamplerQuality::None:
-			return VK_SAMPLE_COUNT_1_BIT;
-		case ESamplerQuality::Quality2X:
-			return VK_SAMPLE_COUNT_2_BIT;
-		case ESamplerQuality::Quality4X:
-			return VK_SAMPLE_COUNT_4_BIT;
-		case ESamplerQuality::Quality8X:
-			return VK_SAMPLE_COUNT_8_BIT;
-		default:
-			Unimplement(0);
-			break;
-		}
-		return VK_SAMPLE_COUNT_FLAG_BITS_MAX_ENUM;
-	}
-
 	VkAttachmentLoadOp VulkanRenderPass::_convertLoadOp(const RenderTarget::ELoadOp op)
 	{
 		switch (op)
@@ -297,7 +258,6 @@ namespace zyh
 
 		mRenderElement_ = new ImGuiRenderElement(mMaterial_);
 
-		ImGui::CreateContext();
 		ImGui_ImplVulkan_InitInfo initInfo
 		{
 			GVulkanInstance->mInstance_->Get(), // VkInstance Instance;

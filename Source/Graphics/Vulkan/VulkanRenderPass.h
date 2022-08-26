@@ -40,8 +40,6 @@ namespace zyh
 		IRenderPass* GetRenderPass() { return mRenderPass_; }
 
 	protected:
-		VkFormat _convertFormat(const EPixelFormat format);
-		VkSampleCountFlagBits _convertQuality(const ESamplerQuality quality);
 		VkAttachmentLoadOp _convertLoadOp(const RenderTarget::ELoadOp op);
 		VkAttachmentStoreOp _convertStoreOp(const RenderTarget::EStoreOp op);
 

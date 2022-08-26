@@ -21,6 +21,8 @@ namespace zyh
 	static constexpr float MIN_NUM = std::numeric_limits<float>::min();
 	static constexpr float MAX_NUM = std::numeric_limits<float>::max();
 
+	static constexpr uint32_t MAX_UINT = std::numeric_limits<uint32_t>::max();
+
 	static float WrapPI(float radians) noexcept; // clamp theta to (-pi, pi]
 	static float SafeACos(float radians) noexcept;
 	static inline float ACos(float radians) noexcept { return std::acos(radians); }

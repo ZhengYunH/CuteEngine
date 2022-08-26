@@ -64,8 +64,6 @@ namespace zyh
 
 		virtual void setup() override
 		{
-			mMaterial_->setup();
-
 			size_t maxBufferSize = *GInstance->mImageCount_;
 			mVertexBuffers_.resize(maxBufferSize, nullptr);
 			mIndexBuffers_.resize(maxBufferSize, nullptr);
@@ -83,6 +81,12 @@ namespace zyh
 		}
 
 	public:
+		void setupState(class VulkanRenderPass* renderPass)
+		{
+			mMaterial_->mRenderPass_ = renderPass;
+			mMaterial_->setup();
+		}
+
 		void updateUniformBuffer(size_t currentImage)
 		{
 			UniformBufferObject ubo{};

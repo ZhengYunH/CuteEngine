@@ -35,7 +35,7 @@ namespace zyh
 
 		VkSwapchainKHR oldSwapchain = mVkImpl_;
 		VK_CHECK_RESULT(_createSwapchain(width, height, vsync));
-		_destroyOldSwapchain(oldSwapchain, mBuffers_);
+		_destroyOldSwapchain(oldSwapchain);
 		VK_CHECK_RESULT(_createSwapchainImages());
 
 		// set attribute
@@ -59,28 +59,22 @@ namespace zyh
 
 	void VulkanSwapchain::cleanup()
 	{
-		_destroyOldSwapchain(mVkImpl_, mBuffers_);
+		_destroyOldSwapchain(mVkImpl_);
 		mSwapChainSupportDetails_.IsValid(false);
 		mVkImpl_ = VK_NULL_HANDLE;
 	}
 
-	void VulkanSwapchain::setupFrameBuffer(VulkanRenderPass& renderPass, std::vector<VkImageView>& attachments)
+	void VulkanSwapchain::setupFrameBuffer(VulkanRenderPass& renderPass)
 	{
-		for (auto& buffer : mBuffers_)
+		for (size_t i = 0; i < mBuffers_.size(); ++i)
 		{
-			std::vector<VkImageView> fullAttachments(attachments.begin(), attachments.end());
-			fullAttachments.push_back(buffer.view);
+			auto& buffer = mBuffers_[i];
+			auto& image = mImages_[i];
+			VkImageView extraViews[1] = { image.Get().view };
 
-			VkFramebufferCreateInfo framebufferInfo{};
-			framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-			framebufferInfo.renderPass = renderPass.Get();
-			framebufferInfo.attachmentCount = static_cast<uint32_t>(fullAttachments.size());;
-			framebufferInfo.pAttachments = fullAttachments.data();
-			framebufferInfo.width = mExtend2D_.width;
-			framebufferInfo.height = mExtend2D_.height;
-			framebufferInfo.layers = 1;
-
-			VK_CHECK_RESULT(vkCreateFramebuffer(mVulkanLogicalDevice_->Get(), &framebufferInfo, nullptr, &buffer.buffer), "failed to create framebuffer!");
+			buffer.connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
+			buffer.createResource(renderPass);
+			buffer.setup(renderPass, extraViews, 1);
 		}
 	}
 
@@ -321,47 +315,36 @@ namespace zyh
 		*GInstance->mImageCount_ = imageCount;
 		GInstance->mImageCount_.IsValid(true);
 
-		mImages_.resize(imageCount);
-		VK_CHECK_RESULT(fpGetSwapchainImagesKHR(mVulkanLogicalDevice_->Get(), mVkImpl_, &imageCount, mImages_.data()));
+		std::vector<VkImage> images;
+		images.resize(imageCount);
+		VK_CHECK_RESULT(fpGetSwapchainImagesKHR(mVulkanLogicalDevice_->Get(), mVkImpl_, &imageCount, images.data()));
 
 		const VkSurfaceFormatKHR& surfaceFormat = getSwapSurfaceFormat();
 
+		mImages_.resize(imageCount);
 		mBuffers_.resize(imageCount);
-		for (size_t i = 0; i < imageCount; i++) {
-			mBuffers_[i].image = mImages_[i];
-			mBuffers_[i].view = _createImageView(mBuffers_[i].image, surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+		for (size_t i = 0; i < imageCount; i++) 
+		{
+			VulkanImage& image = mImages_[i];
+			VulkanFrameBuffer& buffer = mBuffers_[i];
+
+			image.connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
+			image.Get().image = images[i];
+			image.createImageView(images[i], surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 		}
 		return VK_SUCCESS;
 	}
 
-	void VulkanSwapchain::_destroyOldSwapchain(VkSwapchainKHR& swapchain, std::vector<SwapChainBuffer>& buffers)
+	void VulkanSwapchain::_destroyOldSwapchain(VkSwapchainKHR& swapchain)
 	{
 		if (swapchain != VK_NULL_HANDLE)
 		{
-			for (uint32_t i = 0; i < mBuffers_.size(); ++i)
+			for (auto& image : mImages_)
 			{
-				vkDestroyImageView(mVulkanLogicalDevice_->Get(), mBuffers_[i].view, nullptr);
+				image.cleanup();
 			}
 			fpDestroySwapchainKHR(mVulkanLogicalDevice_->Get(), swapchain, nullptr);
 		}
-	}
-
-	VkImageView VulkanSwapchain::_createImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels) {
-		VkImageViewCreateInfo viewInfo{};
-		viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		viewInfo.image = image;
-		viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-		viewInfo.format = format;
-
-		viewInfo.subresourceRange.aspectMask = aspectFlags;
-		viewInfo.subresourceRange.baseMipLevel = 0;
-		viewInfo.subresourceRange.levelCount = mipLevels;
-		viewInfo.subresourceRange.baseArrayLayer = 0;
-		viewInfo.subresourceRange.layerCount = 1;
-		VkImageView imageView;
-		VK_CHECK_RESULT (vkCreateImageView(mVulkanLogicalDevice_->Get(), &viewInfo, nullptr, &imageView), "failed to create texture image view!");
-
-		return imageView;
 	}
 }
 
