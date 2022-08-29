@@ -79,48 +79,6 @@ namespace zyh
 		VkCommandBufferBeginInfo mVKBufferBeginInfo_{};
 	};
 
-	struct UISettings {
-		bool displayLogos = true;
-		bool displayBackground = true;
-		bool animateLight = false;
-		float lightSpeed = 0.25f;
-		std::array<float, 50> frameTimes{};
-		float frameTimeMax = 9999.0f, frameTimeMin = 0.0f;
-		float lightTimer = 0.0f;
-	};
-
-	class ImGuiRenderPass : public IRenderPass
-	{
-	private:
-		UISettings uiSettings;
-
-	public:
-		ImGuiRenderPass(
-			const std::string& renderPassName,
-			const TRenderSets& renderSets
-		);
-
-		virtual void PrepareData() override;
-
-		~ImGuiRenderPass();
-
-		void NewFrame();
-		void UpdateBuffers();
-		void EmitRenderElements();
-
-	public:
-		class VulkanMaterial* mMaterial_{ nullptr };
-		class VulkanBuffer* mVertexBuffer_{ nullptr };
-		class VulkanBuffer* mIndexBuffer_{ nullptr };
-		bool mIsResourceDirty_{ true };
-
-	private:
-		void Init();
-
-	protected:
-		class ImGuiRenderElement* mRenderElement_;
-	};
-
 	class PostProcessRenderPass : public IRenderPass
 	{
 		struct QuadVert
@@ -169,9 +127,9 @@ namespace zyh
 			const std::string& vertShaderFile, 
 			const std::string& fragShaderFile,
 			const std::string& renderPassName
-		) : IRenderPass(renderPassName, {RenderSet::NONE}) // Don't care about Render-Set, cause we handle element
+		) : IRenderPass(renderPassName, { RenderSet::POSTPROCESS })
 		{
-			mMaterial = new IMaterial(vertShaderFile, fragShaderFile);
+			mMaterial = new IMaterial(vertShaderFile, fragShaderFile, RenderSet::POSTPROCESS);
 			mMaterial->GetPipelineState().Rasterization.CullMode = ERasterizationCullMode::NONE;
 
 			mPrim_ = new QuadPrimitives(mMaterial);
@@ -185,7 +143,6 @@ namespace zyh
 		QuadPrimitives* mPrim_{ nullptr };
 		VulkanRenderElement* mElement_{ nullptr };
 	};
-
 
 	class XRayStencilWritePass : public IRenderPass
 	{

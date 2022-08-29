@@ -79,13 +79,7 @@ namespace zyh
 		mRenderPasses_.back()->AddRenderTarget(target);
 		mRenderPasses_.back()->SetDepthStencilTarget(depthStencil);
 
-		mRenderPasses_.push_back(
-			new ImGuiRenderPass(
-				"GUI",
-				{ RenderSet::SCENE }
-		));
-		mRenderPasses_.back()->AddRenderTarget(target);
-		mRenderPasses_.back()->SetDepthStencilTarget(depthStencil);
+		mFrameBuffer_.resize(mPlatform_->getImageCount());
 	}
 
 	void Renderer::Draw()
@@ -102,14 +96,19 @@ namespace zyh
 				}
 			}
 
-			VulkanFrameBuffer* frameBuffer = new VulkanFrameBuffer();
-			VulkanRenderPass& renderPass = *mVulkanRenderPasses_[0];
-			frameBuffer->createResource(renderPass);
-			frameBuffer->setup(renderPass);
+			if (!mFrameBuffer_[mPlatform_->GetCurrentImage()])
+			{
+				mFrameBuffer_[mPlatform_->GetCurrentImage()] = new VulkanFrameBuffer();
+				VulkanFrameBuffer* frameBuffer = mFrameBuffer_[mPlatform_->GetCurrentImage()];
+				VulkanRenderPass& renderPass = *mVulkanRenderPasses_[0];
+				frameBuffer->connect(mPlatform_->mPhysicalDevice_, mPlatform_->mLogicalDevice_);
+				frameBuffer->createResource(renderPass);
+				frameBuffer->setup(renderPass);
+			}
 
 			for (VulkanRenderPass* pass : mVulkanRenderPasses_)
 			{
-				pass->Prepare(frameBuffer->Get());
+				pass->Prepare(mFrameBuffer_[mPlatform_->GetCurrentImage()]->Get());
 				pass->Draw();
 			}
 		}

@@ -29,7 +29,7 @@ namespace zyh
 		IRenderScene* mRenderScene_;
 		std::vector<IRenderPass*> mRenderPasses_;
 		std::vector<class VulkanRenderPass*> mVulkanRenderPasses_;
-
+		std::vector<class VulkanFrameBuffer*> mFrameBuffer_;
 		size_t mCurrentImage_ = 0;
 	};
 }

@@ -43,6 +43,8 @@ enum RenderSet : uint32_t
 	SHADOW = 2,
 	XRAY = 3,
 	UI = 4,
+	POSTPROCESS = 5,
+
 };
 
 typedef std::vector<RenderSet> TRenderSets;

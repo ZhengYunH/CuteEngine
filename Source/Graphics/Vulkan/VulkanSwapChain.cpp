@@ -73,7 +73,7 @@ namespace zyh
 			VkImageView extraViews[1] = { image.Get().view };
 
 			buffer.connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
-			buffer.createResource(renderPass);
+			buffer.createResource(renderPass, false);
 			buffer.setup(renderPass, extraViews, 1);
 		}
 	}

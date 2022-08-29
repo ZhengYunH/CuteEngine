@@ -435,11 +435,13 @@ namespace zyh
 		return buffer;
 	}
 
-	void VulkanFrameBuffer::createResource(VulkanRenderPass& renderPass)
+	void VulkanFrameBuffer::createResource(VulkanRenderPass& renderPass, bool needCreateResolve)
 	{
 		const std::vector<RenderTarget>& targets = renderPass.GetRenderPass()->GetRenderTargets();
 		const RenderTarget& depthStencil = renderPass.GetRenderPass()->GetDepthStencilTarget();
-		size_t ResourceSize = targets.size();
+		bool enableAA = true & needCreateResolve;
+		int multipiler = enableAA ? 2 : 1;
+		size_t ResourceSize = targets.size() * multipiler;
 		if (depthStencil)
 			ResourceSize += 1;
 		mResources_.resize(ResourceSize);
@@ -447,17 +449,18 @@ namespace zyh
 		size_t i = 0;
 		for (; i< ResourceSize; ++i)
 		{
+			bool isResolve = i > targets.size();
 			bool isDepthStencil = depthStencil && i == targets.size();
-			auto& target = isDepthStencil ? depthStencil : targets[i];
+			auto& target = isDepthStencil ? depthStencil : (!isResolve ? targets[i] : (depthStencil ? targets[(i - 1) / 2] : targets[i / 2]));
 			VulkanImage*& colorResource = mResources_[i];
 			colorResource = new VulkanImage();
 			colorResource->connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
 
 			VkImageUsageFlags usage = isDepthStencil? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT:  VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 			VkImageAspectFlags aspectFlag = isDepthStencil ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
-
+			VkSampleCountFlagBits numSample = isResolve ? VK_SAMPLE_COUNT_1_BIT : Convert::Quality2SamplerCount(target.Quality);
 			colorResource->setup(target.Width, target.Height, target.Mips,
-				Convert::Quality2SamplerCount(target.Quality), Convert::Format(target.Format),
+				numSample, Convert::Format(target.Format),
 				VK_IMAGE_TILING_OPTIMAL,
 				usage,
 				VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, aspectFlag

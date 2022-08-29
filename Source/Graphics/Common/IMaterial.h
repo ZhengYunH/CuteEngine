@@ -21,11 +21,11 @@ namespace zyh
 	class IMaterial
 	{
 	public:
-		IMaterial(const std::string& vertShaderFile, const std::string& fragShaderFile)
+		IMaterial(const std::string& vertShaderFile, const std::string& fragShaderFile, RenderSet set = RenderSet::SCENE)
 		{
-			mShaderPathMap_[RenderSet::SCENE] = std::map<EShaderType, std::string>();
-			mShaderPathMap_[RenderSet::SCENE][EShaderType::VS] = vertShaderFile;
-			mShaderPathMap_[RenderSet::SCENE][EShaderType::PS] = fragShaderFile;
+			mShaderPathMap_[set] = std::map<EShaderType, std::string>();
+			mShaderPathMap_[set][EShaderType::VS] = vertShaderFile;
+			mShaderPathMap_[set][EShaderType::PS] = fragShaderFile;
 		}
 		virtual ~IMaterial() {}
 		virtual bool IsValid() const { return true; }

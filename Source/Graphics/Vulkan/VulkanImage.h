@@ -80,7 +80,7 @@ namespace zyh
 			mVulkanPhysicalDevice_ = physicalDevice;
 			mVulkanLogicalDevice_ = logicalDevice;
 		}
-		void createResource(VulkanRenderPass& renderPass);
+		void createResource(VulkanRenderPass& renderPass, bool needCreateResolve=true);
 		void setup(VulkanRenderPass& renderPass, VkImageView* extraViews = nullptr, size_t extraViewCount = 0);
 		void cleanup();
 

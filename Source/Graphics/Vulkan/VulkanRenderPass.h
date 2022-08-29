@@ -36,7 +36,7 @@ namespace zyh
 		VulkanLogicalDevice* mVulkanLogicalDevice_;
 
 	public:
-		void InitailizeResource();
+		virtual void InitailizeResource();
 		IRenderPass* GetRenderPass() { return mRenderPass_; }
 
 	protected:
@@ -56,6 +56,8 @@ namespace zyh
 	{
 	public:
 		virtual void setup() override;
+		virtual void InitailizeResource() override;
+
 	protected:
 		virtual void _DrawElements(VkCommandBuffer vkCommandBuffer) override;
 

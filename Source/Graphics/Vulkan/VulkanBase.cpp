@@ -132,6 +132,11 @@ namespace zyh
 		return *GInstance->mDepthFormat_;
 	}
 
+	size_t VulkanBase::getImageCount()
+	{
+		return mSwapchain_->getImageCount();
+	}
+
 	/// impl
 	void VulkanBase::prepare()
 	{

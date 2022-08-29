@@ -81,6 +81,7 @@ namespace zyh
 	public:
 		virtual VkSampleCountFlagBits getMsaaSamples();
 		virtual VkFormat getDepthFormat();
+		size_t getImageCount();
 
 	protected:
 		bool mIsPaused_{ false };

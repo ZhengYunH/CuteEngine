@@ -81,7 +81,7 @@ namespace zyh
 		}
 
 	public:
-		void setupState(class VulkanRenderPass* renderPass)
+		virtual void setupState(class VulkanRenderPass* renderPass)
 		{
 			mMaterial_->mRenderPass_ = renderPass;
 			mMaterial_->setup();
