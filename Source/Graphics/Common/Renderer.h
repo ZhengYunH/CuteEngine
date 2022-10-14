@@ -23,13 +23,13 @@ namespace zyh
 		void Draw();
 		void Connect();
 		void Compile();
+		void SetupPipeline();
 
 	protected:
 		VulkanBase* mPlatform_;
 		IRenderScene* mRenderScene_;
 		std::vector<IRenderPass*> mRenderPasses_;
 		std::vector<class VulkanRenderPass*> mVulkanRenderPasses_;
-		std::vector<class VulkanFrameBuffer*> mFrameBuffer_;
 		size_t mCurrentImage_ = 0;
 	};
 }

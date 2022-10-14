@@ -39,6 +39,5 @@ namespace zyh
 		SafeDestroy(mPrim_);
 		SafeDestroy(mMaterial);
 	}
-
 }
 

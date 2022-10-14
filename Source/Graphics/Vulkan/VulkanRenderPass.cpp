@@ -3,7 +3,6 @@
 #include "VulkanRenderElement.h"
 #include "VulkanMaterial.h"
 
-#include "Graphics/Common/IRenderPass.h"
 #include "Core/TerrainComponent.h"
 
 #include "Graphics/Imgui/imgui.h"
@@ -11,8 +10,47 @@
 #include "Graphics/Imgui/imgui_impl_win32.h"
 
 
+#include "Graphics/Vulkan/VulkanImage.h"
+#include "Graphics/Common/IRenderScene.h"
+
+
 namespace zyh
 {
+	RenderDevice* GRenderDevice = new VulkanRenderDevice();
+
+	void VulkanRenderTargetResource::Create_Imp()
+	{
+		RenderTarget& target = Desc.RenderTargetDesc;
+		mImage_ = new VulkanImage();
+		mImage_->connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_);
+
+		bool isDepthStencil = Desc.IsDepthStencil;
+		VkImageUsageFlags usage = isDepthStencil ? VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT : VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+		VkImageAspectFlags aspectFlag = isDepthStencil ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+
+		mImage_->setup(target.Width, target.Height, target.Mips,
+			Convert::Quality2SamplerCount(target.Quality), Convert::Format(target.Format),
+			VK_IMAGE_TILING_OPTIMAL,
+			usage,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, aspectFlag
+		);
+	}
+
+	void VulkanSwapchainResource::Create_Imp()
+	{
+
+	}
+
+	VkImageView VulkanSwapchainResource::GetImageView()
+	{
+		return GVulkanInstance->getSwapChainImages()[GVulkanInstance->GetCurrentImage()].Get().view;
+	}
+
+	VkImageView VulkanRenderTargetResource::GetImageView()
+	{
+		return mImage_->Get().view;
+	}
+
 	void VulkanRenderPass::connect(VulkanLogicalDevice* logicalDevice)
 	{
 		mVulkanLogicalDevice_ = logicalDevice;
@@ -20,15 +58,12 @@ namespace zyh
 
 	void VulkanRenderPass::setup()
 	{
-		const std::vector<RenderTarget>& RenderTargets = mRenderPass_->GetRenderTargets();
-		size_t attachmentSize = RenderTargets.size();
-		const RenderTarget& DepthStencil = mRenderPass_->GetDepthStencilTarget();
+		std::vector<RenderTarget> RenderTargets = mRenderPass_->GetWriteTargetsDesc();
+		std::vector<RenderTarget> ResolveRenderTargets = mRenderPass_->GetResolveTargetsDesc();
+		size_t attachmentSize = RenderTargets.size() + ResolveRenderTargets.size();
+		RenderTarget DepthStencil = mRenderPass_->GetDepthStencilTargetDesc();
 		if (DepthStencil)
 			attachmentSize += 1;
-
-		bool enableAA = true;
-		if (enableAA)
-			attachmentSize += 1; // for resolves
 
 		std::vector<VkAttachmentDescription> attachments;
 		std::vector<VkAttachmentReference> references;
@@ -42,8 +77,8 @@ namespace zyh
 			const RenderTarget& target = RenderTargets[index];
 			attachments[index].format = Convert::Format(target.Format);
 			attachments[index].samples = Convert::Quality2SamplerCount(target.Quality);
-			attachments[index].loadOp = _convertLoadOp(target.LoadOp);
-			attachments[index].storeOp = _convertStoreOp(target.StoreOp);
+			attachments[index].loadOp = Convert::LoadOp(target.LoadOp);
+			attachments[index].storeOp = Convert::StoreOp(target.StoreOp);
 
 			attachments[index].initialLayout = target.LoadOp == RenderTarget::ELoadOp::LOAD ?
 				VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
@@ -64,8 +99,8 @@ namespace zyh
 			const RenderTarget& target = DepthStencil;
 			attachments[index].format = Convert::Format(target.Format);
 			attachments[index].samples = Convert::Quality2SamplerCount(target.Quality);
-			attachments[index].stencilLoadOp = _convertLoadOp(target.LoadOp);
-			attachments[index].stencilStoreOp = _convertStoreOp(target.StoreOp);
+			attachments[index].stencilLoadOp = Convert::LoadOp(target.LoadOp);
+			attachments[index].stencilStoreOp = Convert::StoreOp(target.StoreOp);
 
 			attachments[index].initialLayout = target.LoadOp == RenderTarget::ELoadOp::LOAD ?
 				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
@@ -82,22 +117,24 @@ namespace zyh
 
 		// Color Resolve Attachment
 		int resolveIndex = -1;
-		if (enableAA && !RenderTargets.empty())
+		if (!ResolveRenderTargets.empty())
 		{
-			resolveIndex = static_cast<int>(index);
-			attachments[index].format = Convert::Format(RenderTargets[0].Format);
-			attachments[index].samples = VK_SAMPLE_COUNT_1_BIT;
-			attachments[index].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			attachments[index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-			attachments[index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-			attachments[index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			attachments[index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachments[index].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			size_t lastSize = index;
+			for (;index < lastSize + ResolveRenderTargets.size(); ++index)
+			{
+				resolveIndex = static_cast<int>(index);
+				attachments[index].format = Convert::Format(RenderTargets[index - lastSize].Format);
+				attachments[index].samples = VK_SAMPLE_COUNT_1_BIT;
+				attachments[index].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				attachments[index].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+				attachments[index].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+				attachments[index].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+				attachments[index].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+				attachments[index].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
-			references[index].attachment = static_cast<uint32_t>(index);
-			references[index].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-			++index;
+				references[index].attachment = static_cast<uint32_t>(index);
+				references[index].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			}
 		}
 
 		VkSubpassDescription subpassDescription = {};
@@ -138,9 +175,8 @@ namespace zyh
 		vkDestroyRenderPass(mVulkanLogicalDevice_->Get(), mVkImpl_, nullptr);
 	}
 
-	void VulkanRenderPass::Prepare(VkFramebuffer framebuffer)
+	void VulkanRenderPass::Prepare()
 	{
-		mVKFramebuffer_ = framebuffer;
 	}
 
 	void VulkanRenderPass::Draw()
@@ -151,14 +187,14 @@ namespace zyh
 
 		mRenderPassInfo_.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 		mRenderPassInfo_.renderPass = mVkImpl_;
-		mRenderPassInfo_.framebuffer = mVKFramebuffer_;
+		mRenderPassInfo_.framebuffer = mFrameBuffers_[GVulkanInstance->GetCurrentImage()]->Get();
 		mRenderPassInfo_.renderArea.offset = { 0, 0 };
 		mRenderPassInfo_.renderArea.extent = *(GInstance->mExtend_);
 		{
 			// set Clear Values
-			const std::vector<RenderTarget>& RenderTargets = mRenderPass_->GetRenderTargets();
+			const std::vector<RenderTarget>& RenderTargets = mRenderPass_->GetWriteTargetsDesc();
 			size_t attachmentSize = RenderTargets.size();
-			const RenderTarget DepthStencil = mRenderPass_->GetDepthStencilTarget();
+			const RenderTarget DepthStencil = mRenderPass_->GetDepthStencilTargetDesc();
 			if (DepthStencil)
 				attachmentSize += 1;
 			std::vector<VkClearValue> clearValues;
@@ -167,8 +203,8 @@ namespace zyh
 			for (index = 0; index < RenderTargets.size(); ++index)
 			{
 				clearValues[index].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+				clearValues[index].depthStencil = { 1.0f, 0 };
 			}
-			clearValues[index].depthStencil = { 1.0f, 0 };
 			++index;
 			mRenderPassInfo_.clearValueCount = static_cast<uint32_t>(clearValues.size());
 			mRenderPassInfo_.pClearValues = clearValues.data();
@@ -189,7 +225,9 @@ namespace zyh
 		auto& renderSets = mRenderPass_->GetRenderSets();
 		for (const RenderSet& renderSet : renderSets)
 		{
-			for (auto& renderElement : GEngine->Scene->GetRenderElements(renderSet))
+			std::vector<IRenderElement*> elements;
+			GEngine->Scene->GetRenderElements(renderSet, elements);
+			for (auto renderElement : elements)
 			{
 				VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
 				element->setupState(this);
@@ -200,41 +238,34 @@ namespace zyh
 
 	void VulkanRenderPass::InitailizeResource()
 	{
+		// create VkImage & VkImageView
+		mRenderPass_->CreateRenderResource();
+
+		// create VkRenderpass
 		connect(GVulkanInstance->mLogicalDevice_);
 		setup();
+
+		// create FrameBuffer; TODO: optimized by FrameGraph
+		CreateFrameBuffer();
 	}
 
-	// Helper Function
-	VkAttachmentLoadOp VulkanRenderPass::_convertLoadOp(const RenderTarget::ELoadOp op)
+	void VulkanRenderPass::CreateFrameBuffer()
 	{
-		switch (op)
-		{
-		case RenderTarget::ELoadOp::LOAD:
-			return VK_ATTACHMENT_LOAD_OP_LOAD;
-		case RenderTarget::ELoadOp::CLEAR:
-			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		case RenderTarget::ELoadOp::DONT_CARE:
-			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		default:
-			Unimplement(0);
-			break;
-		}
-		return VK_ATTACHMENT_LOAD_OP_MAX_ENUM;
-	}
+		mFrameBuffers_.resize(GVulkanInstance->getImageCount());
 
-	VkAttachmentStoreOp VulkanRenderPass::_convertStoreOp(const RenderTarget::EStoreOp op)
-	{
-		switch (op)
+		for (VulkanFrameBuffer*& frameBuffer : mFrameBuffers_)
 		{
-		case RenderTarget::EStoreOp::STORE:
-			return VK_ATTACHMENT_STORE_OP_STORE;
-		case RenderTarget::EStoreOp::DONT_CARE:
-			return VK_ATTACHMENT_STORE_OP_DONT_CARE;
-		default:
-			Unimplement(0);
-			break;
+			frameBuffer = new VulkanFrameBuffer();
+			frameBuffer->connect(GVulkanInstance->mPhysicalDevice_, GVulkanInstance->mLogicalDevice_);
+			std::vector<RenderTargetResource*> targets = mRenderPass_->GetAllWriteTargets();
+			std::vector<VkImageView> views;
+			for (auto target : targets)
+			{
+				auto resource = dynamic_cast<VulkanRenderTargetResource*>(target);
+				views.push_back(resource->GetImageView());
+			}
+			frameBuffer->setup(*this, views);
 		}
-		return VK_ATTACHMENT_STORE_OP_MAX_ENUM;
 	}
 
 	struct UISettings {
@@ -415,6 +446,7 @@ namespace zyh
 
 	void VulkanImGuiRenderPass::InitailizeResource()
 	{
+		VulkanRenderPass::InitailizeResource();
 		GEngine->Scene->GetRenderScene()->AddRenderElement(RenderSet::UI, mRenderElement_);
 	}
 
@@ -466,5 +498,6 @@ namespace zyh
 			}
 		}
 	}
+
 }
 

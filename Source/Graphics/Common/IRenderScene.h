@@ -29,11 +29,13 @@ namespace zyh
 			return true;
 		}
 
-		const std::vector<IRenderElement*>& GetRenderElements(RenderSet renderSet)
+		void GetRenderElements(RenderSet renderSet, std::vector<IRenderElement*>& elements)
 		{
-			HYBRID_CHECK(mRenderElements_.find(renderSet) != mRenderElements_.end());
-
-			return mRenderElements_[renderSet];
+			elements.clear();
+			if (mRenderElements_.find(renderSet) != mRenderElements_.end())
+			{
+				elements = mRenderElements_[renderSet];
+			}
 		}
 
 		TRenderSets GetExistRenderSets()

@@ -69,8 +69,6 @@ namespace zyh
 		/** @brief Encapsulated command pool*/
 		VulkanCommandPool* mGraphicsCommandPool_{ nullptr };
 
-		VulkanRenderPass* mFrameBufferRenderPass_{ nullptr };
-
 		/** @brief Synchronization Objects*/
 		const int MAX_FRAMES_IN_FLIGHT = 2;
 		std::vector<VkSemaphore> mImageAvailableSemaphores_;
@@ -82,6 +80,7 @@ namespace zyh
 		virtual VkSampleCountFlagBits getMsaaSamples();
 		virtual VkFormat getDepthFormat();
 		size_t getImageCount();
+		std::vector<VulkanImage>& getSwapChainImages();
 
 	protected:
 		bool mIsPaused_{ false };
@@ -125,7 +124,6 @@ namespace zyh
 		void DrawFrameEnd() { drawFrame(); }
 		size_t GetCurrentImage() { return mCurrentImage_; }
 		VulkanCommand* GetCommandBuffer();
-		VkFramebuffer GetSwapchainFrameBuffer();
 		size_t mFreeCommandBufferIdx_{ 0 };
 		uint32_t GetScreenHeigth() { return mHeight_; }
 		uint32_t GetScreenWidth() { return mWidth_; }

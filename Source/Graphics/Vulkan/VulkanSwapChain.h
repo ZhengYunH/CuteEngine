@@ -46,10 +46,10 @@ namespace zyh
 		VkResult acquireNextImage(VkSemaphore presentCompleteSemaphore, uint32_t* imageIndex);
 		VkResult queuePresent(VkQueue queue, uint32_t imageIndex, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 		uint32_t getImageCount();
+		std::vector<VulkanImage>& getImages() { return mImages_; }
 		VkFormat getColorFormat() { return mColorFormat_; }
 		VkColorSpaceKHR getColorSpace() { return mColorSpace_; }
 		VkExtent2D getExtend() { return mExtend2D_; };
-		VkFramebuffer getFrameBuffer(uint32_t i) { HYBRID_CHECK(i < getImageCount()); return mBuffers_[i].Get(); }
 
 	public:
 		uint32_t queueNodeIndex = UINT32_MAX;

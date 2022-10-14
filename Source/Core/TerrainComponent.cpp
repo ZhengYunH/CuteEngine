@@ -1,6 +1,7 @@
 #include "TerrainComponent.h"
 #include "Math/MathUtil.h"
 #include "Graphics/Vulkan/VulkanRenderElement.h"
+#include "Graphics/Vulkan/VulkanModel.h"
 
 #include <time.h>
 
@@ -39,6 +40,20 @@ namespace zyh
 		mHeightMapData_[y_i * mWidthCount_ + x_i] += offset;
 
 		DataChanged.BoardCast(x_i, y_i);
+	}
+
+	TerrainComponent::TerrainComponent(IEntity* Parent): IPrimitivesComponent(Parent)
+	{
+		mName_ = "TerrainComponent";
+
+		mHeightmap_ = new HeightMap();
+		mHeightmap_->GenerateData();
+
+		mMaterial_ = new IMaterial("Resource/shaders/terrain.vert.spv", "Resource/shaders/terrain.frag.spv");
+		mHeightmapPrim_ = new HeightMapPrimitive(mMaterial_, mHeightmap_);
+		mHeightmapPrim_->DataChanged.Bind(Bind(&TerrainComponent::HeightMapDataChanged, this));
+
+		mModel_->AddPrimitive(mHeightmapPrim_);
 	}
 
 	void TerrainComponent::HeightMapDataChanged(HeightMapPrimitive* prim)

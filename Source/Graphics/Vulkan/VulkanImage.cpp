@@ -435,11 +435,11 @@ namespace zyh
 		return buffer;
 	}
 
-	void VulkanFrameBuffer::createResource(VulkanRenderPass& renderPass, bool needCreateResolve)
+	void VulkanFrameBuffer::createResource(VulkanRenderPass& renderPass)
 	{
-		const std::vector<RenderTarget>& targets = renderPass.GetRenderPass()->GetRenderTargets();
-		const RenderTarget& depthStencil = renderPass.GetRenderPass()->GetDepthStencilTarget();
-		bool enableAA = true & needCreateResolve;
+		const std::vector<RenderTarget>& targets = renderPass.GetRenderPass()->GetWriteTargetsDesc();
+		const RenderTarget& depthStencil = renderPass.GetRenderPass()->GetDepthStencilTargetDesc();
+		bool enableAA = false;
 		int multipiler = enableAA ? 2 : 1;
 		size_t ResourceSize = targets.size() * multipiler;
 		if (depthStencil)
@@ -485,6 +485,20 @@ namespace zyh
 		framebufferInfo.renderPass = renderPass.Get();
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());;
 		framebufferInfo.pAttachments = attachments.data();
+		framebufferInfo.width = renderPass.GetRenderPass()->GetWidth();
+		framebufferInfo.height = renderPass.GetRenderPass()->GetHeight();
+		framebufferInfo.layers = 1;
+
+		VK_CHECK_RESULT(vkCreateFramebuffer(mVulkanLogicalDevice_->Get(), &framebufferInfo, nullptr, &mVkImpl_), "failed to create framebuffer!");
+	}
+
+	void VulkanFrameBuffer::setup(VulkanRenderPass& renderPass, std::vector<VkImageView> views)
+	{
+		VkFramebufferCreateInfo framebufferInfo{};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = renderPass.Get();
+		framebufferInfo.attachmentCount = static_cast<uint32_t>(views.size());;
+		framebufferInfo.pAttachments = views.data();
 		framebufferInfo.width = renderPass.GetRenderPass()->GetWidth();
 		framebufferInfo.height = renderPass.GetRenderPass()->GetHeight();
 		framebufferInfo.layers = 1;

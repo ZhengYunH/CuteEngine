@@ -35,8 +35,13 @@ VkVertexInputAttributeDescription initInputAttrDesc(uint32_t binding, uint32_t l
 
 
 #include "Graphics/Common/RenderResource.h"
-namespace Convert
+namespace zyh
 {
-	VkSampleCountFlagBits Quality2SamplerCount(const zyh::ESamplerQuality quality);
-	VkFormat Format(const zyh::EPixelFormat format);
+	namespace Convert
+	{
+		VkSampleCountFlagBits Quality2SamplerCount(const ESamplerQuality quality);
+		VkFormat Format(const EPixelFormat format);
+		VkAttachmentLoadOp LoadOp(const RenderTarget::ELoadOp op);
+		VkAttachmentStoreOp StoreOp(const RenderTarget::EStoreOp op);
+	};
 };

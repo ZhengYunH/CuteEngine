@@ -3,6 +3,7 @@
 #include "Graphics/Vulkan/VulkanHeader.h"
 #include "IPrimitivesComponent.h"
 #include "Core/EventHelper.h"
+#include "Core/InputSystem.h"
 
 
 namespace zyh
@@ -185,20 +186,7 @@ namespace zyh
 	{
 		using Super = IComponent;
 	public:
-		TerrainComponent(IEntity* Parent) : IPrimitivesComponent(Parent)
-		{ 
-			mName_ = "TerrainComponent"; 
-
-			mHeightmap_ = new HeightMap();
-			mHeightmap_->GenerateData();
-
-			mMaterial_ = new IMaterial("Resource/shaders/terrain.vert.spv", "Resource/shaders/terrain.frag.spv");
-			mHeightmapPrim_ = new HeightMapPrimitive(mMaterial_, mHeightmap_);
-			mHeightmapPrim_->DataChanged.Bind(Bind(&TerrainComponent::HeightMapDataChanged, this));
-
-			mModel_->AddPrimitive(mHeightmapPrim_);
-
-		}
+		TerrainComponent(IEntity* Parent);
 
 		virtual ~TerrainComponent()
 		{

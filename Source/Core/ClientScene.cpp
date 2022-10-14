@@ -68,9 +68,9 @@ namespace zyh
 		return mRenderScene_->AddRenderElement(renderSet, element);
 	}
 
-	const std::vector<IRenderElement*>& ClientScene::GetRenderElements(RenderSet renderSet)
+	void ClientScene::GetRenderElements(RenderSet renderSet, std::vector<IRenderElement*>& elements)
 	{
-		return mRenderScene_->GetRenderElements(renderSet);
+		mRenderScene_->GetRenderElements(renderSet, elements);
 	}
 
 	void ClientScene::LoadScene()

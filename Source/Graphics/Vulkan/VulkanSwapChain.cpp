@@ -73,7 +73,7 @@ namespace zyh
 			VkImageView extraViews[1] = { image.Get().view };
 
 			buffer.connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
-			buffer.createResource(renderPass, false);
+			buffer.createResource(renderPass); // no need to create resource
 			buffer.setup(renderPass, extraViews, 1);
 		}
 	}
@@ -329,7 +329,6 @@ namespace zyh
 			VulkanFrameBuffer& buffer = mBuffers_[i];
 
 			image.connect(mVulkanPhysicalDevice_, mVulkanLogicalDevice_);
-			image.Get().image = images[i];
 			image.createImageView(images[i], surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 		}
 		return VK_SUCCESS;

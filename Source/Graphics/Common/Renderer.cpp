@@ -28,87 +28,29 @@ namespace zyh
 	void Renderer::Build()
 	{
 		mPlatform_->Initialize();
-		RenderTarget target(
-			mPlatform_->GetScreenWidth(),
-			mPlatform_->GetScreenHeigth(),
-			1,
-			ETextureType::Texture2D,
-			EPixelFormat::A32R32G32B32F
-		);
-		RenderTarget depthStencil(
-			mPlatform_->GetScreenWidth(),
-			mPlatform_->GetScreenHeigth(),
-			1,
-			ETextureType::Texture2D,
-			EPixelFormat::D32_SFLOAT_S8_UINT
-		);
-		target.Quality = ESamplerQuality::Quality8X;
-		depthStencil.Quality = ESamplerQuality::Quality8X;
-
-
-		target.LoadOp = RenderTarget::ELoadOp::DONT_CARE;
-		target.StoreOp = RenderTarget::EStoreOp::STORE;
-		depthStencil.LoadOp = RenderTarget::ELoadOp::DONT_CARE;
-		depthStencil.StoreOp = RenderTarget::EStoreOp::STORE;
-		mRenderPasses_.push_back(
-			new IRenderPass(
-				"Scene",
-				{ RenderSet::SCENE }
-			)
-		);
-		mRenderPasses_.back()->AddRenderTarget(target);
-		mRenderPasses_.back()->SetDepthStencilTarget(depthStencil);
-
-
-		target.LoadOp = RenderTarget::ELoadOp::LOAD;
-		depthStencil.LoadOp = RenderTarget::ELoadOp::LOAD;
-		mRenderPasses_.push_back(
-			new IRenderPass(
-				"XRayWriter",
-				{ RenderSet::XRAY }
-			)
-		);
-		mRenderPasses_.back()->AddRenderTarget(target);
-		mRenderPasses_.back()->SetDepthStencilTarget(depthStencil);
-
-		mRenderPasses_.push_back(
-			new XRayPass(
-				"XRayPostProcess"
-			)
-		);
-		mRenderPasses_.back()->AddRenderTarget(target);
-		mRenderPasses_.back()->SetDepthStencilTarget(depthStencil);
-
-		mFrameBuffer_.resize(mPlatform_->getImageCount());
+		SetupPipeline();
+		Compile();
 	}
 
 	void Renderer::Draw()
 	{
-		Compile();
 		mPlatform_->DrawFrameBegin(mCurrentImage_);
 		{
 			for (auto renderSet : mRenderScene_->GetExistRenderSets())
 			{
-				for (auto& renderElement : mRenderScene_->GetRenderElements(renderSet))
+				std::vector<IRenderElement*> elements;
+				mRenderScene_->GetRenderElements(renderSet, elements);
+				for (auto& renderElement : elements)
 				{
 					VulkanRenderElement* element = static_cast<VulkanRenderElement*>(renderElement);
 					element->updateUniformBuffer(mCurrentImage_);
 				}
 			}
 
-			if (!mFrameBuffer_[mPlatform_->GetCurrentImage()])
-			{
-				mFrameBuffer_[mPlatform_->GetCurrentImage()] = new VulkanFrameBuffer();
-				VulkanFrameBuffer* frameBuffer = mFrameBuffer_[mPlatform_->GetCurrentImage()];
-				VulkanRenderPass& renderPass = *mVulkanRenderPasses_[0];
-				frameBuffer->connect(mPlatform_->mPhysicalDevice_, mPlatform_->mLogicalDevice_);
-				frameBuffer->createResource(renderPass);
-				frameBuffer->setup(renderPass);
-			}
 
 			for (VulkanRenderPass* pass : mVulkanRenderPasses_)
 			{
-				pass->Prepare(mFrameBuffer_[mPlatform_->GetCurrentImage()]->Get());
+				pass->Prepare();
 				pass->Draw();
 			}
 		}
@@ -126,6 +68,8 @@ namespace zyh
 			SafeDestroy(renderPass);
 
 		mVulkanRenderPasses_.clear();
+
+		// Resolve RenderPass
 		for (IRenderPass* pass : mRenderPasses_)
 		{
 			pass->PrepareData();
@@ -136,4 +80,84 @@ namespace zyh
 		}
 	}
 
+	void Renderer::SetupPipeline()
+	{
+		RenderTarget target(
+			mPlatform_->GetScreenWidth(),
+			mPlatform_->GetScreenHeigth(),
+			1,
+			ETextureType::Texture2D,
+			EPixelFormat::A32R32G32B32F
+		);
+		RenderTarget depthStencil(
+			mPlatform_->GetScreenWidth(),
+			mPlatform_->GetScreenHeigth(),
+			1,
+			ETextureType::Texture2D,
+			EPixelFormat::D32_SFLOAT_S8_UINT
+		);
+		target.Quality = ESamplerQuality::Quality8X;
+		depthStencil.Quality = ESamplerQuality::Quality8X;
+
+		IRenderPass* pass;
+		mRenderPasses_.push_back(
+			new IRenderPass(
+				"Detonate",
+				{ RenderSet::NONE }
+			)
+		);
+		pass = mRenderPasses_.back();
+		uint32_t renderTargetIdx = pass->CreateRenderTarget(target);
+		uint32_t depthStencilTargetIdx = pass->CreateDepthStencil(depthStencil);
+
+		mRenderPasses_.push_back(
+			new IRenderPass(
+				"Scene",
+				{ RenderSet::SCENE }
+			)
+		);
+		pass = mRenderPasses_.back();
+		pass->Write(renderTargetIdx);
+		pass->SetDepthStencil(depthStencilTargetIdx);
+
+		target.LoadOp = RenderTarget::ELoadOp::LOAD;
+		depthStencil.LoadOp = RenderTarget::ELoadOp::LOAD;
+		mRenderPasses_.push_back(
+			new IRenderPass(
+				"XRayWriter",
+				{ RenderSet::XRAY }
+			)
+		);
+		pass = mRenderPasses_.back();
+		pass->Write(renderTargetIdx);
+		pass->SetDepthStencil(depthStencilTargetIdx);
+
+		mRenderPasses_.push_back(
+			new XRayPass(
+				"XRayPostProcess"
+			)
+		);
+		pass = mRenderPasses_.back();
+		pass->Write(renderTargetIdx);
+		pass->SetDepthStencil(depthStencilTargetIdx);
+
+		mRenderPasses_.push_back(
+			new FinalPass(
+				"Final",
+				{ RenderSet::NONE }
+			)
+		);
+		pass = mRenderPasses_.back();
+		pass->Read(renderTargetIdx);
+		RenderTarget SwapChainTarget(
+			mPlatform_->GetScreenWidth(),
+			mPlatform_->GetScreenHeigth(),
+			1,
+			ETextureType::Texture2D,
+			EPixelFormat::R8G8B8A8
+		);
+		SwapChainTarget.Quality = ESamplerQuality::Quality8X;
+		pass->CreateRenderTarget(SwapChainTarget);
+		pass->CreateSwapChain(SwapChainTarget);
+	}
 }

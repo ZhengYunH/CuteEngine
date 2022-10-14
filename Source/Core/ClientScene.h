@@ -30,7 +30,7 @@ namespace zyh
 
 		/// RenderScene Utility
 		bool AddRenderElement(RenderSet renderset, IRenderElement* element);
-		const std::vector<IRenderElement*>& GetRenderElements(RenderSet renderSet);
+		void GetRenderElements(RenderSet renderSet, std::vector<IRenderElement*>& elements);
 
 		void CollectAllRenderElements();
 

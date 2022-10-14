@@ -46,7 +46,6 @@ namespace zyh
 		mLogicalDevice_ = new VulkanLogicalDevice();
 		mSwapchain_ = new VulkanSwapchain();
 		mGraphicsCommandPool_ = new VulkanCommandPool(GRAPHICS);
-		mFrameBufferRenderPass_ = new VulkanRenderPass(new IRenderPass("FrameBuffer", { RenderSet::SCENE }));
 
 		// connect
 		mSurface_->connect(mInstance_);
@@ -74,29 +73,6 @@ namespace zyh
 		mSwapchain_->setup(&mWidth_, &mHeight_);
 		
 		mGraphicsCommandPool_->setup();
-
-		RenderTarget target(
-			mSwapchain_->getExtend().width,
-			mSwapchain_->getExtend().height,
-			1,
-			ETextureType::Texture2D,
-			EPixelFormat::R8G8B8A8
-		);
-		target.Quality = ESamplerQuality::Quality8X;
-
-		RenderTarget depthStencil(
-			mSwapchain_->getExtend().width,
-			mSwapchain_->getExtend().height,
-			1,
-			ETextureType::Texture2D,
-			EPixelFormat::D32_SFLOAT_S8_UINT
-		);
-		depthStencil.Quality = ESamplerQuality::Quality8X;
-
-
-		mFrameBufferRenderPass_->GetRenderPass()->AddRenderTarget(target);
-		mFrameBufferRenderPass_->GetRenderPass()->SetDepthStencilTarget(depthStencil);
-		mFrameBufferRenderPass_->InitailizeResource();
 	}
 
 	void VulkanBase::createSyncObjects()
@@ -137,10 +113,15 @@ namespace zyh
 		return mSwapchain_->getImageCount();
 	}
 
+	std::vector<VulkanImage>& VulkanBase::getSwapChainImages()
+	{
+		return mSwapchain_->getImages();
+	}
+
 	/// impl
 	void VulkanBase::prepare()
 	{
-		mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_);
+		// mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_);
 		createCommandBuffers();
 		createSyncObjects();
 
@@ -290,7 +271,7 @@ namespace zyh
 
 		// Recreate swap chain
 		mSwapchain_->setup(&mWidth_, &mHeight_);
-		mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_);
+		// mSwapchain_->setupFrameBuffer(*mFrameBufferRenderPass_);
 		
 		createCommandBuffers();
 	}
@@ -318,11 +299,6 @@ namespace zyh
 		mFreeCommandBufferIdx_++;
 		HYBRID_CHECK(mFreeCommandBufferIdx_ <= mCommandBuffers_[mCurrentImage_].size());
 		return cmd;
-	}
-
-	VkFramebuffer VulkanBase::GetSwapchainFrameBuffer()
-	{
-		return mSwapchain_->getFrameBuffer(static_cast<uint32_t>(mCurrentImage_));
 	}
 
 	void VulkanBase::DrawFrameBegin(size_t& OutCurrentImage)
